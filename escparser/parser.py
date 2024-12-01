@@ -120,7 +120,7 @@ class ESCParser:
 
         # Default printable area (restricted with margins into the printing area)
         if not printable_area_margins_mm:
-            # TODO: be sure about margins for continuous paper: None ?
+            # TODO: be sure about margins for continuous paper: None ? cf p18
             printable_area_margins_mm = (
                 (6.35, 6.35, 6.35, 6.35) if self.single_sheet_paper else (9, 9, 3, 3)
             )
@@ -273,11 +273,12 @@ class ESCParser:
 
     @property
     def color(self) -> int:
+        """Get the current color id"""
         return self._color
 
     @color.setter
     def color(self, color: int):
-        """Get the current color ID"""
+        """Set the current color id"""
         if color >= len(self.RGB_colors):
             # Color doesn't exist: ignore the command
             return
@@ -449,10 +450,14 @@ class ESCParser:
         self.cancel_top_bottom_margins()
 
     def set_bottom_margin(self, *args):
-        """Sets the bottom margin on continuous paper to n lines (in the current line spacing)
-        from the top-of-form position on the next page. - ESC N
+        """Set the bottom margin on continuous paper to n lines (in the current line spacing) - ESC N
 
-        Sets a bottom margin x inch (n lines * line spacing) above the next page’s top-of-form position.
+        .. note:: This command uses values configured "from the top-of-form of the page".
+            Here we use a bottom-up configuration, thus the values must be
+            changed in accordingly (origin is at the bottom).
+
+        Sets a bottom margin x inch (n lines * line spacing) above the next page’s
+        top-of-form position.
         On continuous paper, top-of-form = top edge (physical page top).
         assumes that perforation between pages = top-of-form (0 margins in continuous mode)
 
@@ -674,7 +679,7 @@ class ESCParser:
     def set_relative_vertical_print_position(self, *args):
         """Moves the vertical print position up or down from the current position - ESC ( v
 
-        TODO: only on printers featuring ESC/P 2.
+        TODO: ESC/P 2 only.
         default defined unit for this command is 1/360 inch.
         TODO:  ignores this command under the following conditions:
             - [x] move the print position more than 179/360 inch in the negative direction
@@ -711,22 +716,23 @@ class ESCParser:
         self.cursor_y = cursor_y
 
     def advance_print_position_vertically(self, *args):
-        """Advances the vertical print position n/180 inch - ESC J
+        """Advance the vertical print position n/180 inch - ESC J
 
-        TODO: non-ESC/P 2 printers:
-            - [x] 9pins: n / 216
-            - Prints all data in the line buffer
+        On non-ESC/P 2 printers:
 
-        => cf end_page_paper_handling() implementation checks
+            - 9pins: n / 216
+            - TODO: Prints all data in the line buffer
+
+        .. seealso:: :meth:`end_page_paper_handling` for implementation checks
         """
         self.cursor_y += args[1].value[0] / (216 if self.pins == 9 else 180)
-
         self.end_page_paper_handling()
 
     def set_unit(self, *args):
-        """Sets the unit to m/3600 inch - ESC ( U
+        """Set the unit to m/3600 inch - ESC ( U
 
-        The default unit varies depending on the command and print quality, as follows
+        The default unit varies depending on the command and print quality:
+
             ESC ( V            1/360 inch
             ESC ( v            1/360 inch
             ESC ( C            1/360 inch
@@ -738,26 +744,27 @@ class ESCParser:
             <MOVY>             1/360 inch
 
         Values: 5, 10, 20, 30, 40, 50, 60
-        TODO: only on printers featuring ESC/P 2
+
+        .. note:: ESC/P 2 only
         """
         value = args[1].value[0]
 
         self.defined_unit = value / 3600
 
     def set_18_line_spacing(self, *args):
-        """Sets the line spacing to 1/8 inch
+        """Set the line spacing to 1/8 inch
         default: 1/6
         """
         self.current_line_spacing = 1 / 8
 
     def unset_18_line_spacing(self, *args):
-        """Sets the line spacing to 1/6 inch
+        """Set the line spacing to 1/6 inch
         default: 1/6
         """
         self.current_line_spacing = 1 / 6
 
     def set_n180_line_spacing(self, *args):
-        """Sets the line spacing to n/180 inch - ESC 3
+        """Set the line spacing to n/180 inch - ESC 3
         default: 1/6
 
         9pins: n/216 inch
@@ -767,16 +774,16 @@ class ESCParser:
         self.current_line_spacing = value / coef
 
     def set_n360_line_spacing(self, *args):
-        """Sets the line spacing to n/360 inch - ESC +
+        """Set the line spacing to n/360 inch - ESC +
         default: 1/6
 
-        TODO: available only on 24/48-pin printers.
+        .. note:: available only on 24/48-pin printers.
         """
         value = args[1].value[0]
         self.current_line_spacing = value / 360
 
     def set_n60_line_spacing(self, *args):
-        """Sets the line spacing to n/60 inch - ESC A
+        """Set the line spacing to n/60 inch - ESC A
         default: 1/6
 
         9pins: n/72 inch
@@ -785,33 +792,35 @@ class ESCParser:
         self.current_line_spacing = value / (72 if self.pins == 9 else 60)
 
     def set_772_line_spacing(self, *args):
-        """Sets the line spacing to 7/72 inch - ESC 1
+        """Set the line spacing to 7/72 inch - ESC 1
         default: 1/6
 
-        TODO: available only on 9-pin printers.
+        .. note:: available only on 9-pin printers.
         """
         self.current_line_spacing = 7 / 72
 
     def h_v_skip(self, *args):
-        """Moves the print position depending on the value of m
+        """Move the print position depending on the value of m
+
         m = 0: horizontally
         m = 1: vertically
 
         Horizontally:
-            Underline is performed between the current and final print positions when this
-            command is used to move the print position horizontally
+
+            Underline is performed between the current and final print positions
+            when this command is used to move the print position horizontally
             => not interrupted
 
         Vertically:
-            cancels double-width printing selected with the SO or ESC SO command.
+
+            cancel double-width printing selected with the SO or ESC SO command.
         """
         m, n = args[1].value
 
         if m == 0:
             # horizontally
-            text = b" " * n
-            # using this function should allow the perform of an eventual character scoring
-            self.binary_blob(Token("ANYTHING", text))
+            # using this function should allow to perform an eventual character scoring
+            self.binary_blob(Token("ANYTHING", b" " * n))
         elif m == 1:
             # vertically
             [self.line_feed() for _ in range(n)]
@@ -821,10 +830,10 @@ class ESCParser:
             raise ValueError
 
     def backspace(self, *args):
-        """Moves the print position to the left a distance equal to one character in the current character
-        pitch plus any additional intercharacter space. - BS
+        """Move the print position to the left a distance equal to one character
+        in the current character pitch plus any additional intercharacter space - BS
 
-        ignores this command if it would move the print position to the left of the left margin.
+        ignored if it would move the print position to the left of the left margin.
         """
         cursor_x = self.cursor_x - (self.character_pitch + self.extra_intercharacter_space)
 
@@ -940,7 +949,7 @@ class ESCParser:
         doc p34
         doc p294
 
-        => cf end_page_paper_handling() implementation checks
+        .. seealso:: :meth:`end_page_paper_handling` for implementation checks
         """
         self.double_width = False
 
@@ -999,11 +1008,16 @@ class ESCParser:
             return
 
     def form_feed(self, *args):
-        """Advances the vertical print position on continuous paper to the top-margin position of
-        the next page - FF
+        """Advance the vertical print position on continuous paper to the top
+        position of the next page - FF
 
-        NOTE: Complete each page with a FF command. Also send a FF command at the end
-        of each print job.
+        On continuous paper:
+
+            ESCP2: top-margin position
+            9pins: top-of-form
+
+        .. note:: Complete each page with a FF command. Also send a FF command
+            at the end of each print job.
 
         TODO: Ejects single-sheet paper
         Moves the horizontal print position to the left-margin position
@@ -1013,9 +1027,9 @@ class ESCParser:
         self.next_page()
 
     def next_page(self):
-        print("NEXT PAGE!!! at y offset", self.cursor_y)
-        # input("pause")
-        # raise Exception
+        """Initiate a new page and reset cursors"""
+        LOGGER.info("NEXT PAGE! at y offset", self.cursor_y)
+
         self.reset_cursor_y()
         self.carriage_return()
 
