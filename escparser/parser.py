@@ -42,12 +42,34 @@ class ESCParser:
 
     """
 
-    def __init__(self, code, pins=None, printable_area_margins_mm=None, single_sheets=True, pdf=True):
-        self.mode = PrintMode.LQ
-        # /!\ There are NON ESCP2 printers that have 24, 48 pins !
-        self.pins = pins # 9, 24, 48
+    def __init__(self, code, pins=9, printable_area_margins_mm=None, page_size=A4, single_sheets=True, pdf=True):
+        """
 
-        self.single_sheet_paper = single_sheets
+        :param code: Binary code to be parsed.
+            Expected format: ESC/P, ESC/P2, ESC/P 9 Pins.
+        :key pins: Number of pins of the printer head (9, 24, 48, None).
+            Use None for default modern ESCP2 printers with nozzles. (default: None).
+        :key printable_area_margins_mm: Define printable margins in mm.
+            No printing is mechanically possible outside this area.
+            The printing area is defined inside; it can be reduced via optional
+            margins setup by various ESC commands.
+            Format: (top, bottom, left, right).
+        :key page_size: Page size in points (width, height).
+            (default: A4: 8.27 in x 11.7 in, so (595.2755905511812, 841.8897637795277).
+        :key single_sheets: Single-sheet of paper if True, Continuous paper
+            otherwise. (default: True).
+        :key pdf: Enable pdf generation via reportlab. (default: True).
+        :type pins: int | None
+        :type printable_area_margins_mm: tuple[int] | None
+        :type single_sheets: bool
+        :type pdf: bool
+        """
+        self.mode = PrintMode.LQ
+        # Note: There are non-ESCP2 printers that have 24, 48 pins !
+        self.pins = pins
+        self.current_pdf = None
+
+        # Character enhancements ###############################################
         self.italic = False
         self.bold = False
         self._underline = False
@@ -57,16 +79,7 @@ class ESCParser:
         self.double_strike = False
         self.double_width = False
         self._color = 0  # Black
-        # Takes 3 arguments between 0.0 and 1.0
-        self.RGB_colors = [
-            (0, 0, 0),      # Black
-            (255, 0, 255),  # Magenta
-            (0, 255, 255),  # Cyan
-            (170, 0, 255),  # Violet
-            (255, 255, 0),  # Yellow
-            (255, 0, 0),    # Red
-            (0, 255, 0),    # Green
-        ]
+
         self.RGB_colors = [
             "#000000",  # Black
             "#ff00ff",  # Magenta
@@ -77,33 +90,37 @@ class ESCParser:
             "#00ff00",  # Green
         ]
 
-        self.current_pdf = None
+        # Font rendering #######################################################
         self.point_size = 10.5
+        self.character_pitch = 1 / 10  # in inches: 1/10 inch = 10 cpi
+        # TODO priorité sur le character_pitch de ESC X, see set_horizontal_motion_index()
+        self.character_width = None  # HMI, horizontal motion index
+        # Fixed character spacing
+        self.proportional_spacing = False
+        # Extra space set by ESC SP
+        self.extra_intercharacter_space = 0
+        # Init tabulations
+        self.horizontal_tabulations = None
+        self.reset_horizontal_tabulations()
+        self.vertical_tabulations = [0] * 16
+        # Must be None because functions where it is used have their own default values
+        self.defined_unit = None
+        self.current_line_spacing = 1 / 6
 
         if pdf:
-            # A4 by default; A4: 8.27 in x 11.7 in
-            self.current_pdf = Canvas("bite.pdf", pagesize=A4, pageCompression=1)
-            # self.current_pdf.scale(1, 0.83)
-
-            print(self.current_pdf.getAvailableFonts())
+            # Init PDF render
+            self.current_pdf = Canvas("output.pdf", pagesize=page_size, pageCompression=1)
             self.current_pdf.setFont("Times-Roman", self.point_size)
 
 
-        self.page_width = self.current_pdf._pagesize[0] / 72
-        self.page_height = self.current_pdf._pagesize[1] / 72
+        # Page configuration ###################################################
+        self.page_width = page_size[0] / 72
+        self.page_height = page_size[1] / 72
+        self.single_sheet_paper = single_sheets
 
         # Default printable area (restricted with margins into the printing area)
-        # top, bottom, left, right
-        # Single-sheets vs Continous paper margins
-        # Top/Bottom Margins
-        # Stylus     COLOR      3/13 mm
-        # LQ-150     (AP-3260)  5.3/9 mm
-        # LQ-570+    (AP-5000+) 5.3/9 mm
-        # LQ-860/    LQ-2550    8.5/13.5 mm
-        # Stylus 300/800/1000   3/13 mm
-
-        # NOTE: single_sheets default margins: (8.5, 13.5, 3, 3)
         if not printable_area_margins_mm:
+            # TODO: be sure about margins for continuous paper: None ?
             printable_area_margins_mm = (
                 (6.35, 6.35, 6.35, 6.35) if self.single_sheet_paper else (9, 9, 3, 3)
             )
@@ -120,39 +137,27 @@ class ESCParser:
             left,
             self.page_width - right,
         )
-        print("printable_area_margins_inch", printable_area_margins_inch)
-        # Set default margins (equal printable area)
+        # Set default margins positions (equal printable area)
         (
             self.top_margin,
             self.bottom_margin,
             self.left_margin,
             self.right_margin,
         ) = self.printable_area
-        print("page size, height, width:", self.page_height, self.page_width)
-        print("printable_area", self.printable_area)
 
-        # Mechanichaly usable width
-        # NOTE: Here margins are used because during initialization printable area = printing area
+        LOGGER.debug("page size, height, width: %s x %s", self.page_height, self.page_width)
+        LOGGER.debug("printable_area_margins_inch: %s", printable_area_margins_inch)
+        LOGGER.debug("printable_area (default printing margins positions): %s", self.printable_area)
+
+        # Mechanically usable width
+        # Note: Here margins are used because during initialization:
+        # printable area = printing area
+        # This value will NOT change during printing
         self.printable_area_width = self.right_margin - self.left_margin
-        self.character_pitch = 1 / 10  # in inches: 1/10 inch = 10 cpi
-        # TODO priorité sur le character_pitch de ESC X, see set_horizontal_motion_index()
-        self.character_width = None  # HMI, horizontal motion index
-        # Fixed character spacing
-        self.proportional_spacing = False
-        # Extra space set by ESC SP
-        self.extra_intercharacter_space = 0
-        # Init tabulations
-        self.horizontal_tabulations = None
-        self.reset_horizontal_tabulations()
 
-        self.vertical_tabulations = [0] * 16
-
-
-        # Must be None because functions where it is used have their own default values
-        self.defined_unit = None
-        self.current_line_spacing = 1 / 6
-        # page length setting is effective only when you are using continuous paper.
-        # TODO 9 pins + cut-sheets feeder = Single-sheets ESCP2
+        # Page length setting
+        #   effective only when you are using continuous paper.
+        #   TODO 9 pins + cut-sheets feeder = Single-sheets ESCP2
         if self.single_sheet_paper:
             # Single-sheets ESCP2
             self.page_length = self.top_margin - self.bottom_margin
@@ -170,22 +175,22 @@ class ESCParser:
             "PC437",
         ]
         self.typefaces = {
-            0: "Roman",
-            1: "Sans serif",
-            2: "Courier",
-            3: "Prestige",
+                0: "Roman", # Times New Roman
+                1: "Sans serif", # /usr/share/fonts/truetype/freefont/FreeSans*
+                2: "Courier",
+                3: "Prestige", # https://en.wikipedia.org/wiki/Prestige_Elite
             4: "Script",
-            5: "OCR-B",
-            6: "OCR-A",
-            7: "Orator",
+                5: "OCR-B",
+                6: "OCR-A",
+                7: "Orator",
             8: "Orator-S",
-            9: "Script C",
-            10: "Roman T",
+                9: "Script C",
+                10: "Roman T",
             11: "Sans serif H",
             30: "SV Busaba",
             31: "SV Jittra",
         }
-        self.character_table = 0
+        self.character_table = 1  # PC437 by default
         self.international_charset = 0
         self.typeface = 0  # Roman
         self.copied_font = {}
@@ -193,8 +198,10 @@ class ESCParser:
         # scalable fonts possibility
         self.multipoint_mode = False
 
+        # Graphics #############################################################
         self.graphics_mode = False
         self.microweave_mode = False
+        # Get horizontal density with dot density value
         self.bit_image_horizontal_resolution_mapping = {
             0:  1/60 ,
             1:  1/120,
@@ -217,19 +224,13 @@ class ESCParser:
             73: 1/360,
         }
 
-        # m parameter reassigned by ESC ? for bit image ESC K,L,Y,Z commands
+        # dot_density_m parameter reassigned by ESC ? for bit image related commands
+        # (ESC K,L,Y,Z)
         self.KLYZ_densities = [0, 1, 2, 3]
 
         self.bytes_per_line = 0
         self.bytes_per_column = 0
         self.movx_unit = 1/360
-
-        # TODO: continuous paper: None
-        # single-sheet paper:
-        #       (top margin) = top-of-form position
-        #       (bottom margin) = last printable line
-        # self.top_margin = 0
-        # self.bottom_margin = 0
 
         # Absolute position from the page left edge
         self.cursor_x = 0
@@ -237,8 +238,8 @@ class ESCParser:
         self.cursor_y = 0
         self.reset_cursor_x()
         self.reset_cursor_y()
-        # Test 1st line
-        # self.binary_blob(Token("ANYTHING", b"PLOP"))
+
+        # Parse it !
         self.run_escp(code)
 
     @property
