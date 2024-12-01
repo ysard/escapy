@@ -452,129 +452,131 @@ class ESCParser:
     def set_bottom_margin(self, *args):
         """Set the bottom margin on continuous paper to n lines (in the current line spacing) - ESC N
 
-        .. note:: This command uses values configured "from the top-of-form of the page".
-            Here we use a bottom-up configuration, thus the values must be
-            changed in accordingly (origin is at the bottom).
-
-        Sets a bottom margin x inch (n lines * line spacing) above the next page’s
+        Sets a bottom margin in inch (n lines * line spacing) above the next page’s
         top-of-form position.
         On continuous paper, top-of-form = top edge (physical page top).
         assumes that perforation between pages = top-of-form (0 margins in continuous mode)
 
-        TODO:
-        When using continuous paper: move the print position to top-of-form when :
+        cancels the top-margin setting (ps: top_margin is not configurable in 9pins)
+
+        .. note:: This command uses values configured "from the top-of-form of the page".
+            Here we use a bottom-up configuration, thus the values must be
+            changed in accordingly (origin is at the bottom).
+
+        .. tip::  When using continuous paper: move the print position to
+            top-of-form when :
+
             - FF command is received
             - print position moves below the bottom_margin position
 
-        TODO: default: Either no margin or 1-inch margin, depending on the DIP-switch setting
-
-        ignored when printing on single sheets
-        cancels the top-margin setting,  mais pas en 9 pins (top_margin non configurable en 9 pins)
+        .. warning:: Important and not implemented nuance:
+            bottom margin set with the ESC N command is ignored when printing on
+            single sheets.
+            => This doesn't mean that the command is ignored !
         """
         if self.single_sheet_paper:
             return
 
-        value = args[1].value[0] * self.current_line_spacing
+        self.cancel_top_bottom_margins()
 
-        # Get top-of-form: 1st printable line & reset the top-margin setting to default
-        # self.top_margin = self.printable_area[0]
-        # Prefer to use page_height because printable area have minimal margins
-
-        # from the top-of-form position of the next page
+        # from the top-of-form position (1st printable line ) of the NEXT page
         # PS: No need to do bottom-up calculations with self.page_height
+        value = args[1].value[0] * self.current_line_spacing
         self.bottom_margin = value
 
-        print("bottom", self.bottom_margin, "page_length", self.page_length, "(inches)")
-
-        _, printable_bottom, *_ = self.printable_area
-        if self.bottom_margin < printable_bottom:
-            print(self.bottom_margin, "<", printable_bottom)
-            print(
-                "bottom margin: outside printablea area (of a non continuous paper) !"
-            )
+        LOGGER.debug("bottom margin: %s", self.bottom_margin)
 
         # In continuous paper, physical page length = logical page length (page_length attribute)
         calculated_page_length = self.page_height - self.bottom_margin
         if calculated_page_length >= self.page_length:
-            print(
-                "dist top page - bottom margin >= current page_length",
+            LOGGER.error(
+                "bottom margin is outside the current page_length (measures: %s vs %s)",
                 calculated_page_length,
+                self.page_length
             )
 
-    def cancel_top_bottom_margins(self, *args):
+    def cancel_top_bottom_margins(self, *_):
         """Cancel the top and bottom margin settings
 
         Set margins to default settings (printable area)
 
-        NOTE: do not change the cursors ?
+        TODO: do not change the cursors ?
         """
         self.top_margin, self.bottom_margin, *_ = self.printable_area
 
     def set_right_margin(self, *args):
-        """Sets the right margin to n columns in the current character pitch, as measured from the
-        left-most printable column - ESC Q
+        """Set the right margin to n columns in the current character pitch,
+        as measured from the left-most printable column - ESC Q
 
-        TODO: Set the right margin at the beginning of a line; the printer ignores any data preceding
-            this command on the same line in the buffer.
-        TODO: Always set the right margin to be at least one column (at 10 cpi) larger than the left.
-        The printer calculates the left margin based on 10 cpi if proportional spacing is selected
-        with the ESC p command
-        TODO: default: The right-most column
+        from the left-most mechanically printable position, in the current character pitch
+
+        TODO: the printer ignores any data preceding this command on the same line
+            in the buffer (see also set_left_margin).
+
+        Always set the right margin to be at least one column (at 10 cpi) larger
+        than the left.
+        The printer calculates the left margin based on 10 cpi if proportional
+        spacing is selected with the ESC p command.
+
+        default: The right-most column
         """
         # from the left-most mechanically printable position, in the current character pitch
         character_pitch = 1 / 10 if self.proportional_spacing else self.character_pitch
-        *_, left, _ = self.printable_area
+        left = self.printable_area[2]
         right_margin = args[1].value[0] * character_pitch + left
 
-        print(
-            "left",
+        LOGGER.debug(
+            "left margin, right margin, printable area limit (in): %s, %s, %s",
             self.left_margin,
-            "recv right",
             right_margin,
-            "area_width",
-            self.printable_area_width,
-            "area right limit",
-            self.printable_area_width + left,
-            "(inches)",
+            self.printable_area_width + left
         )
-        if not self.left_margin < right_margin <= self.printable_area_width + left:
-            print("outside printing area !! => ret")
+        if not self.left_margin + 0.1 <= right_margin <= self.printable_area_width + left:
+            LOGGER.error("right margin outside printing area or before left margin !! => ignored")
             return
         self.right_margin = right_margin
 
+        # ignores any data preceding this command on the same line in the buffer
+        # => this will not ignore data but just put the cursor at the correct pos
+        self.reset_cursor_x()
+
     def set_left_margin(self, *args):
-        """Sets the left margin to n columns in the current character pitch,
+        """Set the left margin to n columns in the current character pitch,
         as measured from the left-most printable column - ESC l
 
         from the left-most mechanically printable position, in the current character pitch
 
-        TODO: the printer ignores any data preceding this command on the same line in the buffer.
-        TODO default: The left-most column (column 1)
-            => receive 0 value !!! (debian)
+        TODO: the printer ignores any data preceding this command on the same line
+            in the buffer (see also set_right_margin).
 
-        TODO: Always set the left margin to be at least one column (at 10 cpi) less than the right.
+        Always set the left margin to be at least one column (at 10 cpi) less
+        than the right.
 
-        The printer calculates the left margin based on 10 cpi if proportional spacing is selected
-        with the ESC p command
+        The printer calculates the left margin based on 10 cpi if proportional
+        spacing is selected with the ESC p command.
+
         Moving the left-margin position moves the tab settings by the same distance.
-        => see h_tab()
+        See :meth:`h_tab`.
 
-        Defaultf
-        The left-most column (column 1)
+        .. note:: For ESC/P2 printers:
+
+            80-column printers: 0 ≤ (left margin) ≤ 4.50 inches
+            110-column printers: 0 ≤ (left margin) ≤ 7.00 inches
+            136-column printers: 0 ≤ (left margin) ≤ 8.00 inches
+
+        default: The left-most column (column 1) (0 value can be received...)
         """
-        # from the left-most mechanically printable position, in the current character pitch
         character_pitch = 1 / 10 if self.proportional_spacing else self.character_pitch
-        *_, left, _ = self.printable_area
-        left_margin = args[1].value[0] * self.character_pitch + left
+        left = self.printable_area[2]
+        left_margin = args[1].value[0] * character_pitch + left
 
-        assert 0 <= left_margin < self.right_margin
+        if not 0 <= left_margin <= self.right_margin - 0.1:
+            LOGGER.error("right margin outside printing area or before left margin !! => ignored")
+            return
+
         self.left_margin = left_margin
-
-        # TODO ESCP2:
-        # 80-column printers: 0 ≤ (left margin) ≤ 4.50 inches
-        # 110-column printers: 0 ≤ (left margin) ≤ 7.00 inches
-        # 136-column printers: 0 ≤ (left margin) ≤ 8.00 inches
-
+        # ignores any data preceding this command on the same line in the buffer
+        # => this will not ignore data but just put the cursor at the correct pos
         self.reset_cursor_x()
 
     def set_absolute_horizontal_print_position(self, *args):
