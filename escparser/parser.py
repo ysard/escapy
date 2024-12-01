@@ -121,6 +121,8 @@ class ESCParser:
         # Default printable area (restricted with margins into the printing area)
         if not printable_area_margins_mm:
             # TODO: be sure about margins for continuous paper: None ? cf p18
+            #   "Either no margin or 1-inch margin" (doc ESC N) but its for
+            #   printing margins not printable margins...
             printable_area_margins_mm = (
                 (6.35, 6.35, 6.35, 6.35) if self.single_sheet_paper else (9, 9, 3, 3)
             )
@@ -333,7 +335,8 @@ class ESCParser:
             changed in accordingly (origin is at the bottom).
 
         default margins:
-            continuous paper: no margins (TODO: to be determined, see printable_area_margins_mm in constructor)
+            continuous paper: no margins (see `printable_area_margins_mm`
+                in constructor)
             single-sheet: top-of-form, last printable line
         """
         tL, tH, bL, bH = args[1].value
