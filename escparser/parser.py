@@ -929,11 +929,10 @@ class ESCParser:
             self.cursor_x += f.getlength(text) / 72
             # print("after x:", self.cursor_x)
 
-    def carriage_return(self, *args):
-        """Moves the print position to the left-margin position
+    def carriage_return(self, *_):
+        """Move the print position to the left-margin position
 
-        TODO:  non-ESC/P 2 printers: The printer prints all data in the line buffer
-            after receiving a CR command.
+        TODO: non-ESC/P 2 printers: The printer prints all data in the line buffer
         """
         # Workaround to temporary interrupt underline see also line_feed()
         if self._underline:
@@ -946,24 +945,25 @@ class ESCParser:
 
         self.cursor_x = self.left_margin
 
-    def line_feed(self, *args):
-        """Advances the vertical print position one line (in the currently set line spacing) - LF
-        Moves the horizontal print position to the left-margin position
-        cancels one-line double-width printing selected with the SO or ESC SO commands.
+    def line_feed(self, *_):
+        """Advance the vertical print position one line (in the currently set line spacing) - LF
 
-            continuous paper:
-                test if cursor_y below bottom_margin: top-of-form/top printable (!!) next page
-                => confusion in doc, follow p294 directives (ESC J & LF behave together)
-            single-sheet paper:
-                test if cursor_y below bottom_margin
-                or beyond the end of the printable area
-                the printer ejects the paper.
+        Move the horizontal print position to the left-margin position.
+        Cancel one-line double-width printing selected with the SO or ESC SO commands.
 
-        TODO:  non-ESC/P 2 printers:
-            Prints all data in the line buffer
+        continuous paper:
 
-        doc p34
-        doc p294
+            test if cursor_y below bottom_margin: top-of-form/top printable (!!) next page
+            => confusion in doc, follow p294 directives (ESC J & LF behave together)
+
+        single-sheet paper:
+
+            test if cursor_y below bottom_margin or beyond the end of the
+            printable area the printer ejects the paper.
+
+        TODO: non-ESC/P 2 printers: The printer prints all data in the line buffer
+
+        doc p34, p294
 
         .. seealso:: :meth:`end_page_paper_handling` for implementation checks
         """
@@ -985,23 +985,26 @@ class ESCParser:
         self.end_page_paper_handling()
 
     def end_page_paper_handling(self):
-        """for ESC J & LF tear downs
-        p34
-        p294
+        """Tear down for ESC J & LF commands
+
+        p34, p294
 
         ESCP2 + ESC/P:
+
             => continuous and pos < bottom margin => top margin (!!!) next page
             => single-sheet: ejects
 
-        9 pins
-            If the ESC J command moves the print position on continuous paper below the bottom-
-            margin position set with the ESC N command, the printer advances to the top-of-form
-            position on the next page.
+        9 pins:
+
+            If the ESC J command moves the print position on continuous paper
+            below the bottom-margin position set with the ESC N command, the
+            printer advances to the top-of-form position on the next page.
             => continuous and pos < bottom margin => top printable next page
 
-            If ESC J moves the print position on single-sheet paper below the end of the printable
-            area, the printer ejects the paper (if loaded by cut-sheet feeder) or ejects paper and then
-            feeds next sheet remaining distance (if loaded manually).
+            If ESC J moves the print position on single-sheet paper below the
+            end of the printable area, the printer ejects the paper
+            (if loaded by cut-sheet feeder) or ejects paper and then feeds next
+            sheet remaining distance (if loaded manually).
             => single-sheet + cut-sheet feeder and below bottom printable => ejects
             => single-sheet + loaded manually and below bottom printable
                 => ejects + report remaining distance on next sheet (TODO)
@@ -1023,7 +1026,7 @@ class ESCParser:
             # TODO: if continuous: Go to the top-of-form, not the top_margin
             # See form_feed() similar implementation
 
-    def form_feed(self, *args):
+    def form_feed(self, *_):
         """Advance the vertical print position on continuous paper to the top
         position of the next page - FF
 
@@ -1058,16 +1061,18 @@ class ESCParser:
             # operations will draw on a subsequent page
             self.current_pdf.showPage()
 
-    def h_tab(self, *args):
-        """Moves the horizontal print position to the next tab to the right of the current print position - HT
-        => adds a tabulation
+    def h_tab(self, *_):
+        """Move the horizontal print position to the next tab to the right of the current print position - HT
 
-        ignores this command if no tab is set to the right of the current position
+        Add a horizontal tabulation
+
+        Ignore this command if no tab is set to the right of the current position
         or if the next tab is to the right of the right margin.
 
         TODO:
-            Character scoring (underline, overscore, and strikethrough) is not printed between the
-            current print position and the next tab when this command is sent.
+            Character scoring (underline, overscore, and strikethrough) is not
+            printed between the current print position and the next tab when this
+            command is sent.
             => temp disable
         """
         # Guess the tab position
@@ -1080,12 +1085,12 @@ class ESCParser:
 
         try:
             tab_pos = next(g)
+            LOGGER.debug("Choosen tab position: %s", tab_pos)
         except StopIteration:
             tab_pos = None
 
-        print("choosen tab:", tab_pos)
         if not tab_pos:
-            print("No more tab available")
+            LOGGER.debug("No tab available after the current cursor_x position")
             return
 
         if tab_pos > self.right_margin:
@@ -1093,12 +1098,14 @@ class ESCParser:
 
         self.cursor_x = tab_pos
 
-    def v_tab(self, *args):
-        """Moves the vertical print position to the next vertical tab below the current print position - VT
+    def v_tab(self, *_):
+        """Move the vertical print position to the next vertical tab below the current print position - VT
 
-        Moves the horizontal print position to the left-margin position
-        TODO: see doc p52
+        Add a vertical tabulation
 
+        Move the horizontal print position to the left-margin position
+
+        TODO: Not implemented: see doc p52
         """
         self.double_width = False
 
@@ -1106,7 +1113,7 @@ class ESCParser:
         raise NotImplementedError
 
     def reset_horizontal_tabulations(self):
-        """Set tabulation widths
+        """Set tabulation widths in character pitch
 
         default: 1 tab position every 8 characters (8, 16, 24, 32, ...)
         """
@@ -1114,27 +1121,28 @@ class ESCParser:
         self.horizontal_tabulations = [8 * i * character_pitch for i in range(1, 33)]
 
     def set_horizontal_tabs(self, *args):
-        """Sets horizontal tab positions (in the current character pitch) at the columns specified by n1
-        to nk, as measured from the left-margin position - ESC D
+        """Set horizontal tab positions (in the current character pitch) at the columns
+        specified by n1 to nk, as measured from the left-margin position - ESC D
 
-        Default : Every eight characters
+        Default: Every eight characters
             => 1 tab = 8 chars
 
         The tab settings move to match any movement in the left margin.
-            => actualisé à chaque maj de left_margin...
-            => cf h_tab()
-        The printer does not move the print position to any tabs beyond the right-margin
-        position. However, all tab settings are stored in the printer’s memory; if you move the
-        right margin, you can access previously ignored tabs.
-            => cf h_tab()
 
-        calculates tab positions based on 10 cpi if proportional spacing is selected with the ESC p command.
-        clears any previous tab settings.
+        The printer does not move the print position to any tabs beyond the
+        right-margin position. However, all tab settings are stored in the printer’s
+        memory; if you move the right margin, you can access previously ignored tabs.
+
+        .. seealso:: :meth:`h_tab`.
+
+        Calculate tab positions based on 10 cpi if proportional spacing is
+        selected with the ESC p command.
+        Clears any previous tab settings.
         A maximum of 32 horizontal tabs can be set.
         Send an ESC D NUL command to cancel all tab settings.
 
-        TODO: one tab is specified in the current character_pitch but what about the
-            interspace character like in BS command (see backspace())
+        TODO: one tab is specified in the current character_pitch but what about
+            the interspace character like in BS command (see backspace())
         """
         # Limited to 32 tabs by lark
         column_ids = args[1].value
@@ -1156,14 +1164,13 @@ class ESCParser:
             self.horizontal_tabulations[tab_idx] = tab_width * character_pitch
 
             prev = tab_width
-            print(f"tab set at column {tab_idx}: {self.horizontal_tabulations[tab_idx]}")
+            LOGGER.debug("tab set at column %s: %s", tab_idx, self.horizontal_tabulations[tab_idx])
 
     def set_vertical_tabs(self, *args):
-        """Sets vertical tab positions (in the current line spacing) at the lines specified by
-        n1 to nk, as measured from the top-margin position - ESC B
+        """Set vertical tab positions (in the current line spacing) at the lines
+        specified by n1 to nk, as measured from the top-margin position - ESC B
 
-        TODO:
-        On non-ESC/P 2 printers:
+        TODO: On non-ESC/P 2 printers:
             Vertical tabs are measured from the top-of-form position.
             is the same as setting the vertical tabs in VFU channel 0.
         """
@@ -1186,7 +1193,7 @@ class ESCParser:
             self.vertical_tabulations[tab_idx] = tab_height * self.current_line_spacing
 
             prev = tab_height
-            print(f"tab set at line {tab_idx}: {self.vertical_tabulations[tab_idx]}")
+            LOGGER.debug("tab set at line %s: %s", tab_idx, self.vertical_tabulations[tab_idx])
 
     def set_italic(self, *args):
         print("=> italic ON")
