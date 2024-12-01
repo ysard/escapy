@@ -243,21 +243,28 @@ class ESCParser:
         self.run_escp(code)
 
     @property
-    def underline(self):
+    def underline(self) -> bool:
+        """Get the underline status
+
+        .. seealso::
+            :meth:`switch_underline`
+            :meth:`master_select`
+            :meth:`select_line_score`
+        """
         return self._underline
 
     @underline.setter
-    def underline(self, value):
-        """Update the attribute and draw an underline when underlining is set to off
-        TODO: check behavior during EOL etc
-        """
+    def underline(self, value: bool):
+        """Set the attribute and draw an underline when underlining is just unset"""
         # Take care of the baseline offset
         cursor_y = self.cursor_y - 20 / 180
 
         if value != self._underline:
             if value:
+                # underlining was not enabled: keep the cursor position
                 self.underline_start = (self.cursor_x * 72, cursor_y * 72 - 1)
             else:
+                # underlining is unset: terminate it by drawing it
                 self.current_pdf.line(
                     *self.underline_start, self.cursor_x * 72, cursor_y * 72 - 1
                 )
@@ -265,48 +272,53 @@ class ESCParser:
         self._underline = value
 
     @property
-    def color(self):
+    def color(self) -> int:
         return self._color
 
     @color.setter
-    def color(self, color):
+    def color(self, color: int):
+        """Get the current color ID"""
         if color >= len(self.RGB_colors):
             # Color doesn't exist: ignore the command
             return
 
         self._color = color
 
-        # Update PDF setting
-        # self.current_pdf.setFillColorRGB(*self.RGB_colors[self.color])
-        self.current_pdf.setFillColor(colors.HexColor(self.RGB_colors[self.color]))
+        if self.current_pdf:
+            # Update PDF setting
+            self.current_pdf.setFillColor(colors.HexColor(self.RGB_colors[self.color]))
 
     @property
-    def point_size(self):
+    def point_size(self) -> float:
+        """Get the current font point size (in cpi)"""
         return self._point_size
 
     @point_size.setter
-    def point_size(self, point_size):
+    def point_size(self, point_size: float):
         self._point_size = point_size
 
         if self.current_pdf:
-            # Update PDF setting
+            # Redefine the current font (can't just update the point size)
             self.current_pdf.setFont(self.current_pdf._fontname, point_size)
 
     def reset_cursor_y(self):
-        """
-        NOTE: The baseline for printing characters on the first line
-        is 20/180 inch below the top-margin position.
+        """Move the Y cursor on top of the printing area
 
-        NOTE: The baseline at the bottom of the page can be 19/180 inch BELOW
+        .. note:: The baseline for printing characters on the first line
+            is 20/180 inch BELOW the top-margin position.
+
+        .. note:: The baseline at the bottom of the page can be 19/180 inch BELOW
             the bottom_margin position.
 
-        NOTE: Any part of graphics is cutoff above or below the top or bottom margins.
-            That is not the case for characters that can be printed until the edges of the printable area
-            despite the margins (edges of printing area).
+        .. note:: Any part of graphics is cutoff above or below the top
+            or bottom margins.
+            That is not the case for characters since they can be printed until
+            the edges of the printable area despite the margins (edges of printing area).
         """
         self.cursor_y = self.top_margin
 
     def reset_cursor_x(self):
+        """Move the X cursor to the left edge of the printing area (left-margin)"""
         self.carriage_return()
 
     def set_page_format(self, *args):
