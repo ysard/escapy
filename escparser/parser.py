@@ -1195,45 +1195,43 @@ class ESCParser:
             prev = tab_height
             LOGGER.debug("tab set at line %s: %s", tab_idx, self.vertical_tabulations[tab_idx])
 
-    def set_italic(self, *args):
-        print("=> italic ON")
+    def set_italic(self, *_):
+        """Enable italic style - ESC 4"""
         self.italic = True
         self.set_font()
 
-    def unset_italic(self, *args):
-        print("=> italic OFF")
+    def unset_italic(self, *_):
+        """Disable italic style - ESC 5"""
         self.italic = False
         self.set_font()
 
-    def set_bold(self, *args):
-        print("=> bold ON")
+    def set_bold(self, *_):
+        """Set the weight attribute of the font to bold - ESC E"""
         self.bold = True
         self.set_font()
 
-    def unset_bold(self, *args):
-        print("=> bold OFF")
+    def unset_bold(self, *_):
+        """Unset the weight attribute of the font to normal - ESC F"""
         self.bold = False
         self.set_font()
 
     def switch_underline(self, *args):
-        """Turns on/off printing of a line below all characters and spaces
+        """Turn on/off printing of a line below all characters and spaces - ESC -
 
         TODO: printed with the following characteristics: draft, LQ, bold, or double-strike.
         TODO: not printed across the distance the horizontal print position is moved
             ESC $, ESC \ (when the print position is moved to the left), HT
         TODO: Graphics characters are not underlined.
         """
-        # print(args[1])
         value = args[1].value[0]
-        match value:
-            case 0 | 48:
-                print("=> underline OFF")
-                self.underline = False
-            case 1 | 49:
-                print("=> underline ON")
-                self.underline = True
+        self.underline = value in (1, 49)
 
     def set_font(self):
+        """Configure the current font (internal usage)
+
+        Use bold, italic styles to choose the font.
+        The font is configured with the current point_size.
+        """
         if not self.current_pdf:
             return
 
@@ -1244,38 +1242,40 @@ class ESCParser:
         self.current_pdf.setFont(font, self.point_size)
 
     def assign_character_table(self, *args):
-        """Assigns a registered character table to a character table - ESC ( t
-
-        NOTE: Do not assign a registered table to Table 2 if you plan to use it for user-
-        defined characters. Once you assign a registered table to Table 2, you must
-        reset the printer (with the ESC @ command) before you can use it for user-
-        defined characters.
+        """Assign a registered character table to a character table - ESC ( t
 
         doc p80
 
+        .. tip:: Do not assign a registered table to Table 2 if you plan to use
+            it for user-defined characters. Once you assign a registered table
+            to Table 2, you must reset the printer (with the ESC @ command)
+            before you can use it for user-defined characters.
         """
         d1, d2, d3 = args[1].value
         # d1 should be in [0, 1, 2, 3] for ESCP2/ESCP
         # d1 should be in [0, 1] for 9 pins
         selected_table = character_table_mapping[d2, d3]
         # Replace the old table
-        self.character_tables[int(d1)] = selected_table
+        self.character_tables[d1] = selected_table
 
-        print(f"Assign {selected_table} to {d1}")
+        LOGGER.debug("Assign %s to table %d", selected_table, d1)
 
     def select_character_table(self, *args):
-        """Selects the character table to be used for printing from among the four character tables 0-3 - ESC t
+        """Select the character table to be used for printing from among the four tables 0-3 - ESC t
 
-        doc p
+        Default tables are listed below:
 
-        ESCP2/ESCP:
-            0      Italic
-            1      PC437
-            2      User-defined characters
-            3      PC437
-        9pins:
-            0       Italic
-            1       Graphic character table
+            ESCP2/ESCP:
+
+                0      Italic
+                1      PC437
+                2      User-defined characters
+                3      PC437
+
+            9pins:
+
+                0       Italic
+                1       Graphic character table
         """
         value = args[1].value[0]
         match value:
@@ -1302,26 +1302,27 @@ class ESCParser:
             case 3 | 51:
                 self.character_table = 3
 
-        print(f"Select character table {self.character_table}")
+        LOGGER.debug("Select character table %s (%s)", self.character_table, self.character_tables[self.character_table])
 
     def select_international_charset(self, *args):
-        """Selects the set of characters printed for specific character codes - ESC R
+        """Select the set of characters printed for specific character codes - ESC R
 
-        Allows to change up to 12 of the characters in the current character table
+        Allow to change up to 12 of the characters in the current character table
 
         TODO: implement char mapping code before printing them
         """
         value = args[1].value[0]
-        print(f"Select {charset_mapping[value]}")
         self.international_charset = value
 
+        LOGGER.debug("Select international charset variant %s (%s)", value, charset_mapping[value])
+
     def select_letter_quality_or_draft(self, *args):
-        """Selects either LQ or draft printing
+        """Select either LQ or draft printing
 
         TODO: ESCP2/ESCP:
-        If you select proportional spacing with the ESC p command during draft printing, the
-        printer prints an LQ font instead. When you cancel proportional spacing with the ESC p
-        command, the printer returns to draft printing.
+            If you select proportional spacing with the ESC p command during draft printing, the
+            printer prints an LQ font instead. When you cancel proportional spacing with the ESC p
+            command, the printer returns to draft printing.
         """
         value = args[1].value[0]
         match value:
@@ -1336,7 +1337,7 @@ class ESCParser:
                 self.mode = PrintMode.LQ
 
     def select_typeface(self, *args):
-        """Selects the typeface for LQ printing - ESC k
+        """Select the typeface for LQ printing - ESC k
 
         TODO:
         The printer ignores this command if the user-defined character set is selected.
@@ -1348,14 +1349,30 @@ class ESCParser:
             During multipoint mode the printer ignores ESC k
             (for ESC k: if typeface not available in scalable/multipoint mode)
 
-        9 pins: only:
+        ESCP2:
+            0: Roman
+            1: Sans serif
+            2: Courier
+            3: Prestige
+            4: Script
+            5: OCR-B
+            6: OCR-A
+            7: Orator
+            8: Orator-S
+            9: Script C
+            10: Roman T
+            11: Sans serif H
+            30: SV Busaba
+            31: SV Jittra
+
+        9 pins:
             0 Roman
             1 ans serif
         """
         value = args[1].value[0]
         self.typeface = 0 if value not in self.typefaces else value
 
-        print(f"Select typeface: {self.typefaces[value]}")
+        LOGGER.debug("Select typeface %s", self.typefaces[value])
 
     def define_user_defined_ram_characters(self, *args):
         """Sets the parameters for user-defined characters and then sends the data for those characters - ESC &
