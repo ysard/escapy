@@ -4,14 +4,14 @@ from enum import Enum
 import itertools as it
 
 # Custom imports
-from lark import Lark, Token
+from lark import Token
 from PIL import ImageFont
 from reportlab.lib import colors
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.lib.pagesizes import A4
 
 # Local imports
-from escparser.grammar import esc_grammar, init_parser
+from escparser.grammar import init_parser
 from escparser.commons import charset_mapping, international_charsets, character_table_mapping
 from escparser.commons import logger
 
