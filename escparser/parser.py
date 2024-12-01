@@ -1,16 +1,21 @@
+# Standard imports
 from pathlib import Path
-from lark import Lark, Token
-from PIL import ImageFont
 from enum import Enum
 import itertools as it
-from src.grammar import esc_grammar, init_parser
-from src.commons import charset_mapping, international_charsets, character_table_mapping
+
+# Custom imports
+from lark import Lark, Token
+from PIL import ImageFont
 from reportlab.lib import colors
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.lib.pagesizes import A4
 
+# Local imports
+from escparser.grammar import esc_grammar, init_parser
+from escparser.commons import charset_mapping, international_charsets, character_table_mapping
+from escparser.commons import logger
 
-import time
+# Debug imports
 from pycallgraph import PyCallGraph
 from pycallgraph.output import GraphvizOutput
 from pycallgraph import Config
@@ -18,7 +23,7 @@ from pycallgraph import GlobbingFilter
 
 config = Config(max_depth=10)
 config.trace_filter = GlobbingFilter(include=[
-    "src.*",
+    "escparser.*",
     "reportlab.*",
 ])
 
@@ -27,6 +32,7 @@ PrintMode = Enum("PrintMode", [("DRAFT", 0), ("LQ", 1)])
 PrintScripting = Enum("PrintScripting", [("SUP", 0), ("SUB", 1)])
 PrintCharacterStyle = Enum("PrintCharacterStyle", [("OUTLINE", 1), ("SHADOW", 2)])
 
+LOGGER = logger()
 
 class ESCParser:
     """
