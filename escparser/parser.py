@@ -356,31 +356,30 @@ class ESCParser:
 
         LOGGER.debug("set margins (top, bottom): %s ,%s", self.top_margin, self.bottom_margin)
 
-        page_length = self.top_margin - self.bottom_margin
-        if page_length > self.page_length:
+        calculated_page_length = self.top_margin - self.bottom_margin
+        if calculated_page_length > 22:
+            # Bottom margin must be less than 22 inches
+            LOGGER.error("bottom margin too low (page_length > 22 in), fix it")
+            self.bottom_margin = self.page_height - 22
+            calculated_page_length = 22
+
+        elif calculated_page_length > self.page_length:
             LOGGER.error("set page_length > current page_length (%s)", self.page_length)
             # TODO: Fix the bottom_margin in this case. The doc is unclear
             #   with the top edge page notion for which paper.
-            # The distance from the top edge of the page to the bottom-margin position
-            # must be less than the page length; otherwise, the end of the page length
-            # becomes the bottom-margin position.
+            #   For now calculated_page_length is for ALL papers and taken from
+            #   the top_margin, but it could be better to check for continuous
+            #   paper only, and use top edge (page height) instead...
+            # The distance from the top edge of the page to the bottom-margin
+            # position must be less than the page length; otherwise, the end of
+            # the page length becomes the bottom-margin position.
             self.bottom_margin = self.page_height - self.page_length
 
-        self.reset_cursor_y()
-
-        # assert self.top_margin < self.bottom_margin
-        # assert self.bottom_margin <= 22, \
-        #     f"Bottom margin must be less than 22 inches ({self.bottom_margin})"
         # Bottom-up
         assert self.top_margin > self.bottom_margin
 
-        if page_length > 22:
-            LOGGER.warning("Bottom margin too low (page_length > 22 in), fix it")
-            # /!\ Unsure: raise the bottom margin by adding the difference
-            self.bottom_margin += page_length - 22
-            page_length = 22
-
-        self.page_length = page_length
+        self.reset_cursor_y()
+        self.page_length = calculated_page_length
 
     def set_page_length_defined_unit(self, *args):
         """Set page length in defined unit - ESC ( C
