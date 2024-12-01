@@ -322,39 +322,48 @@ class ESCParser:
         self.carriage_return()
 
     def set_page_format(self, *args):
-        """Measure both top and bottom margins from the top edge of the page. - ESC ( c
+        """Set top and bottom margins - ESC ( c
 
-        Doc: p 244
+        Doc: p18, p242-p244
 
-        TODO: default:
-            continuous paper: no margins
+        .. note:: ESC/P 2 only
+        .. note:: This command uses values configured "from the top edge of the page".
+            Here we use a bottom-up configuration, thus the values must be
+            changed in accordingly (origin is at the bottom).
+
+        default margins:
+            continuous paper: no margins (TODO: to be determined, see printable_area_margins_mm in constructor)
             single-sheet: top-of-form, last printable line
-        TODO: ESC/P 2 only
         """
         tL, tH, bL, bH = args[1].value
-
-        # print("settings:", tL, tH, bL, bH)
         unit = self.defined_unit if self.defined_unit else 1 / 360
         top_margin = ((tH << 8) + tL) * unit
         bottom_margin = ((bH << 8) + bL) * unit
 
-        # TODO: check that margins stay within printable area
-        # self.top_margin, self.bottom_margin, *_ = self.printable_area
-
         # Adapt absolute values to bottom-up system, relative to the page size
-        # PS: on a 11 inch height paper, 1 inch top margin becomes 10 inch top margin
-        # but it's not 11 inch: ~11.69inch, so top margin becomes 10.69 inch
+        # Ex: on a 11 in height paper, 1 in top margin becomes 10 in top margin.
         self.bottom_margin = self.page_height - bottom_margin
         self.top_margin = self.page_height - top_margin
 
-        print("top, bottom:", self.top_margin, self.bottom_margin)
-        print("page length:", self.page_length)
+        # Check limits
+        printable_top, printable_bottom, *_ = self.printable_area
+        if self.bottom_margin < printable_bottom or self.top_margin > printable_top:
+            LOGGER.warning(
+                "set margins (top, bottom) outside printable area: %s, %s (printable: %s, %s)",
+                top_margin, bottom_margin, printable_top, printable_bottom
+            )
 
-        if self.top_margin - self.bottom_margin > self.page_length:
-            print("set page_length > current page_length")
-            # End of the page length becomes bottom_margin position
-            # => actualize page_length
-            self.page_length = self.top_margin - self.bottom_margin
+        LOGGER.debug("set margins (top, bottom): %s ,%s", self.top_margin, self.bottom_margin)
+
+        page_length = self.top_margin - self.bottom_margin
+        if page_length > self.page_length:
+            LOGGER.error("set page_length > current page_length (%s)", self.page_length)
+            # TODO: Fix the bottom_margin in this case. The doc is unclear
+            #   with the top edge page notion for which paper.
+            # The distance from the top edge of the page to the bottom-margin position
+            # must be less than the page length; otherwise, the end of the page length
+            # becomes the bottom-margin position.
+            self.bottom_margin = self.page_height - self.page_length
 
         self.reset_cursor_y()
 
@@ -363,28 +372,38 @@ class ESCParser:
         #     f"Bottom margin must be less than 22 inches ({self.bottom_margin})"
         # Bottom-up
         assert self.top_margin > self.bottom_margin
-        assert (
-            self.top_margin <= 22
-        ), f"Top margin must be less than 22 inches ({self.top_margin})"
+
+        if page_length > 22:
+            LOGGER.warning("Bottom margin too low (page_length > 22 in), fix it")
+            # /!\ Unsure: raise the bottom margin by adding the difference
+            self.bottom_margin += page_length - 22
+            page_length = 22
+
+        self.page_length = page_length
 
     def set_page_length_defined_unit(self, *args):
-        """- ESC ( C
+        """Set page length in defined unit - ESC ( C
 
-        see defined_unit ESC ( U
+        .. seealso:: see defined_unit via ESC ( U
+        .. note:: The maximum page length is 22 inches.
+        .. note:: ESC/P 2 only
 
         cancels the top and bottom-margin settings.
-        TODO: ESC/P 2 only
-        The maximum page length is 22 inches.
+
+        .. warning:: WONTFIX :
+            Set the page length before paper is loaded or when the print position
+            is at the top-of-form position. Otherwise, the current print position
+            becomes the top-of-form position.
         """
         mL, mH = args[1].value
-
+        value = ((mH << 8) + mL)
         unit = self.defined_unit if self.defined_unit else 1 / 360
-        self.page_length = ((mH << 8) + mL) * unit
-        print("page length:", self.page_length)
+        self.page_length = value * unit
+        LOGGER.debug("page length: %s", self.page_length)
 
         assert (
             0 < self.page_length <= 22
-        ), f"(n × (current line spacing)) must be less than 22 inches ({self.page_length})"
+        ), f"({value} × (current line spacing)) must be less than 22 inches ({self.page_length})"
 
         self.cancel_top_bottom_margins()
 
@@ -392,14 +411,18 @@ class ESCParser:
         """Sets the page length to n lines in the current line spacing - ESC C
 
         cancels the top and bottom margin settings
-        TODO:
-        Set the page length before paper is loaded or when the print position is at the top-of-
-        form position. Otherwise, the current print position becomes the top-of-form position.
+
+        .. warning:: WONTFIX :
+            Set the page length before paper is loaded or when the print position
+            is at the top-of-form position. Otherwise, the current print position
+            becomes the top-of-form position.
         """
         page_length_lines = args[1].value[0]
 
         assert 1 <= page_length_lines <= 127, page_length_lines
         self.page_length = page_length_lines * self.current_line_spacing
+        LOGGER.debug("page length: %s", self.page_length)
+
         assert (
             0 < self.page_length <= 22
         ), f"(n × (current line spacing)) must be less than 22 inches ({self.page_length})"
@@ -410,12 +433,14 @@ class ESCParser:
         """Sets the page length to n inches - ESC C NUL
 
         cancels the top and bottom margin settings
-        TODO:
-        Set the page length before paper is loaded or when the print position is at the top-of-
-        form position. Otherwise, the current print position becomes the top-of-form position.
+
+        .. warning:: WONTFIX :
+            Set the page length before paper is loaded or when the print position
+            is at the top-of-form position. Otherwise, the current print position
+            becomes the top-of-form position.
         """
         self.page_length = args[1].value[0]
-        print(self.page_length)
+        LOGGER.debug("page length: %s", self.page_length)
 
         assert (
             1 <= self.page_length <= 22
@@ -472,12 +497,11 @@ class ESCParser:
             )
 
     def cancel_top_bottom_margins(self, *args):
-        """Cancels the top and bottom margin settings
+        """Cancel the top and bottom margin settings
 
-        Return to default settings
+        Set margins to default settings (printable area)
 
         NOTE: do not change the cursors ?
-        TODO: actualize page_length ? /!\ ESCP2/continuous
         """
         self.top_margin, self.bottom_margin, *_ = self.printable_area
 
