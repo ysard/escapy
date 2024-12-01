@@ -582,44 +582,38 @@ class ESCParser:
         self.reset_cursor_x()
 
     def set_absolute_horizontal_print_position(self, *args):
-        """Moves the horizontal print position to the position specified - ESC $
+        """Move the horizontal print position to the position specified - ESC $
 
         default defined unit setting for this command is 1/60 inch
-        TODO: fixed On non-ESC/P 2 printers to 1/60
-        ignores this command if the specified position is to the right of the right margin.
+        TODO: fixed On non-ESC/P 2 printers to 1/60 (currently only on 9 pins)
+        ignore this command if the specified position is to the right of the
+        right margin.
         """
         nL, nH = args[1].value
-
-        assert 0 <= nH <= 127
-        # assert 0 <= nL <= 255
-
-        print(nL, nH)
         value = (nH << 8) + nL
-        unit = self.defined_unit if self.defined_unit else 1 / 60  # 1/60: non ESCP2
+
+        # Should be 1/60 on non ESCP2 (not just 9 pins)
+        unit = 1 / 60 if not self.defined_unit or self.pins == 9 else self.defined_unit
         cursor_x = value * unit + self.left_margin
-        print("set cursor x:", cursor_x)
+
+        LOGGER.debug("set absolute cursor_x: %s", cursor_x)
 
         if cursor_x > self.right_margin:
+            LOGGER.error("set absolute cursor_x outside right margin! => ignored")
             return
         self.cursor_x = cursor_x
 
     def set_relative_horizontal_print_position(self, *args):
-        """Moves the horizontal print position left or right from the current position - ESC \
+        """Move the horizontal print position left or right from the current position - ESC \
 
+        Use the defined unit set by ESC ( U command.
+        Default defined unit for this command is 1/120 inch in draft mode,
+        and 1/180 inch in LQ mode.
+        Fixed to 1/120 on 9 pins.
 
-        Set the defined unit with the ESC ( U command.
-        default defined unit for this command is 1/120 inch in draft mode, and 1/180 inch in LQ mode.
-        On non-ESC/P 2 printers, the unit of movement is fixed at 1/120 inch in draft mode and
-        1/180 inch in LQ mode.
-
-        ignores this command if it would move the print position outside the printing area.
+        ignore this command if it would move the print position outside the printing area.
         """
         nL, nH = args[1].value
-
-        # assert 0 <= nH <= 127
-        # assert 0 <= nL <= 255
-
-        print(nL, nH)
         value = (nH << 8) + nL
 
         # Test bit sign
@@ -627,55 +621,65 @@ class ESCParser:
             # left movement
             value -= 2**16
 
-        unit = (
-            self.defined_unit
-            if self.defined_unit
-            else (1 / 180 if self.mode == PrintMode.LQ else 1 / 120)
-            # TODO: 9-pin printers should be always 1/120 inch
-        )
+        if self.pins == 9:
+            unit = 1 / 120
+        else:
+            unit = (
+                self.defined_unit
+                if self.defined_unit
+                else (1 / 180 if self.mode == PrintMode.LQ else 1 / 120)
+            )
         cursor_x = value * unit + self.cursor_x
-        print("set cursor x:", cursor_x)
+
+        LOGGER.debug("set relative cursor_x: %s", cursor_x)
 
         if not self.left_margin <= cursor_x < self.right_margin:
+            LOGGER.error(
+                "set relative cursor_x outside defined margins! => ignored")
             return
+
         self.cursor_x = cursor_x
 
     def set_absolute_vertical_print_position(self, *args):
         """Moves the vertical print position to the position specified - ESC ( V
 
-        TODO: ESCP2 only
+        .. note:: ESCP2 only
+
         default defined unit for this command is 1/360 inch.
         The new position is measured in defined units from the current top-margin position.
 
-        Moving the print position below the bottom-margin
-            continuous paper:
-                move vertical to top margin of next page
-            single-sheet paper:
-                eject
+        Moving the print position below the bottom-margin:
 
-        TODO:  ignores this command under the following conditions:
-            - [x] move the print position more than 179/360 inch in the negative direction
-            - move the print position in the negative direction after a
-            graphics command is sent on the current line, or above the point where graphics
-            have previously been printed
-        NOTE:
-            Here, the top values are bigger than the bottom values (0) !
-            => signs are inverted !!
+            - continuous paper: move vertical to top margin of next page
+            - single-sheet paper: eject
+
+        Ignore this command under the following conditions:
+
+            - move the print position more than 179/360 inch in the negative direction
+            - TODO: move the print position in the negative direction after a
+              graphics command is sent on the current line, or above the point
+              where graphics have previously been printed
+
+        .. note::
+            Here we use a bottom-up configuration, thus the values must be
+            changed in accordingly (origin is at the bottom => signs are inverted!).
         """
         mL, mH = args[1].value
         value = (mH << 8) + mL
 
         unit = self.defined_unit if self.defined_unit else 1 / 360
-        # sign inverted !
+        # sign inverted due to bottom-up
         cursor_y = -value * unit + self.top_margin
 
-        if cursor_y < self.bottom_margin or cursor_y > self.top_margin:
+        # Note: no test of exceeding the top-margin like in set_relative_vertical_print_position ?
+
+        if cursor_y < self.bottom_margin:
             self.next_page()
             return
 
         movement_amplitude = self.cursor_y - cursor_y
         if movement_amplitude < 0 and -movement_amplitude > 179 / 360:
-            print("TOO much !!")
+            LOGGER.error("set absolute cursor_y movement upwards too big! => ignored")
             return
 
         self.cursor_y = cursor_y
@@ -683,20 +687,25 @@ class ESCParser:
     def set_relative_vertical_print_position(self, *args):
         """Moves the vertical print position up or down from the current position - ESC ( v
 
-        TODO: ESC/P 2 only.
+        .. note:: ESCP2 only
+
         default defined unit for this command is 1/360 inch.
-        TODO:  ignores this command under the following conditions:
-            - [x] move the print position more than 179/360 inch in the negative direction
-            - move the print position in the negative direction after a
+
+        Ignore this command under the following conditions:
+
+            - move the print position more than 179/360 inch in the negative direction
+            - TODO: move the print position in the negative direction after a
             graphics command is sent on the current line, or above the point where graphics
             have previously been printed
-            - [x] would move the print position above the top-margin position.
-        NOTE:
-            doc: positive = down movement, negative = up movement
-            Here, the top values are bigger than the bottom values (0) !
-            => signs are inverted !!
+            - would move the print position above the top-margin position
+
+        .. note::
+            Here we use a bottom-up configuration, thus the values must be
+            changed in accordingly (origin is at the bottom => signs are inverted!).
+            From the original doc: positive = down movement, negative = up movement.
         """
         mL, mH = args[1].value
+        value = (mH << 8) + mL
         # Test bit sign
         if mH & 0x80:
             # up movement sent
@@ -706,14 +715,17 @@ class ESCParser:
         movement_amplitude = value * unit
 
         if movement_amplitude < 0 and -movement_amplitude > 179 / 360:
-            print("TOO much !!")
+            LOGGER.error("set relative cursor_y movement upwards too big! => ignored")
             return
 
-        # sign inverted !
+        # sign inverted due to bottom-up
         cursor_y = -movement_amplitude + self.cursor_y
-        print("set cursor y:", cursor_y)
 
-        if cursor_y < self.bottom_margin or cursor_y > self.top_margin:
+        if cursor_y > self.top_margin:
+            LOGGER.error("set relative cursor_y above top-margin! => ignored")
+            return
+
+        if cursor_y < self.bottom_margin:
             self.next_page()
             return
 
