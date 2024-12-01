@@ -534,7 +534,7 @@ class ESCParser:
             self.printable_area_width + left
         )
         if not self.left_margin + 0.1 <= right_margin <= self.printable_area_width + left:
-            LOGGER.error("right margin outside printing area or before left margin !! => ignored")
+            LOGGER.error("right margin outside printing area or before left margin! => ignored")
             return
         self.right_margin = right_margin
 
@@ -767,13 +767,13 @@ class ESCParser:
 
         self.defined_unit = value / 3600
 
-    def set_18_line_spacing(self, *args):
+    def set_18_line_spacing(self, *_):
         """Set the line spacing to 1/8 inch
         default: 1/6
         """
         self.current_line_spacing = 1 / 8
 
-    def unset_18_line_spacing(self, *args):
+    def unset_18_line_spacing(self, *_):
         """Set the line spacing to 1/6 inch
         default: 1/6
         """
@@ -807,7 +807,7 @@ class ESCParser:
         value = args[1].value[0]
         self.current_line_spacing = value / (72 if self.pins == 9 else 60)
 
-    def set_772_line_spacing(self, *args):
+    def set_772_line_spacing(self, *_):
         """Set the line spacing to 7/72 inch - ESC 1
         default: 1/6
 
@@ -845,7 +845,7 @@ class ESCParser:
         else:
             raise ValueError
 
-    def backspace(self, *args):
+    def backspace(self, *_):
         """Move the print position to the left a distance equal to one character
         in the current character pitch plus any additional intercharacter space - BS
 
@@ -1021,7 +1021,7 @@ class ESCParser:
             self.next_page()
             # ESCP/9 pins
             # TODO: if continuous: Go to the top-of-form, not the top_margin
-            return
+            # See form_feed() similar implementation
 
     def form_feed(self, *args):
         """Advance the vertical print position on continuous paper to the top
@@ -1042,9 +1042,13 @@ class ESCParser:
         self.double_width = False
         self.next_page()
 
+        if self.pins == 9 and not self.single_sheet_paper:
+            # Move to top-of-form
+            self.top_margin = self.printable_area[0]
+
     def next_page(self):
         """Initiate a new page and reset cursors"""
-        LOGGER.info("NEXT PAGE! at y offset", self.cursor_y)
+        LOGGER.info("NEXT PAGE! at y offset %s", self.cursor_y)
 
         self.reset_cursor_y()
         self.carriage_return()
