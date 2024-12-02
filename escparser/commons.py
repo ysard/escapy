@@ -8,6 +8,20 @@ import os
 # Paths
 DIR_LOGS = tempfile.gettempdir() + "/"
 
+typefaces = {
+    # 0: (lambda condensed, bold, italic: f"Times-{'Bold' if bold else ''}{'Italic' if italic else ''}" if bold or italic else "Times-Roman", None),
+    0: (lambda condensed, bold, italic: f"FiraCode-{'Bold' if bold else ''}" if bold else "FiraCode-Regular", "/usr/share/fonts/truetype/firacode/{}.ttf"),
+    # 0: ("FSEX302-alt", "./resources/{}.ttf"),
+    1: (lambda condensed, bold, italic: f"NotoSans-{'Condensed' if condensed else ''}{'Bold' if bold else ''}{'Italic' if italic else ''}" if any((bold, italic, condensed)) else "NotoSans-Regular", "/usr/share/fonts/truetype/noto/{}.ttf"),
+    2: (lambda condensed, bold, italic: f"Courier-{'Bold' if bold else ''}{'Oblique' if italic else ''}" if any((bold, italic)) else "Courier", None),
+    3: ("prestigenormal", "./resources/{}.ttf"),
+    5: ("ocr-b-regular", "./resources/{}.ttf"),
+    6: ("ocra", "./resources/{}.ttf"),
+    7: ("orator", "./resources/{}.ttf"),
+    9: ("scriptc", "./resources/{}.ttf"),
+    10: ("romant", "./resources/{}.ttf"),
+}
+
 
 character_table_mapping = {
     (0, 0): "Italic",

@@ -2,6 +2,7 @@
 from pathlib import Path
 from enum import Enum
 import itertools as it
+from functools import lru_cache
 
 # Custom imports
 from lark import Token
@@ -9,10 +10,13 @@ from PIL import ImageFont
 from reportlab.lib import colors
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.lib.pagesizes import A4
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 
 # Local imports
 from escparser.grammar import init_parser
 from escparser.commons import charset_mapping, international_charsets, character_table_mapping
+from escparser.commons import typefaces
 from escparser.commons import logger
 
 # Debug imports
@@ -39,10 +43,11 @@ class ESCParser:
     https://support2.epson.net/manuals/english/page/epl_5800/ref_g/APCOM_3.HTM
     ESC/P2 mode
     FX mode (FX and LQ commands)
-
     """
 
-    def __init__(self, code, pins=9, printable_area_margins_mm=None, page_size=A4, single_sheets=True, pdf=True):
+    default_typeface = 0  # Roman
+
+    def __init__(self, code, pins=None, printable_area_margins_mm=None, page_size=A4, single_sheets=True, pdf=True):
         """
 
         :param code: Binary code to be parsed.
@@ -176,7 +181,7 @@ class ESCParser:
             "User-defined characters",
             "PC437",
         ]
-        self.typefaces = {
+        self.typeface_names = {
                 0: "Roman", # Times New Roman
                 1: "Sans serif", # /usr/share/fonts/truetype/freefont/FreeSans*
                 2: "Courier",
@@ -194,7 +199,7 @@ class ESCParser:
         }
         self.character_table = 1  # PC437 by default
         self.international_charset = 0
-        self.typeface = 0  # Roman
+        self.typeface = self.default_typeface
         self.copied_font = {}
         self.user_defined_RAM_characters = False
         # scalable fonts possibility
@@ -1226,20 +1231,53 @@ class ESCParser:
         value = args[1].value[0]
         self.underline = value in (1, 49)
 
+    @staticmethod
+    @lru_cache
+    def register_fonts(*fontnames: tuple[str], fontpath_formatter: None | str = None):
+        """Register fonts available on the filesystem to the reportlab context (internal usage)
+
+        The function is cached in order to avoid to register a font twice.
+        """
+        _ = [
+            pdfmetrics.registerFont(TTFont(fontname, fontpath_formatter.format(fontname)))
+            for fontname in fontnames
+        ]
+
     def set_font(self):
         """Configure the current font (internal usage)
 
-        Use bold, italic styles to choose the font.
+        Use bold, italic, condensed styles to choose the font.
         The font is configured with the current point_size.
+
+        Example of filenames for a font:
+
+            "NotoSans-Regular",
+            "NotoSans-Bold",
+            "NotoSans-CondensedBoldItalic",
+            "NotoSans-CondensedBold",
+            "NotoSans-CondensedItalic",
+            "NotoSans-Condensed",
+            "NotoSans-Italic"
         """
         if not self.current_pdf:
             return
 
-        bold = "Bold" if self.bold else ""
-        italic = "Italic" if self.italic else ""
+        if self.typeface not in typefaces:
+            # Build font by default
+            self.typeface = self.default_typeface
 
-        font = f"Times-{bold}{italic}" if bold or italic else "Times-Roman"
-        self.current_pdf.setFont(font, self.point_size)
+        # Get typefaces definitions
+        fontname, fontpath = typefaces[self.typeface]
+        if callable(fontname):
+            # Execute the lambda to obtain the fontname
+            fontname = fontname(self.condensed, self.bold, self.italic)
+        if fontpath:
+            # Not an already available font
+            self.register_fonts(fontname, fontpath_formatter=fontpath)
+
+        self.current_pdf.setFont(fontname, self.point_size)
+
+        LOGGER.debug("Loaded & used font: %s", fontname)
 
     def assign_character_table(self, *args):
         """Assign a registered character table to a character table - ESC ( t
@@ -1339,15 +1377,12 @@ class ESCParser:
     def select_typeface(self, *args):
         """Select the typeface for LQ printing - ESC k
 
-        TODO:
-        The printer ignores this command if the user-defined character set is selected.
-        => celui de la RAM ou celui de la table ? select_user_defined_set() ?
-        - [x] The Roman typeface is selected if the selected typeface is not available.
-        If draft mode is selected when this command is sent, the new LQ typeface will be
-        selected when the printer returns to LQ printing.
-        - Ignored if typeface is not available in multipoint_mode
-            During multipoint mode the printer ignores ESC k
-            (for ESC k: if typeface not available in scalable/multipoint mode)
+        - TODO: The printer ignores this command if the user-defined character set is selected.
+            => celui de la RAM ou celui de la table ? select_user_defined_set() ?
+        - The Roman typeface is selected if the selected typeface is not available.
+        - TODO: If draft mode is selected when this command is sent,
+          the new LQ typeface will be selected when the printer returns to LQ printing.
+        - TODO: Ignored if typeface is not available in scalable/multipoint mode
 
         ESCP2:
             0: Roman
@@ -1367,12 +1402,18 @@ class ESCParser:
 
         9 pins:
             0 Roman
-            1 ans serif
+            1 Sans serif
         """
         value = args[1].value[0]
-        self.typeface = 0 if value not in self.typefaces else value
+        if value not in self.typeface_names:
+            LOGGER.error("Typeface selected doesn't exist. Switch to default.")
+            self.typeface = self.default_typeface
+        else:
+            self.typeface = value
 
-        LOGGER.debug("Select typeface %s", self.typefaces[value])
+        LOGGER.debug("Select typeface %s", self.typeface_names[value])
+
+        self.set_font()
 
     def define_user_defined_ram_characters(self, *args):
         """Sets the parameters for user-defined characters and then sends the data for those characters - ESC &
