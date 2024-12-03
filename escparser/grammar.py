@@ -131,7 +131,7 @@ esc_grammar = r"""
 
 
         # Character handling
-        | ESC "(t\x03\x00" /[0-3\x00-\x03].{2}/ -> assign_character_table
+        | ESC "(t\x03\x00" /[0-3\x00-\x03][\x00-\xff]{2}/ -> assign_character_table
         | ESC "t" /[0-3\x00-\x03]/          -> select_character_table
         # 0-13, 64
         | ESC "R" /[\x00-\x0d\x40]/         -> select_international_charset
