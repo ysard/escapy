@@ -174,7 +174,7 @@ class ESCParser:
             self.page_length = self.page_height
 
         self.character_tables = [
-            None, # "Italic"
+            "Italic",
             "cp437", # "PC437"
             None, # "User-defined characters"
             "cp437", # "PC437"
@@ -906,6 +906,15 @@ class ESCParser:
 
         # Decode the text according to the current character table
         encoding = self.character_tables[self.character_table]
+        if encoding == "Italic":
+            LOGGER.warning("Italic table is partially supported: map all italic chars to normal chars")
+            # Remap the upper table part to the lower part
+            value = bytearray(i if i < 0x80 else i - 0x80 for i in value)
+            encoding = "cp437"
+        elif encoding is None:
+            # Encoding not supported, fall back to cp437; See select_character_table()
+            encoding = "cp437"
+
         text = value.decode(encoding)
         print(value)
         print(text)
@@ -1338,11 +1347,12 @@ class ESCParser:
                 1       Graphic character table
         """
         value = args[1].value[0]
+        character_table = None
         match value:
             case 0 | 48:
-                self.character_table = 0
+                character_table = 0
             case 1 | 49:
-                self.character_table = 1
+                character_table = 1
             case (2 | 50) if self.pins in (24, 48):
                 # TODO: On 24/48-pin printers, non-ESC/P 2 printers:
                 print(
@@ -1351,7 +1361,7 @@ class ESCParser:
                 raise NotImplementedError
             case (2 | 50):
                 # TODO: ESCP2 only (so not only non 9 pins !!)
-                self.character_table = 2
+                character_table = 2
                 assert (
                     self.user_defined_RAM_characters
                 ), "ROM characters should be previously selected"
@@ -1360,7 +1370,20 @@ class ESCParser:
                 # mais une fois cela fait, l'utilisation de caractères personnalisés ne peut se faire
                 # qu'après un reset ESC @.
             case 3 | 51:
-                self.character_table = 3
+                character_table = 3
+
+        if character_table is None:
+            return
+
+        encoding = self.character_tables[character_table]
+        if not encoding:
+            LOGGER.error(
+                "Character table %d not supported (code page not available) "
+                "=> will use cp437, do not expect anything good !",
+                character_table
+            )
+
+        self.character_table = character_table
 
         LOGGER.debug("Select character table %d (%s)", value, self.character_tables[self.character_table])
 
