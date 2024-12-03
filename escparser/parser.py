@@ -1077,6 +1077,11 @@ class ESCParser:
             # operations will draw on a subsequent page
             self.current_pdf.showPage()
 
+            # With showPage(), all state changes (
+            # font changes, color settings, geometry transforms, etcetera) are FORGOTTEN
+            self.set_font()
+            self.color = self._color
+
     def h_tab(self, *_):
         """Move the horizontal print position to the next tab to the right of the current print position - HT
 
