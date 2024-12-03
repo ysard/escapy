@@ -1304,6 +1304,8 @@ class ESCParser:
 
         doc p80
 
+        Decides which encoding must be used to decipher the bytes received.
+
         .. tip:: Do not assign a registered table to Table 2 if you plan to use
             it for user-defined characters. Once you assign a registered table
             to Table 2, you must reset the printer (with the ESC @ command)
@@ -2475,7 +2477,7 @@ class ESCParser:
 
             if self.double_speed:
                 # Clear bits using the previous column as a bitmask
-                col_int &= ~(prev_col_int)
+                col_int &= ~prev_col_int
                 prev_col_int = col_int
 
             if extended_dots:
