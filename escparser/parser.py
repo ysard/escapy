@@ -885,7 +885,7 @@ class ESCParser:
             not relying on fixed character spacing.
 
             This will generate positionning errors when the old font is not strictly
-            the same (i.e double width font, etc.).
+            the same (i.e. double width font, etc.).
         """
         value = arg.value
 
@@ -899,7 +899,7 @@ class ESCParser:
         if not self.current_fontpath:
             LOGGER.warning(
                 "Font %s not found in usual font directories; Maybe an internal font of reportlab?"
-                "Switch back to 'DejaVuSansMono' to compute text width",
+                " Switch back to 'DejaVuSansMono' to compute text width",
                 fontname
             )
             fontname = "DejaVuSansMono"
@@ -933,6 +933,7 @@ class ESCParser:
             graphical_text = ImageFont.truetype(fontname, self.point_size)
 
             if self.current_pdf:
+                # Print text
                 textobject = self.current_pdf.beginText()
                 textobject.setTextOrigin(self.cursor_x * 72, cursor_y * 72)
                 textobject.setRise(rise)
@@ -946,12 +947,13 @@ class ESCParser:
             graphical_text = ImageFont.truetype(fontname, self.point_size)
 
             if self.current_pdf:
+                # Print text
                 # col, row are in 1/72 inch
                 # distance from the left edge, distance from the bottom edge
                 self.current_pdf.drawString(self.cursor_x * 72, cursor_y * 72, text)
 
         # Actualize the x cursor with the apparent width of the written text
-        # !!! use inches: convert pixels to inch
+        # use inches: convert pixels to inch
         self.cursor_x += graphical_text.getlength(text) / 72
 
     def carriage_return(self, *_):
