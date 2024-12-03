@@ -115,8 +115,6 @@ class ESCParser:
         if pdf:
             # Init PDF render
             self.current_pdf = Canvas("output.pdf", pagesize=page_size, pageCompression=1)
-            self.current_pdf.setFont("Times-Roman", self.point_size)
-
 
         # Page configuration ###################################################
         self.page_width = page_size[0] / 72
@@ -246,6 +244,9 @@ class ESCParser:
         self.cursor_y = 0
         self.reset_cursor_x()
         self.reset_cursor_y()
+
+        # Init the default font
+        self.set_font()
 
         # Parse it !
         self.run_escp(code)
