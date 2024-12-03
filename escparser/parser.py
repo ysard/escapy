@@ -176,10 +176,10 @@ class ESCParser:
             self.page_length = self.page_height
 
         self.character_tables = [
-            "Italic",
-            "PC437",
-            "User-defined characters",
-            "PC437",
+            None, # "Italic"
+            "cp437", # "PC437"
+            None, # "User-defined characters"
+            "cp437", # "PC437"
         ]
         self.typeface_names = {
                 0: "Roman", # Times New Roman
@@ -197,6 +197,7 @@ class ESCParser:
             30: "SV Busaba",
             31: "SV Jittra",
         }
+        self.current_fontpath = None  # Internal use, for pillow
         self.character_table = 1  # PC437 by default
         self.international_charset = 0
         self.typeface = self.default_typeface
@@ -863,76 +864,85 @@ class ESCParser:
         self.cursor_x = cursor_x
 
     def binary_blob(self, arg):
-        """
-        a point equals 1/72 of an inch
+        """Print text characters
+
+        .. tip:: A point equals 1/72 of an inch, we need to convert this to pixels
+             by multiplying by 72.
 
         The baseline for printing characters on the first line
         is 20/180 inch below the top-margin position.
-        on 9-pin printers, 7/72 inch below the print position.
+        On 9-pin printers, 7/72 inch below the print position.
 
-        The baseline of the character is printed 20/180 inch
-        (7/72 inch for 9-pin printers) below the vertical print
-        position;
-        NOTE: the x/180 offset if for characters only, not graphics !
+        This offset is for characters only, not graphics !
 
-        NOTE: horizontal move: according to the pitch you select (or the width of each character if you
-            select proportional spacing).
+        For graphics printing, the print position is the top printable
+        row of dots (see in concerned functions).
 
-        TODO: Graphics printing:
-            The print position is the top printable row of dots.
+        .. warning:: The horizontal move should be according to the selected pitch
+            (or the width of each character for select proportional spacing).
+            Since we use modern fonts we must use an accurate width that is
+            not relying on fixed character spacing.
+
+            This will generate positionning errors when the old font is not strictly
+            the same (i.e double width font, etc.).
         """
         value = arg.value
-        print(value.decode())
 
         baseline_offset = 7 / 72 if self.pins == 9 else 20 / 180
         cursor_y = self.cursor_y - baseline_offset
-        point_size = self._point_size
 
-        # map self.current_pdf._fontname to filesystem filename ...
-        fontnames_mapping = {
-            'Times-Bold': "timesbd",
-            'Times-BoldItalic': "timesbi",
-            'Times-Italic': "timesi",
-            'Times-Roman': "times",
-        }
-        fontname = fontnames_mapping.get(self.current_pdf._fontname, "times")
-        f = ImageFont.truetype(fontname, self.point_size)
+        # Get the current fontpath in use
+        # /!\ If it's an internal font from reportlab (no filepath),
+        # fallback to a known installed font on the system
+        fontname = self.current_fontpath
+        if not self.current_fontpath:
+            LOGGER.warning(
+                "Font %s not found in usual font directories; Maybe an internal font of reportlab?"
+                "Switch back to 'DejaVuSansMono' to compute text width",
+                fontname
+            )
+            fontname = "DejaVuSansMono"
 
-        if self.current_pdf:
-            text = value.decode()
-            if self.scripting:
-                rise = point_size * 1/3
-                if self.scripting == PrintScripting.SUB:
-                    rise *= -1
-                if point_size != 8:
-                    self.point_size *= 2/3
+        # Decode the text according to the current character table
+        encoding = self.character_tables[self.character_table]
+        text = value.decode(encoding)
+        print(value)
+        print(text)
 
-                f = ImageFont.truetype(fontname, self.point_size)
+        if self.scripting:
+            # Compute the position of the scripting text
+            point_size = self._point_size
+            rise = point_size * 1 / 3
+            if self.scripting == PrintScripting.SUB:
+                # Lower third of a normal character height
+                rise *= -1
+            # Modify point size only if it's greater than 8
+            if point_size != 8:
+                self.point_size *= 2 / 3
 
+            graphical_text = ImageFont.truetype(fontname, self.point_size)
+
+            if self.current_pdf:
                 textobject = self.current_pdf.beginText()
                 textobject.setTextOrigin(self.cursor_x * 72, cursor_y * 72)
                 textobject.setRise(rise)
                 textobject.textOut(text)
                 textobject.setRise(0)
                 self.current_pdf.drawText(textobject)
-                # Restore previous poitn size
+                # Restore original point size
                 self.point_size = point_size
 
-            else:
+        else:
+            graphical_text = ImageFont.truetype(fontname, self.point_size)
 
-                # col, row in 1/72 inch
+            if self.current_pdf:
+                # col, row are in 1/72 inch
                 # distance from the left edge, distance from the bottom edge
-                # convert inches to pixels/points
                 self.current_pdf.drawString(self.cursor_x * 72, cursor_y * 72, text)
-                # print(self.current_pdf._code)
-                # print("y:", cursor_y, "line spacing:", self.current_line_spacing)
 
-
-
-            # !!! use inches: convert pixels to inch
-            # print("before x:", self.cursor_x)
-            self.cursor_x += f.getlength(text) / 72
-            # print("after x:", self.cursor_x)
+        # Actualize the x cursor with the apparent width of the written text
+        # !!! use inches: convert pixels to inch
+        self.cursor_x += graphical_text.getlength(text) / 72
 
     def carriage_return(self, *_):
         """Move the print position to the left-margin position
@@ -1263,7 +1273,7 @@ class ESCParser:
             return
 
         if self.typeface not in typefaces:
-            # Build font by default
+            # Build default font
             self.typeface = self.default_typeface
 
         # Get typefaces definitions
@@ -1274,6 +1284,10 @@ class ESCParser:
         if fontpath:
             # Not an already available font
             self.register_fonts(fontname, fontpath_formatter=fontpath)
+
+            # Retain filepath
+            # PIL will be able to load this font and calculate the text width with it
+            self.current_fontpath = fontpath.format(fontname)
 
         self.current_pdf.setFont(fontname, self.point_size)
 
@@ -1340,7 +1354,7 @@ class ESCParser:
             case 3 | 51:
                 self.character_table = 3
 
-        LOGGER.debug("Select character table %s (%s)", self.character_table, self.character_tables[self.character_table])
+        LOGGER.debug("Select character table %d (%s)", value, self.character_tables[self.character_table])
 
     def select_international_charset(self, *args):
         """Select the set of characters printed for specific character codes - ESC R
