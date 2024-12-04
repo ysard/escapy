@@ -935,6 +935,7 @@ class ESCParser:
 
         baseline_offset = 7 / 72 if self.pins == 9 else 20 / 180
         cursor_y = self.cursor_y - baseline_offset
+        horizontal_scale = 200 if self.double_width else 100
 
         # Get the current fontpath in use
         # /!\ If it's an internal font from reportlab (no filepath),
@@ -981,9 +982,10 @@ class ESCParser:
                 textobject = self.current_pdf.beginText()
                 textobject.setTextOrigin(self.cursor_x * 72, cursor_y * 72)
                 textobject.setRise(rise)
+                textobject.setCharSpace(self.extra_intercharacter_space)
+                textobject.setHorizScale(horizontal_scale)
                 textobject.textOut(text)
                 textobject.setRise(0)
-                textobject.setCharSpace(self.extra_intercharacter_space)
                 self.current_pdf.drawText(textobject)
                 # Restore original point size
                 self.point_size = point_size
@@ -993,14 +995,25 @@ class ESCParser:
 
             if self.current_pdf:
                 # Print text
-                # col, row are in 1/72 inch
-                # distance from the left edge, distance from the bottom edge
-                self.current_pdf.drawString(self.cursor_x * 72, cursor_y * 72, text, charSpace=self.extra_intercharacter_space)
-                print(self.extra_intercharacter_space)
+                if self.double_width:
+                    textobject = self.current_pdf.beginText()
+                    textobject.setTextOrigin(self.cursor_x * 72, cursor_y * 72)
+                    textobject.setCharSpace(self.extra_intercharacter_space)
+                    textobject.setHorizScale(horizontal_scale)
+                    textobject.textOut(text)
+                    textobject.setHorizScale(100)
+                    self.current_pdf.drawText(textobject)
+                else:
+                    # col, row are in 1/72 inch
+                    # distance from the left edge, distance from the bottom edge
+                    self.current_pdf.drawString(self.cursor_x * 72, cursor_y * 72, text, charSpace=self.extra_intercharacter_space)
 
         # Actualize the x cursor with the apparent width of the written text
         # use inches: convert pixels to inch
-        self.cursor_x += graphical_text.getlength(text) / 72
+        text_width = graphical_text.getlength(text) / 72
+        if self.double_width:
+            text_width *= 2
+        self.cursor_x += text_width
 
     def carriage_return(self, *_):
         """Move the print position to the left-margin position
