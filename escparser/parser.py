@@ -70,6 +70,7 @@ class ESCParser:
         :type pdf: bool
         """
         self.mode = PrintMode.LQ
+        self.previous_mode = self.mode
         # Note: There are non-ESCP2 printers that have 24, 48 pins !
         self.pins = pins
         self.current_pdf = None
@@ -959,6 +960,7 @@ class ESCParser:
                 textobject.setRise(rise)
                 textobject.textOut(text)
                 textobject.setRise(0)
+                textobject.setCharSpace(self.extra_intercharacter_space)
                 self.current_pdf.drawText(textobject)
                 # Restore original point size
                 self.point_size = point_size
@@ -970,7 +972,8 @@ class ESCParser:
                 # Print text
                 # col, row are in 1/72 inch
                 # distance from the left edge, distance from the bottom edge
-                self.current_pdf.drawString(self.cursor_x * 72, cursor_y * 72, text)
+                self.current_pdf.drawString(self.cursor_x * 72, cursor_y * 72, text, charSpace=self.extra_intercharacter_space)
+                print(self.extra_intercharacter_space)
 
         # Actualize the x cursor with the apparent width of the written text
         # use inches: convert pixels to inch
@@ -1422,24 +1425,22 @@ class ESCParser:
         LOGGER.debug("Select international charset variant %s (%s)", value, charset_mapping[value])
 
     def select_letter_quality_or_draft(self, *args):
-        """Select either LQ or draft printing
-
-        TODO: ESCP2/ESCP:
-            If you select proportional spacing with the ESC p command during draft printing, the
-            printer prints an LQ font instead. When you cancel proportional spacing with the ESC p
-            command, the printer returns to draft printing.
-        """
+        """Select either LQ or draft printing - ESC x"""
         value = args[1].value[0]
         match value:
             case 0 | 48:
-                print("=> Draft printing")
                 self.mode = PrintMode.DRAFT
             case 1 | 49:
-                print("=> LQ Letter-quality printing")
                 # LQ: ESCP2/ESCP
                 # NLQ: 9 pins
-                # TODO: Double-strike printing is not possible when NLQ printing is selected
+                # TODO: 9 pins: Double-strike printing is not possible when NLQ printing is selected
                 self.mode = PrintMode.LQ
+
+        # Keep the current value in case switch_proportional_mode is called
+        # with a disable order (ESC p 0)
+        self.previous_mode = self.mode
+
+        LOGGER.debug("Set print quality: %s", self.mode)
 
     def select_typeface(self, *args):
         """Select the typeface for LQ printing - ESC k
@@ -1744,9 +1745,8 @@ class ESCParser:
     def set_intercharacter_space(self, *args):
         """Increases the space between characters by n/180 inch in LQ mode and n/120 inch in draft mode - ESC SP
 
-        TODO:
-            Add a fixed amount of space to the right of every character.
-            This additional space is added to both fixed-pitch and proportional characters.
+        Add a fixed amount of space to the right of every character.
+        This additional space is added to both fixed-pitch and proportional characters.
 
         - cancels the HMI (horizontal motion unit) set with the ESC c command.
         - The extra space set with this command doubles during double-width mode.
@@ -1754,7 +1754,8 @@ class ESCParser:
         9 pins:
             Increases the space between characters by n/120 inch
         """
-        value = args[1].value[0]
+        # 3rd argument, see the terminal independant def in the grammar (SP is a control code)
+        value = args[2].value[0]
 
         coef = 180 if self.mode == PrintMode.LQ and self.pins != 9 else 120
         self.extra_intercharacter_space = value / coef
@@ -2057,7 +2058,8 @@ class ESCParser:
         from the line buffer; this is not the equivalent of the FF command (which does print
         line-buffer data).
         """
-        value = chr(args[1].value[0])
+        # 3rd argument, see the terminal independant def in the grammar (SP is a control code)
+        value = chr(args[2].value[0])
 
         if self.single_sheet_paper and value == "R":
             self.next_page()
