@@ -2834,6 +2834,18 @@ class ESCParser:
         # barcode.height = bar_length
         barcode.drawOn(self.current_pdf, self.cursor_x * 72, self.cursor_y * 72)
 
+
+    def reset_printer(self, *_):
+        """Reset printer configuration
+
+        Should be called at the beginning and at the end of each print job.
+
+        TODO: call it in the constructor to lighten it?
+        """
+        self.graphics_mode = False
+        self.microweave_mode = False
+
+
     # raster commands p224
     # doc p330+
     # lire p302 mix text + graphics
