@@ -2167,14 +2167,14 @@ class ESCParser:
         self.character_tables[2] = None
 
     def switch_microweave_mode(self, *args):
-        """Turns MicroWeave print mode off and on
+        """Turn MicroWeave print mode off and on
 
-        TODO:
-        only available during raster graphics printing.
-        TODO:
+        TODO: only available during raster graphics printing.
+
         Sending an ESC @ or ESC ( G command turns MicroWeave printing off.
         """
-        self.microweave_mode = True
+        value = args[1].value[0]
+        self.microweave_mode = value in (1, 49)
 
     def print_raster_graphics(self, *args):
         """Print raster graphics - ESC .
