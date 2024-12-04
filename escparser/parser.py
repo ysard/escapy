@@ -2116,15 +2116,19 @@ class ESCParser:
 
     ## GRAPHIIICSSSss !!! (òÓ,)_\,,/
 
-    def set_graphics_mode(self, *args):
-        """Selects graphics mode (allowing you to print raster graphics) - ESC ( G
+    def set_graphics_mode(self, *_):
+        """Select graphics mode (allowing to print raster graphics) - ESC ( G
 
-        TODO: only ESCP2
-        TODO: exit by ESC @
-        TODO: clears all user-defined characters and tab settings
+        .. note:: only ESCP2
+
+        - exit by ESC @
+        - turn MicroWeave printing off
+        - clear tab settings
+        - clear all user-defined characters
+
         TODO: Text printing is not possible => DO NOT MIX text/graphics on the same page
-        turns MicroWeave printing off
-        TODO: Only available commands:
+
+        Only available commands:
             LF          Line feed
             FF          Form feed
             CR          Carriage return
@@ -2150,11 +2154,17 @@ class ESCParser:
             Also, the printer ignores commands moving the vertical print position in a negative
             direction if the final position would be above any graphics printed with this command.
 
-        TODO: Graphics printing: The print position is the top printable row of dots.
+        .. tip:: The print position is the top printable row of dots.
         """
         self.graphics_mode = True
         self.microweave_mode = False
 
+        # Clear tab settings
+        self.horizontal_tabulations = [0] * 32
+        self.vertical_tabulations = [0] * 16
+
+        # clear all user-defined characters
+        self.character_tables[2] = None
 
     def switch_microweave_mode(self, *args):
         """Turns MicroWeave print mode off and on
