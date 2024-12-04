@@ -1931,8 +1931,8 @@ class ESCParser:
         self.scripting = PrintScripting.SUB if value in (1, 49) else PrintScripting.SUP
         print("=>", self.scripting)
 
-    def unset_script_printing(self, *args):
-        """Cancels super/subscript printing selected by the ESC S command - ESC T"""
+    def unset_script_printing(self, *_):
+        """Cancel super/subscript printing selected by the ESC S command - ESC T"""
         self.scripting = None
 
     def select_character_style(self, *args):
@@ -1988,7 +1988,7 @@ class ESCParser:
         self.character_width = None
 
     @multipoint_mode_ignore
-    def select_double_width_printing(self, *args):
+    def select_double_width_printing(self, *_):
         """Double the width of all characters, spaces, and intercharacter spacing
         (set with the ESC SP command) following this command ON THE SAME LINE. - SO, ESC SO
 
@@ -2010,7 +2010,7 @@ class ESCParser:
         LOGGER.debug("Double-width one line status: %s", self.double_width)
 
     @multipoint_mode_ignore
-    def unset_double_width_printing(self, *args):
+    def unset_double_width_printing(self, *_):
         """Cancels double-width printing selected by the SO or ESC SO commands - DC4
 
         .. seealso:: :meth:`select_double_width_printing`, :meth:`switch_double_width_printing`
