@@ -82,7 +82,7 @@ class ESCParser:
         self.character_style = None  # cf PrintCharacterStyle
         self.condensed = False
         self.double_strike = False
-        self.double_width = False
+        self._double_width = False
         self._color = 0  # Black
 
         self.RGB_colors = [
@@ -310,6 +310,26 @@ class ESCParser:
         if self.current_pdf:
             # Redefine the current font (can't just update the point size)
             self.current_pdf.setFont(self.current_pdf._fontname, point_size)
+
+    @property
+    def double_width(self) -> bool:
+        """Get the double-width state"""
+        return self._double_width
+
+    @double_width.setter
+    def double_width(self, double_width: bool):
+        """Set the double-width state
+
+        Used in combination with ESC SP that allows to double the extra space
+        during double-width mode.
+
+        .. seealso:: :meth:`set_intercharacter_space`
+        """
+        if double_width != self._double_width:
+            # Do not apply the mod multiple times while not changing the attr
+            self.extra_intercharacter_space *= 2 if double_width else 0.5
+
+        self._double_width = double_width
 
     def reset_cursor_y(self):
         """Move the Y cursor on top of the printing area
@@ -1717,16 +1737,19 @@ class ESCParser:
         else:
             # Returns to current fixed character pitch
             self.proportional_spacing = False
-            # Restore previous mode (Draft for example)
+            # Restore previous Draft mode (keep LQ in other case)
             self.mode = self.previous_mode
 
     @multipoint_mode_ignore
     def set_intercharacter_space(self, *args):
         """Increases the space between characters by n/180 inch in LQ mode and n/120 inch in draft mode - ESC SP
 
-        cancels the HMI (horizontal motion unit) set with the ESC c command.
+        TODO:
+            Add a fixed amount of space to the right of every character.
+            This additional space is added to both fixed-pitch and proportional characters.
 
-        TODO: The extra space set with this command doubles during double-width mode.
+        - cancels the HMI (horizontal motion unit) set with the ESC c command.
+        - The extra space set with this command doubles during double-width mode.
 
         9 pins:
             Increases the space between characters by n/120 inch
