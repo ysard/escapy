@@ -84,6 +84,7 @@ class ESCParser:
         self.condensed = False
         self.double_strike = False
         self._double_width = False
+        self._double_width_multi = False
         self._color = 0  # Black
 
         self.RGB_colors = [
@@ -314,8 +315,8 @@ class ESCParser:
 
     @property
     def double_width(self) -> bool:
-        """Get the double-width state"""
-        return self._double_width
+        """Get the double-width state (online OR multiline states)"""
+        return self._double_width or self._double_width_multi
 
     @double_width.setter
     def double_width(self, double_width: bool):
@@ -324,13 +325,35 @@ class ESCParser:
         Used in combination with ESC SP that allows to double the extra space
         during double-width mode.
 
-        .. seealso:: :meth:`set_intercharacter_space`
+        .. seealso:: :meth:`set_intercharacter_space`,
+            :meth:`select_double_width_printing`, :meth:`switch_double_width_printing`
         """
-        if double_width != self._double_width:
-            # Do not apply the mod multiple times while not changing the attr
+        current = self.double_width
+        self._double_width = double_width
+
+        if current != self.double_width:
             self.extra_intercharacter_space *= 2 if double_width else 0.5
 
-        self._double_width = double_width
+    @property
+    def double_width_multi(self) -> bool:
+        """Get the double-width multiline state"""
+        return self._double_width_multi
+
+    @double_width_multi.setter
+    def double_width_multi(self, double_width: bool):
+        """Set the double-width multiline state
+
+        Used in combination with ESC SP that allows to double the extra space
+        during double-width mode.
+
+        .. seealso:: :meth:`set_intercharacter_space`,
+            :meth:`select_double_width_printing`, :meth:`switch_double_width_printing`
+        """
+        current = self.double_width
+        self._double_width_multi = double_width
+
+        if current != self.double_width:
+            self.extra_intercharacter_space *= 2 if double_width else 0.5
 
     def reset_cursor_y(self):
         """Move the Y cursor on top of the printing area
@@ -1770,6 +1793,7 @@ class ESCParser:
         cancels the HMI selected with the ESC c command
         cancels any attributes or enhancements that are not selected
 
+        Aso modify double-width multiline selected by ESC W (equivalent command).
 
         bitmasks :
             1,  # 12 cpi vs 10 cpi,  ESC M vs ESC P
@@ -1790,7 +1814,7 @@ class ESCParser:
         self.condensed = bool(value & 4)
         self.bold = bool(value & 8)
         self.double_strike = bool(value & 16)
-        self.double_width = bool(value & 32)
+        self.double_width_multi = bool(value & 32)
         self.italic = bool(value & 64)
         self.underline = bool(value & 128)
 
@@ -1952,49 +1976,62 @@ class ESCParser:
 
     @multipoint_mode_ignore
     def select_double_width_printing(self, *args):
-        """Doubles the width of all characters, spaces, and intercharacter spacing
+        """Double the width of all characters, spaces, and intercharacter spacing
         (set with the ESC SP command) following this command ON THE SAME LINE. - SO, ESC SO
 
-        canceled when the buffer is full, or the printer receives the following commands:
+        Canceled when the buffer is full, or the printer receives the following commands:
         LF, FF, VT, DC4, ESC W 0.
 
-        TODO:
-        not canceled by the VT command when it functions the same as a CR command.
-        TODO: => nuance One/multiple lines !! cf DC4
-        TODO:
-        non-ESC/P 2 printers:
-        also canceled when the printer receives the following commands: CR and
-        VT (when it functions the same as a CR command).
+        .. seealso:: :meth:`unset_double_width_printing`, :meth:`switch_double_width_printing`
+
+        TODO: not canceled by the VT command when it functions the same as a CR command.
+        TODO: non-ESC/P 2 printers:
+            also canceled when the printer receives the following commands:
+            CR and VT (when it functions the same as a CR command).
         """
         self.double_width = True
+
         # Cancel HMI set_horizontal_motion_index() ESC c command
         self.character_width = None
+
+        LOGGER.debug("Double-width one line status: %s", self.double_width)
 
     @multipoint_mode_ignore
     def unset_double_width_printing(self, *args):
         """Cancels double-width printing selected by the SO or ESC SO commands - DC4
 
-        TODO: does not cancel double-width printing selected with the ESC W command.
-            => nuance One/multiple lines !!
-        TODO: ne dit pas si annule le mode sélectionné par ESC ! => pense pas...
+        .. seealso:: :meth:`select_double_width_printing`, :meth:`switch_double_width_printing`
+
+        Does not cancel double-width printing selected with the ESC W command.
+        => distinction between 1-line and multiline.
         """
         self.double_width = False
 
         # Cancel HMI set_horizontal_motion_index() ESC c command
         self.character_width = None
 
+        LOGGER.debug("Double-width one line status: %s", self.double_width)
+
     @multipoint_mode_ignore
     def switch_double_width_printing(self, *args):
-        """Turns on/off double-width printing of all characters, spaces, and intercharacter spacing
-        (set with the ESC SP command) - ESC W
+        """Turn on/off double-width printing of all characters, spaces,
+        and intercharacter spacing (set with the ESC SP command) - ESC W
+
+        .. warning:: Action on MULTIPLE lines! Not like ESC SO, SO
+            Does not cancel double-width printing selected with the SO, ESC SO commands.
+            => distinction between 1-line and multiline.
+
+            Also cancels double-width selected by ESC ! (equivalent command).
+
+        .. seealso:: :meth:`select_double_width_printing`, :meth:`unset_double_width_printing`
         """
         value = args[1].value[0]
-        self.double_width = value in (1, 49)
+        self.double_width_multi = value in (1, 49)
 
-        text = "=> Double-width ON" if self.double_width else "=> Double-width OFF"
-        print(text)
         # Cancel HMI set_horizontal_motion_index() ESC c command
         self.character_width = None
+
+        LOGGER.debug("Double-width multiline status: %s", self.double_width)
 
     @multipoint_mode_ignore
     def switch_double_height_printing(self, *args):
