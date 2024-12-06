@@ -300,7 +300,7 @@ class ESCParser:
 
         if self.current_pdf:
             # Update PDF setting
-            self.current_pdf.setFillColor(colors.HexColor(self.RGB_colors[self.color]))
+            self.current_pdf.setFillColor(colors.HexColor(self.RGB_colors[color]))
 
     @property
     def point_size(self) -> int:
