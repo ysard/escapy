@@ -81,7 +81,7 @@ class ESCParser:
         self._underline = False
         self.scripting = None  # cf PrintScripting
         self.character_style = None  # cf PrintCharacterStyle
-        self.condensed = False
+        self._condensed = False
         self.double_strike = False
         self._double_width = False
         self._double_width_multi = False
@@ -1953,39 +1953,74 @@ class ESCParser:
         # TODO: maybe just not use None but 0 instead...
         self.character_style = None if not value else value  # cf PrintCharacterStyle
 
-    @multipoint_mode_ignore
-    def select_condensed_printing(self, *args):
-        """Enters condensed mode, in which character width is reduced - SI, ESC SI
+    @property
+    def condensed(self) -> bool:
+        """Get condensed printing mode status"""
+        return self._condensed
 
-        ignored if 15-cpi printing has been selected with the ESC g command.
+    @condensed.setter
+    def condensed(self, condensed: bool):
+        """Switch condensed printing mode and update character pitch
+
+        Called by :meth:`select_condensed_printing`, :meth:`unset_condensed_printing`,
+        :meth:`master_select` (SI, ESC SI, DC2, ESC ! commands).
         """
-        # Update character pitch
-        if self.proportional_spacing:
-            self.character_pitch *= 0.5
-        elif self.character_pitch == 1 / 10:
-            self.character_pitch = 1 / 17.14
-        elif self.character_pitch == 1 / 12:
-            self.character_pitch = 1 / 20
-        elif self.character_pitch == 1 / 15:
-            # Ignore due to ESC g action
+        # Cancel HMI set_horizontal_motion_index() ESC c command
+        self.character_width = None
+
+        if condensed == self._condensed:
+            # Do not modify settings twice
+            LOGGER.warning("Condensed printing already set")
             return
 
-        self.condensed = True
+        self._condensed = condensed
 
-        # Cancel HMI set_horizontal_motion_index() ESC c command
-        self.character_width = None
+        if condensed:
+            # Update character pitch
+            if self.proportional_spacing:
+                self.character_pitch *= 0.5
+            elif self.character_pitch == 1 / 10:
+                self.character_pitch = 1 / 17.14
+            elif self.character_pitch == 1 / 12:
+                self.character_pitch = 1 / 20
+            elif self.character_pitch == 1 / 15:
+                # Ignore due to ESC g action
+                return
+        else:
+            # Update character pitch
+            if self.proportional_spacing:
+                self.character_pitch *= 2
+            elif self.character_pitch == 1 / 17.14:
+                self.character_pitch = 1 / 10
+            elif self.character_pitch == 1 / 20:
+                self.character_pitch = 1 / 12
 
     @multipoint_mode_ignore
-    def unset_condensed_printing(self, *args):
-        """Cancels condensed printing selected by the SI or ESC SI commands - DC2
+    def select_condensed_printing(self, *_):
+        """Enters condensed mode, in which character width is reduced - SI, ESC SI
 
-        TODO: ne dit pas si annule le mode sélectionné par ESC ! => pense pas...
-        TODO: reset du character_pitch modifié par SI ?
+        Ignored if 15-cpi printing has been selected with the ESC g command.
+
+        Change character pitch values according to the current pitch:
+
+            - 1/10 : 1/17.14
+            - 1/12 : 1/20
         """
-        self.condensed = False
+        self.condensed = True
 
-        # Cancel HMI set_horizontal_motion_index() ESC c command
-        self.character_width = None
+    @multipoint_mode_ignore
+    def unset_condensed_printing(self, *_):
+        """Cancel condensed printing selected by the SI or ESC SI commands - DC2
+
+        Equivalent to ESC !
+
+        Restore previous character pitch values (before SI command):
+
+            - 1/17.14 : 1/10
+            - 1/20 : 1/12
+        """
+        # Reset character pitch
+        self.condensed = False
 
     @multipoint_mode_ignore
     def select_double_width_printing(self, *_):
