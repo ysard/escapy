@@ -134,6 +134,8 @@ character_table_mapping = {
     (127, 7): "iso8859_7",
 }
 
+left_to_right_languages = ("cp720", "cp862")
+
 # set of up to 12 particular characters that corresponds to symbols used
 # in various countries
 charset_mapping = {

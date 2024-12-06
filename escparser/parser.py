@@ -15,7 +15,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 
 # Local imports
 from escparser.grammar import init_parser
-from escparser.commons import charset_mapping, international_charsets, character_table_mapping
+from escparser.commons import charset_mapping, international_charsets, character_table_mapping, left_to_right_languages
 from escparser.commons import typefaces
 from escparser.commons import logger
 
@@ -973,6 +973,8 @@ class ESCParser:
             encoding = "cp437"
 
         text = value.decode(encoding)
+        if encoding in left_to_right_languages:
+            text = text[::-1]
         print(value)
         print(text)
 
