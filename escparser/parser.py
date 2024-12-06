@@ -1699,11 +1699,13 @@ class ESCParser:
         attributes of the font - ESC X
 
         Pitch:
-            m = 0 No change in pitch
+            m = 0 No change in pitch (allow to change only the point size)
             m = 1 Selects proportional spacing
             m ≥ 5 Selects fixed pitch equal to 360/m cpi
-        Point size (height):
-            1 point equals 1/72 inch
+
+        Point size (height of the characters):
+            1 point equals 1/72 inch. If nL & nH are equal to zero, the point
+            size will not be modified.
             Only the following point sizes are available:
             8, 10 (10.5), 12, 14, 16, 18, 20 (21), 22, 24, 26, 28, 30, 32
 
@@ -1711,7 +1713,15 @@ class ESCParser:
             Pitch = 10 cpi (m = 36)
             Point = 10.5 (nH = 0, nL = 21)
 
-        TODO: ESC/P 2 only
+        TODO: use multipoint_mode to select a scalable version of the selected font
+            Not all typefaces are available in multipoint mode; see the Command Table for
+            the typefaces available in multipoint mode on each printer.
+
+
+        The ESC/P 2 command language implements four scalable multipoint fonts:
+        Roman, Sans Serif, Roman T, and Sans Serif H not available to ESC/P printers.
+
+        - ESC/P 2 only
         TODO: override self.character_pitch mais en scalable font non ?
         TODO:
             Selecting a combination of 15 cpi and 10 or 20-point characters results in 15-cpi ROM
@@ -1719,13 +1729,16 @@ class ESCParser:
             characters. Select the pitch with the ESC C command to obtain normal height 10 or 20-
             point characters at 15 cpi.
 
-        TODO: During multipoint mode the printer ignores the ESC W, ESC w, ESC SP, SI, ESC SI, SO,
-            and ESC SO commands.
-            + DC2, DC4, ESC k (for ESC k: if typeface not available in scalable/multipoint mode)
-            => décorateur ??
+        During multipoint mode the printer ignores the ESC W, ESC w, ESC SP,
+        DC2, DC4, SI, ESC SI, SO, and ESC SO commands.
+        ESC k is ignored if typeface is not available in scalable/multipoint mode.
+        See the decorator :meth:`multipoint_mode_ignore`.
+
+        .. seealso:: A second method to change the pitch can be :meth:`set_horizontal_motion_index`.
         """
         m, nL, nH = args[1].value
 
+        # Allow the use of scalable fonts
         self.multipoint_mode = True
 
         # Character pitch
