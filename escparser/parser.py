@@ -118,6 +118,7 @@ class ESCParser:
         if pdf:
             # Init PDF render
             self.current_pdf = Canvas("output.pdf", pagesize=page_size, pageCompression=1)
+            self.current_pdf.setLineWidth(0.3)
 
         # Page configuration ###################################################
         self.page_width = page_size[0] / 72
@@ -939,14 +940,14 @@ class ESCParser:
         if self.double_height and self.double_width:
             # The point size is already multiplied by 2
             # roughly equivalent to x2 point size: do not change horizontal scale
-            horizontal_scale = 100
+            horizontal_scale_coef = 1
         elif self.double_width:
-            horizontal_scale = 200
+            horizontal_scale_coef = 2
         elif self.double_height:
             # The point size is already multiplied by 2, we must reduce the pitch
-            horizontal_scale = 50
+            horizontal_scale_coef = 0.5
         else:
-            horizontal_scale = 100
+            horizontal_scale_coef = 1
 
         # Get the current fontpath in use
         # /!\ If it's an internal font from reportlab (no filepath),
@@ -975,6 +976,43 @@ class ESCParser:
         print(value)
         print(text)
 
+        def apply_character_style(text_object, text):
+            """Add outline & shadow styles to the current textobject
+
+            Basically adding shadow consists of adding one text on top of the
+            other with a slight offset.
+
+            .. note:: The linewidth for strokes due to outline style is fixed
+                in :meth:`__init__` during the pdf object initialization.
+                Should be ~0.3.
+
+            :param text_object: The text object that will be modified.
+            :param text: Decoded text that will be written.
+            :type text_object: reportlab.pdfgen.textobject.PDFTextObject
+            :type text: str
+            """
+            match self.character_style:
+                # Fill only, Shadow only
+                # Fill then stroke, Outline and shadow
+                case 0 | 2:
+                    text_object.textOut(text)
+                    text_object.setTextRenderMode(self.character_style)
+                    text_object.setFillColorRGB(1, 1, 1)  # Fill with white
+                    # Empirical offset value (~1 to 1.2 at 10.5 point size)
+                    offset = horizontal_scale_coef * self.point_size * 0.5/ 10
+                    # The white text will be on top and above the legit text
+                    text_object.setTextOrigin(self.cursor_x * 72 - offset,
+                                              cursor_y * 72 + offset)
+                    text_object.textOut(text)
+                    text_object.setFillColorRGB(0, 0, 0)
+                # Stroke only, Outline only
+                case 1:
+                    text_object.setTextRenderMode(self.character_style)
+                    text_object.textOut(text)
+
+            text_object.setTextRenderMode(0)
+
+
         if self.scripting:
             # Compute the position of the scripting text
             point_size = self._point_size
@@ -994,8 +1032,13 @@ class ESCParser:
                 textobject.setTextOrigin(self.cursor_x * 72, cursor_y * 72)
                 textobject.setRise(rise)
                 textobject.setCharSpace(self.extra_intercharacter_space)
-                textobject.setHorizScale(horizontal_scale)
-                textobject.textOut(text)
+                textobject.setHorizScale(horizontal_scale_coef * 100)
+
+                if self.character_style is not None:
+                    apply_character_style(textobject, text)
+                else:
+                    textobject.textOut(text)
+
                 textobject.setRise(0)
                 self.current_pdf.drawText(textobject)
                 # Restore original point size
@@ -1006,12 +1049,17 @@ class ESCParser:
 
             if self.current_pdf:
                 # Print text
-                if self.double_width or self.double_height:
+                if self.double_width or self.double_height or self.character_style is not None:
                     textobject = self.current_pdf.beginText()
                     textobject.setTextOrigin(self.cursor_x * 72, cursor_y * 72)
                     textobject.setCharSpace(self.extra_intercharacter_space)
-                    textobject.setHorizScale(horizontal_scale)
-                    textobject.textOut(text)
+                    textobject.setHorizScale(horizontal_scale_coef * 100)
+
+                    if self.character_style is not None:
+                        apply_character_style(textobject, text)
+                    else:
+                        textobject.textOut(text)
+
                     textobject.setHorizScale(100)
                     self.current_pdf.drawText(textobject)
                 else:
@@ -1023,7 +1071,7 @@ class ESCParser:
         # use inches: convert pixels to inch
         text_width = graphical_text.getlength(text) / 72
         if self.double_width or self.double_height:
-            text_width *= horizontal_scale / 100
+            text_width *= horizontal_scale_coef
         self.cursor_x += text_width
 
     def carriage_return(self, *_):
@@ -1995,22 +2043,31 @@ class ESCParser:
         self.scripting = None
 
     def select_character_style(self, *args):
-        """Turns on/off outline and shadow printing
+        """Turn on/off outline and shadow printing - ESC q
 
-        TODO: only 24/48 pins
-        does not affect graphics characters
+        - only 24/48 pins
+        - TODO: does not affect graphics characters
         """
         value = args[1].value[0]
+        # Map character style ids with reportlab text render modes
+        character_style_mapping = {
+            0: None,
+            1: 1,
+            2: 0,
+            3: 2,
+        }
+        # We use text render modes in this attribute! Not the ESC style id!
+        self.character_style = character_style_mapping.get(value)
 
-        character_style = {
+        if LOGGER.level != DEBUG:
+            return
+        character_style_names = {
             0: "Turn off outline/shadow printing",
             1: "Turn on outline printing",
             2: "Turn on shadow printing",
             3: "Turn on outline and shadow printing",
         }
-        # Use PrintCharacterStyle as bit flags
-        # TODO: maybe just not use None but 0 instead...
-        self.character_style = None if not value else value  # cf PrintCharacterStyle
+        LOGGER.debug("Set character style: %s; text render: %s", character_style_names.get(value), self.character_style)
 
     @property
     def condensed(self) -> bool:
