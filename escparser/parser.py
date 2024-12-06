@@ -1757,10 +1757,9 @@ class ESCParser:
 
     def cancel_multipoint_mode(self):
         """Cancel multipoint mode, returning the printer to 10.5-point
-        ESC P, ESC M, ESC g, ESC p, ESC !
-        TODO: and ESC @
+        ESC P, ESC M, ESC g, ESC p, ESC ! and ESC @
 
-        Also cancel HMI set_horizontal_motion_index() ESC c c
+        Also cancel HMI set_horizontal_motion_index() ESC c
         """
         # Cancel select_font_by_pitch_and_point() ESC X command
         self.multipoint_mode = False
@@ -1769,7 +1768,10 @@ class ESCParser:
         self.character_width = None
 
     def multipoint_mode_ignore(func):
-        """Decorator used to ignore the function if the multipoint mode is enabled"""
+        """Decorator used to ignore the function if the multipoint mode is enabled
+
+        Multipoint mode is the use of a scalable version of the current font.
+        """
 
         def modified_func(self, *args, **kwargs):
             """Returned modified function"""
@@ -1832,7 +1834,7 @@ class ESCParser:
         else:
             # Returns to current fixed character pitch
             self.proportional_spacing = False
-            # Restore previous Draft mode (keep LQ in other case)
+            # Restore previous mode (set Draft or keep LQ in other case)
             self.mode = self.previous_mode
 
     @multipoint_mode_ignore
@@ -1864,7 +1866,7 @@ class ESCParser:
         cancels the HMI selected with the ESC c command
         cancels any attributes or enhancements that are not selected
 
-        Aso modify double-width multiline selected by ESC W (equivalent command).
+        Also modify double-width multiline selected by ESC W (equivalent command).
 
         bitmasks :
             1,  # 12 cpi vs 10 cpi,  ESC M vs ESC P
@@ -1875,7 +1877,6 @@ class ESCParser:
             32,  # double-with ESC W
             64,  # italics ESC 5, ESC 4
             128,  # underline ESC -
-
         """
         value = args[1].value[0]
 
@@ -2028,7 +2029,7 @@ class ESCParser:
 
         if condensed == self._condensed:
             # Do not modify settings twice
-            LOGGER.warning("Condensed printing already set")
+            LOGGER.warning("Condensed printing already configured: %s", self._condensed)
             return
 
         self._condensed = condensed
@@ -2270,6 +2271,11 @@ class ESCParser:
 
     def switch_microweave_mode(self, *args):
         """Turn MicroWeave print mode off and on
+
+        .. note:: MicroWeave increases printing time, but it completely eliminates
+            banding and yields sharp, near photographic-quality color images.
+
+            => It's a purely mechanically related setting. Not used here.
 
         TODO: only available during raster graphics printing.
 
