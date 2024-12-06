@@ -2370,20 +2370,32 @@ class ESCParser:
                             stroke=0,
                             fill=1,
                         )
-                    col_int = (col_int << 1) & overflow_mask
+                    col_int = overflow_mask & (col_int << 1)
                     i += 1
                 line_offset += 8
 
             y_pos -= self.vertical_resolution
 
-        # Through out the last bits of partially used last byte (juste use the number of expected dots)
+        # Get rid of the last bits of partially used last byte (juste use the number of expected dots)
         # If horizontal expected dot count is not provided (as it is the case when the function
         # is called by <XFER> in tiff compressed mode), just use the y offset.
         # TODO: use v_dot_count_m that is always set, which is 1 in case of tiff
         printed_dots = h_dot_count if h_dot_count else line_offset
         self.cursor_x = printed_dots * self.horizontal_resolution
 
-    def decompress_rle_data(self, compressed_data):
+    @staticmethod
+    def decompress_rle_data(compressed_data: bytearray) -> bytearray:
+        """Decompress the given data bytes (TIFF decompression)
+
+        During compressed mode, the first byte of data must be a counter.
+        If the counter is positive, it is treated as a data-length counter.
+        If the counter is negative (as determined by two’s complement),
+        it is treated as a repeat counter.
+
+        In the first case, the printer read as is the number of bytes specified.
+        In the last case, the printer repeats the following byte of data the
+        specified number of times.
+        """
         decompressed_data = bytearray()
         iter_data = iter(compressed_data)
         for counter in iter_data:
@@ -2394,8 +2406,7 @@ class ESCParser:
             else:
                 # Data-length counters: number of data bytes to follow
                 block_length = counter + 1
-                # TODO: next(islice(si, 2, 3))
-                [decompressed_data.append(next(iter_data)) for _ in range(block_length)]
+                decompressed_data += bytearray(it.islice(iter_data, block_length))
 
         return decompressed_data
 
