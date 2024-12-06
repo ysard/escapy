@@ -2086,10 +2086,11 @@ class ESCParser:
 
         if condensed == self._condensed:
             # Do not modify settings twice
-            LOGGER.warning("Condensed printing already configured: %s", self._condensed)
+            LOGGER.warning("Condensed printing already configured: %s", condensed)
             return
 
         self._condensed = condensed
+        LOGGER.debug("Set condensed printing: %s", condensed)
 
         if condensed:
             # Update character pitch
