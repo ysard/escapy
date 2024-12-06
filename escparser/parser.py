@@ -1416,7 +1416,16 @@ class ESCParser:
             9pins:
 
                 0       Italic
-                1       Graphic character table
+                1       Graphic character table or (PC437 (US) according the doc)
+
+        .. note:: Using table means using graphics characters (also called
+            bitmap font). At the time, these characters are fixed for a
+            graphical & size points of view. For example, they CAN NOT be
+            italicized, they CAN NOT be used as super/subscript characters.
+
+            The mapping between bytes and displayable characters is called
+            encoding nowadays; thus the tables are only used as an encoding
+            setting here.
         """
         value = args[1].value[0]
         character_table = None
