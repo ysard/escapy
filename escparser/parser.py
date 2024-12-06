@@ -1481,7 +1481,24 @@ class ESCParser:
         LOGGER.debug("Select international charset variant %s (%s)", value, charset_mapping[value])
 
     def select_letter_quality_or_draft(self, *args):
-        """Select either LQ or draft printing - ESC x"""
+        """Select either LQ or draft printing - ESC x
+
+        TODO: If Draft quality is enabled:
+            - Typeface: Draft typeface only
+            - Point size: 10.5 and 21-point sizes only
+
+        If Letter Quality is enabled:
+
+            - Select LQ print quality for ESC/P 2 and ESC/P
+            - Select NLQ print quality for 9-Pin ESC/P
+
+        If you select proportional spacing with the ESC p command during draft
+        printing, the printer prints an LQ font instead. When you cancel
+        proportional spacing with the ESC p command, the printer returns to draft
+        printing.
+
+        .. note:: Here and for now, LQ is synonym of NLQ for 9 pins printers.
+        """
         value = args[1].value[0]
         match value:
             case 0 | 48:
@@ -1493,7 +1510,7 @@ class ESCParser:
                 self.mode = PrintMode.LQ
 
         # Keep the current value in case switch_proportional_mode is called
-        # with a disable order (ESC p 0)
+        # with a disable order before ESC x (ESC p 0)
         self.previous_mode = self.mode
 
         LOGGER.debug("Set print quality: %s", self.mode)
