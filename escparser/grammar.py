@@ -271,7 +271,7 @@ esc_grammar = r"""
     BIN_ARG: /[\x00\x01]/
     BIN_ARG_EX: /[01\x00\x01]/
     HALF_BYTE_ARG: /[\x00-\x7f]/
-    BYTE_ARG: /./
+    BYTE_ARG: /[\x00-\xff]/
     # TODO: test: use [\x00-\xff] instead .
     DATA: /[\x00-\xff]/
 
