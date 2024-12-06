@@ -85,6 +85,7 @@ class ESCParser:
         self.double_strike = False
         self._double_width = False
         self._double_width_multi = False
+        self.double_height = False
         self._color = 0  # Black
 
         self.RGB_colors = [
@@ -935,7 +936,17 @@ class ESCParser:
 
         baseline_offset = 7 / 72 if self.pins == 9 else 20 / 180
         cursor_y = self.cursor_y - baseline_offset
-        horizontal_scale = 200 if self.double_width else 100
+        if self.double_height and self.double_width:
+            # The point size is already multiplied by 2
+            # roughly equivalent to x2 point size: do not change horizontal scale
+            horizontal_scale = 100
+        elif self.double_width:
+            horizontal_scale = 200
+        elif self.double_height:
+            # The point size is already multiplied by 2, we must reduce the pitch
+            horizontal_scale = 50
+        else:
+            horizontal_scale = 100
 
         # Get the current fontpath in use
         # /!\ If it's an internal font from reportlab (no filepath),
@@ -995,7 +1006,7 @@ class ESCParser:
 
             if self.current_pdf:
                 # Print text
-                if self.double_width:
+                if self.double_width or self.double_height:
                     textobject = self.current_pdf.beginText()
                     textobject.setTextOrigin(self.cursor_x * 72, cursor_y * 72)
                     textobject.setCharSpace(self.extra_intercharacter_space)
@@ -1011,8 +1022,8 @@ class ESCParser:
         # Actualize the x cursor with the apparent width of the written text
         # use inches: convert pixels to inch
         text_width = graphical_text.getlength(text) / 72
-        if self.double_width:
-            text_width *= 2
+        if self.double_width or self.double_height:
+            text_width *= horizontal_scale / 100
         self.cursor_x += text_width
 
     def carriage_return(self, *_):
@@ -2086,6 +2097,13 @@ class ESCParser:
         """Turns on/off double-width printing of all characters, spaces, and intercharacter spacing
         (set with the ESC SP command) - ESC w
 
+        doc p278
+
+        On Non-ESC/P 2 and typefaces not available in multipoint mode:
+
+            - ESC w 1: Selects double-height (21-point) characters
+            - ESC w 0: Selects normal (10.5-point) characters
+
         TODO:
             The first line of a page is not doubled if ESC w is sent on the first printable line; all
             following lines are printed at double-height.
@@ -2096,12 +2114,14 @@ class ESCParser:
             double-height printing is canceled.
         """
         value = args[1].value[0]
-        if value in (1, 49):
-            print("=> Double-height/point ON")
-            self.point_size *= 2
-        else:
-            print("=> Double-height/point OFF")
-            self.point_size /= 2
+        double_height = value in (1, 49)
+
+        if double_height != self.double_height:
+            self.point_size *= 2 if double_height else 0.5
+
+        self.double_height = double_height
+
+        LOGGER.debug("Double-height multiline status: %s", self.double_width)
 
     def print_data_as_characters(self, *args):
         """Print data as characters - ESC ( ^
