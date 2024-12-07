@@ -1947,20 +1947,22 @@ class ESCParser:
 
         self.set_font()
 
-    def set_double_strike_printing(self, *args):
-        """Prints each dot twice, with the second slightly below the first, creating bolder characters - ESC G
+    def set_double_strike_printing(self, *_):
+        """Print each dot twice, with the second slightly below the first, creating bolder characters - ESC G
 
         TODO:
         9 pins:
-            LQ/NLQ mode overrides double-strike printing; double-strike printing resumes when LQ/NLQ mode
-            is canceled.
+            LQ/NLQ mode overrides double-strike printing;
+            double-strike printing resumes when LQ/NLQ mode is canceled.
+
+            => only available in Draft
+
+        .. note:: We use bold setting for now.
         """
-        # TODO cheat
         self.set_bold()
 
-    def unset_double_strike_printing(self, *args):
-        """Cancels double-strike printing selected with the ESC G command - ESC H"""
-        # TODO cheat
+    def unset_double_strike_printing(self, *_):
+        """Cancel double-strike printing selected with the ESC G command - ESC H"""
         self.unset_bold()
 
     def select_line_score(self, *args):
