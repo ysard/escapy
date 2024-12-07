@@ -1839,17 +1839,21 @@ class ESCParser:
     def set_horizontal_motion_index(self, *args):
         """Fixes the character width (HMI) - ESC c
 
-        TODO: ESP2 only
-        cancels additional character space set with the ESC SP command
-        canceled by: ESC P, ESC M, ESC g, ESC SP, ESC p, ESC !, SO, SI, DC2, DC4, ESC W,
-            (via cancel_multipoint_mode())
-        TODO:     and ESC @
+        HMI: determine the fixed distance to move the horizontal position when
+        printing characters.
 
-        NOTE:
-        Use this command to set the pitch if you want to print normal-height 10 or 20-point
-        characters at 15 cpi during multipoint mode. Selecting 15 cpi for 10 or 20-point
-        characters with the ESC X command results in characters being printed at 2/3 their
-        normal height.
+        - ESP2 only
+        - cancel additional character space set with the ESC SP command
+        - Canceled by: ESC P, ESC M, ESC g, ESC SP, ESC p, ESC !, SO, SI, DC2,
+          DC4, ESC W, (via cancel_multipoint_mode()) and ESC @
+
+        TODO: The HMI set with the ESC c command cancels the pitch set with the ESC X command.
+
+        TODO:
+            Use this command to set the pitch if you want to print normal-height 10 or 20-point
+            characters at 15 cpi during multipoint mode. Selecting 15 cpi for 10 or 20-point
+            characters with the ESC X command results in characters being printed at 2/3 their
+            normal height.
         """
         nL, nH = args[1].value
         value = (nH << 8) + nL
