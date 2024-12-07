@@ -1043,6 +1043,7 @@ class ESCParser:
                     textobject.textOut(text)
 
                 textobject.setRise(0)
+                textobject.setHorizScale(100)
                 self.current_pdf.drawText(textobject)
             # Restore original point size
             self.point_size = point_size
