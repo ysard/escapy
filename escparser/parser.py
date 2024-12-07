@@ -80,8 +80,10 @@ class ESCParser:
         self.bold = False
         self._underline = False
         self.scripting = None  # cf PrintScripting
+        self.previous_scripting = None
         self.character_style = None  # cf PrintCharacterStyle
         self._condensed = False
+        self.previous_condensed = False
         self.double_strike = False
         self._double_width = False
         self._double_width_multi = False
@@ -2031,22 +2033,34 @@ class ESCParser:
         When point sizes other than 10 (10.5) and 20 (21) are selected in
         multipoint mode, super/subscript characters are printed at the nearest
         point size less than or equal to 2/3 the current size.
+        => so they are always in 2/3 size.
 
         PS: not for 9 pins on doc p136 but about all printers in final doc p285:
         When 8-point characters are selected, super/subscript characters are
         also 8-point characters.
 
-        TODO: FX-850, FX-1050
-        Selecting double-height printing overrides super/subscript printing;
-        super/subscript printing resumes when double-height printing is canceled.
+        FX-850, FX-1050 and more generally for 9 pins printers:
+            Selecting double-height printing overrides super/subscript printing;
+            super/subscript printing resumes when double-height printing is canceled.
         """
         value = args[1].value[0]
-        self.scripting = PrintScripting.SUB if value in (1, 49) else PrintScripting.SUP
+        scripting = PrintScripting.SUB if value in (1, 49) else PrintScripting.SUP
+
+        if self.double_height and self.pins == 9:
+            # Will be enabled at the exit of double-height
+            self.previous_scripting = scripting
+            return
+
+        self.scripting = scripting
         LOGGER.debug("Scripting status: %s", self.scripting)
 
     def unset_script_printing(self, *_):
         """Cancel super/subscript printing selected by the ESC S command - ESC T"""
         self.scripting = None
+        # Force to not restore disabled scripting at the exit of double-height
+        # In non 9 pins mode this has no effect on double-height
+        self.previous_scripting = None
+        LOGGER.debug("Scripting status: %s", self.scripting)
 
     def select_character_style(self, *args):
         """Turn on/off outline and shadow printing - ESC q
@@ -2093,6 +2107,11 @@ class ESCParser:
         if condensed == self._condensed:
             # Do not modify settings twice
             LOGGER.warning("Condensed printing already configured: %s", condensed)
+            return
+
+        if self.double_height and self.pins == 9:
+            # Postpone modification at the exit of double-height
+            self.previous_condensed = condensed
             return
 
         self._condensed = condensed
@@ -2217,13 +2236,15 @@ class ESCParser:
             - ESC w 0: Selects normal (10.5-point) characters
 
         TODO:
-            The first line of a page is not doubled if ESC w is sent on the first printable line; all
-            following lines are printed at double-height.
+            The first line of a page is not doubled if ESC w is sent on the first
+            printable line; all following lines are printed at double-height.
 
-        TODO: 9 pins:
-            Double-height printing overrides super/subscript, condensed, and high-speed draft printing;
-            super/subscript, condensed, and high-speed draft printing resume when
-            double-height printing is canceled.
+        9 pins: Double-height printing overrides:
+
+            - super/subscript,
+            - condensed,
+            - TODO: and high-speed draft printing;
+            They all resume when double-height printing is canceled.
         """
         value = args[1].value[0]
         double_height = value in (1, 49)
@@ -2231,9 +2252,30 @@ class ESCParser:
         if double_height != self.double_height:
             self.point_size *= 2 if double_height else 0.5
 
+        if self.pins == 9:
+            if double_height:
+                # Disable scripting temporarly
+                # When scripting is modified, double-height is checked and
+                # previous_mode is updated so that ESC S takes precedence at the exit
+                # of the double-height mode.
+                self.previous_scripting = self.scripting
+                self.scripting = None
+
+                # Disable condensed mode temporarly
+                self.previous_condensed = self.condensed
+                self.condensed = False
+            else:
+                self.scripting = self.previous_scripting
+
+                # Set before modifying condensed value
+                # (if not, the inner test will modify previous_condensed instead)
+                self.double_height = double_height
+                self.condensed = self.previous_condensed
+
         self.double_height = double_height
 
-        LOGGER.debug("Double-height multiline status: %s", self.double_width)
+        LOGGER.debug("Double-height status: %s", self.double_height)
+        LOGGER.debug("scripting status: %s", self.scripting)
 
     def print_data_as_characters(self, *args):
         """Print data as characters - ESC ( ^
