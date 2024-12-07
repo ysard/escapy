@@ -2284,9 +2284,9 @@ class ESCParser:
     def print_data_as_characters(self, *args):
         """Print data as characters - ESC ( ^
 
-        TODO: only ESCP2
-        TODO: ignores data if no character is assigned to that character code in the
-        currently selected character table.
+        - only ESCP2
+        TODO: ignores data if no character is assigned to that character code in
+            the currently selected character table.
         """
         nL, nH = args[1].value
         expected_bytes = (nH << 8) + nL
@@ -2317,9 +2317,9 @@ class ESCParser:
         R   Ejects one sheet of single-sheet paper
 
         TODO R (ESCP2):
-        ejects the currently loaded single-sheet paper without printing data
-        from the line buffer; this is not the equivalent of the FF command (which does print
-        line-buffer data).
+            ejects the currently loaded single-sheet paper without printing data
+            from the line buffer; this is not the equivalent of the FF command
+            (which does print line-buffer data).
         """
         # 3rd argument, see the terminal independant def in the grammar (SP is a control code)
         value = chr(args[2].value[0])
