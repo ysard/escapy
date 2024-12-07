@@ -1021,7 +1021,7 @@ class ESCParser:
             point_size = self._point_size
             rise = point_size * 1 / 3
             if self.scripting == PrintScripting.SUB:
-                # Lower third of a normal character height
+                # Lower third of the normal character height
                 rise *= -1
             # Modify point size only if it's greater than 8
             if point_size > 8:
@@ -1075,6 +1075,7 @@ class ESCParser:
         # use inches: convert pixels to inch
         text_width = graphical_text.getlength(text) / 72
         if self.double_width or self.double_height:
+            # TODO: Bad evaluation of double-height text width
             text_width *= horizontal_scale_coef
         self.cursor_x += text_width
 
