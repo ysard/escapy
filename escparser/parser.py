@@ -1016,6 +1016,7 @@ class ESCParser:
 
 
         if self.scripting:
+            # See ESC S command for more documentation of what is done here
             # Compute the position of the scripting text
             point_size = self._point_size
             rise = point_size * 1 / 3
@@ -1024,7 +1025,7 @@ class ESCParser:
                 rise *= -1
             # Modify point size only if it's greater than 8
             if point_size != 8:
-                self.point_size *= 2 / 3
+                self.point_size = round(self.point_size * 2 / 3)
 
             graphical_text = ImageFont.truetype(fontname, self.point_size)
 
@@ -2005,40 +2006,39 @@ class ESCParser:
             print("NotImplementedError")
 
     def set_script_printing(self, *args):
-        """Prints characters that follow at about 2/3 their normal height - ESC S
+        """Print characters that follow at about 2/3 their normal height - ESC S
 
-        the printing location depends on the value of n
+        - Does not affect graphics characters.
+        - The underline strikes through the descenders on subscript characters
+        - ESC T command cancels super/subscript printing.
 
-        does not affect graphics characters.
-        The underline strikes through the descenders on subscript characters
-        ESC T command to cancel super/subscript printing.
+        The printing location depends on the given value.
+        Superscript characters are printed in the upper two-thirds of the normal
+        character space; subscript characters are printed in the lower two-thirds.
 
-        Superscript characters are printed in the upper two-thirds of the normal character
-        space; subscript characters are printed in the lower two-thirds.
+        .. note:: At the time,
+            The width of super/subscript characters when using proportional spacing
+            differs from that of normal characters; see the super/subscript
+            character proportional width table in the Appendix.
 
-        TODO:
-        The width of super/subscript characters when using proportional spacing differs from
-        that of normal characters; see the super/subscript character proportional width table in
-        the Appendix.
-        9 pins:
-             the same as that of normal characters
+            (TODO) 9 pins + proportional spacing: width is the same as that of
+            normal characters
 
-        When point sizes other than 10 (10.5) and 20 (21) are selected in multipoint mode,
-        super/subscript characters are printed at the nearest point size less than or equal to 2/3
-        the current size.
+        When point sizes other than 10 (10.5) and 20 (21) are selected in
+        multipoint mode, super/subscript characters are printed at the nearest
+        point size less than or equal to 2/3 the current size.
 
-        (not 9 pins) at p136 but 9 pins included in final doc p285:
-        When 8-point characters are selected, super/subscript characters are also 8-point
-        characters.
+        PS: not for 9 pins on doc p136 but about all printers in final doc p285:
+        When 8-point characters are selected, super/subscript characters are
+        also 8-point characters.
 
-        FX-850, FX-1050
-        Selecting double-height printing overrides super/subscript printing; super/subscript
-        printing resumes when double-height printing is canceled.
-
+        TODO: FX-850, FX-1050
+        Selecting double-height printing overrides super/subscript printing;
+        super/subscript printing resumes when double-height printing is canceled.
         """
         value = args[1].value[0]
         self.scripting = PrintScripting.SUB if value in (1, 49) else PrintScripting.SUP
-        print("=>", self.scripting)
+        LOGGER.debug("Scripting status: %s", self.scripting)
 
     def unset_script_printing(self, *_):
         """Cancel super/subscript printing selected by the ESC S command - ESC T"""
