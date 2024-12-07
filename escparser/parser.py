@@ -1024,7 +1024,7 @@ class ESCParser:
                 # Lower third of a normal character height
                 rise *= -1
             # Modify point size only if it's greater than 8
-            if point_size != 8:
+            if point_size > 8:
                 self.point_size = round(self.point_size * 2 / 3)
 
             graphical_text = ImageFont.truetype(fontname, self.point_size)
@@ -1044,8 +1044,8 @@ class ESCParser:
 
                 textobject.setRise(0)
                 self.current_pdf.drawText(textobject)
-                # Restore original point size
-                self.point_size = point_size
+            # Restore original point size
+            self.point_size = point_size
 
         else:
             graphical_text = ImageFont.truetype(fontname, self.point_size)
