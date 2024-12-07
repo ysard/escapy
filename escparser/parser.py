@@ -1822,6 +1822,7 @@ class ESCParser:
         # Cancel HMI set_horizontal_motion_index() ESC c command
         self.character_width = None
 
+    @staticmethod
     def multipoint_mode_ignore(func):
         """Decorator used to ignore the function if the multipoint mode is enabled
 
