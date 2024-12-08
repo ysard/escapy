@@ -2696,36 +2696,28 @@ class ESCParser:
         self.movx_unit = dot_unit * unit
 
     def set_printing_color_ex(self, *args):
-        """
-        1000 0000B  0x80
-        Black
-        1000 0001B
-        Magenta
-        1000 0010B
-        Cyan
-        1000 0100B  0x84
-        Yellow
+        """Select printing color - <COLR>
 
-        TODO:
-        (TIFF format)
-        Selects the band buffer color.
+        1000 0000B  0x80    Black
+        1000 0001B  0x80    Magenta
+        1000 0010B  0x82    Cyan
+        1000 0100B  0x84    Yellow
 
-        Moves the horizontal print position to 0 (left-most print position).
-        Parameters other than those listed above are ignored.
-        Combinations of colors are not available and will be ignored.
+        TODO: (TIFF format):  Select the band buffer color.
+
+        - Move the horizontal print position to 0 (left-most print position).
+        - Parameters other than those listed above are ignored.
+        - Combinations of colors are not available and will be ignored.
         """
-        print(args)
         self.color = args[0].value[0] & 0x0f
-
         self.carriage_return()
 
-    def exit_tiff_raster_graphics(self, *args):
-        """Exits TIFF compressed raster graphics mode.
+    def exit_tiff_raster_graphics(self, *_):
+        """Exit TIFF compressed raster graphics mode - <EXIT>
 
+        TODO: Start printing of stored data.
 
-        Moves the horizontal print position to 0 (left-most print position).
-        TODO:
-        Starts printing of stored data.
+        - Move the horizontal print position to 0 (left-most print position).
         """
         self.carriage_return()
 
