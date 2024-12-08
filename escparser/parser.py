@@ -2461,24 +2461,49 @@ class ESCParser:
         self.print_raster_graphics_dots(data, h_dot_count=h_dot_count)
 
     def print_raster_graphics_dots(self, data, h_dot_count=None):
+        """Print the dots in the given bytes
+
+        Unlike bitimage printing, raster mode prints the bytes received from
+        left to right on the same line, line after line.
+
+        - You can specify the horizontal dot count in 1-dot increments.
+          If the dot count is not a multiple of 8, the remaining data in the data
+          byte at the far right of each row is ignored
+          (the bits in it should be 0!?).
+
+        - The final print position is the dot after the far right dot on the top
+          row of the graphics printed with this command.
+
+        :param data: Decompressed data bytes (1 byte for 8 dots).
+        :key h_dot_count: (default: None) Total number of dots for the given line(s)
+            Used to move the cursor_x after the data has been printed.
+            Can be None if the number is unknown (See ESC . 2 TIFF mode).
+        :type data: bytearray
+        :type h_dot_count: int
+        """
         def chunk_this(iterable, length):
             """Split iterable in chunks of equal sizes"""
             iterator = iter(iterable)
-            for i in range(0, len(iterable), length):
+            for _ in range(0, len(iterable), length):
                 yield tuple(it.islice(iterator, length))
 
         mask = 0x80
         overflow_mask = 0xff
         y_pos = self.cursor_y
+        column_offset = i = 0
 
         for line_idx, line_bytes in enumerate(chunk_this(data, self.bytes_per_line), 1):
-            line_offset = 0
+            # Keep track of the x position in the current line
+            column_offset = 0
             for col_int in line_bytes:
                 i = 0
+                # Consume all bits of the current byte
+                # at each loop the current byte is shifted to the left with an offset of 1.
+                # This avoids testing the remaining bits if their value is zero.
                 while col_int:
                     if col_int & mask:
-                        x_pos = self.cursor_x + (line_offset + i) * self.horizontal_resolution
-                        # print("offset, i: x,y", line_offset, i, x_pos, y_pos)
+                        x_pos = self.cursor_x + (column_offset + i) * self.horizontal_resolution
+                        # print("offset, i: x,y", column_offset, i, x_pos, y_pos)
                         self.current_pdf.circle(
                             x_pos * 72,
                             y_pos * 72,
@@ -2486,17 +2511,21 @@ class ESCParser:
                             stroke=0,
                             fill=1,
                         )
+                    # Consume the MSB
                     col_int = overflow_mask & (col_int << 1)
                     i += 1
-                line_offset += 8
+                column_offset += 8
 
+            # Print the next line below
             y_pos -= self.vertical_resolution
 
-        # Get rid of the last bits of partially used last byte (juste use the number of expected dots)
-        # If horizontal expected dot count is not provided (as it is the case when the function
-        # is called by <XFER> in tiff compressed mode), just use the y offset.
-        # TODO: use v_dot_count_m that is always set, which is 1 in case of tiff
-        printed_dots = h_dot_count if h_dot_count else line_offset
+        # Get rid of the last bits of potentially, partially used last byte
+        # (just use the number of expected dots).
+        # If horizontal expected dot count is not provided (as it is the case
+        # when the function is called by <XFER> in tiff compressed mode),
+        # just use the x offset on the unique line (column_offset)
+        # adjusted to reflect the number of the set bits in the last byte.
+        printed_dots = h_dot_count if h_dot_count else column_offset -8 +i
         self.cursor_x = printed_dots * self.horizontal_resolution
 
     @staticmethod
