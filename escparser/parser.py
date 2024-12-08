@@ -2990,11 +2990,14 @@ class ESCParser:
         self.print_bit_image_dots(data)
 
     def select_60_120dpi_9pins_graphics(self, *args):
-        """Prints dot-graphics in 9-dot columns - ESC ^
+        """Print dot-graphics in 9-dot columns - ESC ^
 
-        Each dot column requires two bytes of data. The first byte represents the top 8 dots in the
-        print head. Bit 0 (the LSB) in the second byte represents the ninth (bottom) dot in the print
-        head; the remaining 7 bits are ignored.
+        Each dot column requires two bytes of data. The first byte represents
+        the top 8 dots in the print head.
+        Bit 0 (the LSB) in the second byte represents the ninth (bottom) dot in
+        the print head; the remaining 7 bits are ignored.
+
+        .. seealso:: :meth:`configure_bit_image`, :meth:`print_bit_image_dots`.
 
         doc p198
 
@@ -3004,7 +3007,11 @@ class ESCParser:
         expected_bytes = (nH << 8) + nL
 
         data = args[2].value
-        assert len(data) == expected_bytes, "expected_bytes not available !!!"
+        if len(data) != expected_bytes:
+            LOGGER.error(
+                "expected_bytes not available !!! expect: %s, found: %s",
+                expected_bytes, len(data)
+            )
 
         self.configure_bit_image(dot_density_m)
 
