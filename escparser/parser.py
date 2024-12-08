@@ -305,6 +305,7 @@ class ESCParser:
             return
 
         self._color = color
+        LOGGER.debug("Update color: %s", color)
 
         if self.current_pdf:
             # Update PDF setting
@@ -318,7 +319,6 @@ class ESCParser:
     @point_size.setter
     def point_size(self, point_size: float):
         self._point_size = point_size
-
         if self.current_pdf:
             # Redefine the current font (can't just update the point size)
             self.current_pdf.setFont(self.current_pdf._fontname, point_size)
