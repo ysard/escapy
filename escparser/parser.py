@@ -2976,7 +2976,11 @@ class ESCParser:
         expected_bytes = (nH << 8) + nL
         cmd_code = cmd_code.value
         data = data.value
-        assert len(data) == expected_bytes, "expected_bytes not available !!!"
+        if len(data) != expected_bytes:
+            LOGGER.error(
+                "expected_bytes not available !!! expect: %s, found: %s",
+                expected_bytes, len(data)
+            )
 
         cmd_codes_idx_mapping = {
             b"K": 0,
