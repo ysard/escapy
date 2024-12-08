@@ -2976,7 +2976,7 @@ class ESCParser:
         data = data.value
         assert len(data) == expected_bytes, "expected_bytes not available !!!"
 
-        cmd_codes_mapping = {
+        cmd_codes_idx_mapping = {
             b"K": 0,
             b"L": 1,
             b"Y": 2,
@@ -2984,7 +2984,7 @@ class ESCParser:
         }
 
         # Get the corresponding density (potentially modified by ESC ?)
-        dot_density_m = self.KLYZ_densities[cmd_codes_mapping[cmd_code]]
+        dot_density_m = self.KLYZ_densities[cmd_codes_idx_mapping[cmd_code]]
         # Configure & print data
         self.configure_bit_image(dot_density_m)
         self.print_bit_image_dots(data)
