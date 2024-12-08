@@ -2723,67 +2723,73 @@ class ESCParser:
 
     ## bit image
     def select_bit_image(self, *args):
-        """Prints dot-graphics in 8, 24, or 48-dot columns - ESC *
+        """Print dot-graphics in 8, 24, or 48-dot columns - ESC *
 
-        NOTE:
-        A vertical print density of 360 dpi can be achieved on 24-pin printers that feature the ESC +
-        command. Advance the paper 1/360 inch (using the ESC + command) and then overprint
-        the previous graphics line.
+        .. tip:: A vertical print density of 360 dpi can be achieved on 24-pin
+            printers that feature the ESC + command.
+            Advance the paper 1/360 inch (using the ESC + command) and then
+            overprint the previous graphics line.
 
-        Positions: the vertical and horizontal print position to the top left corner of the graphics line.
+        Original print position: top left corner of the graphics line.
 
         The printing speed depends on the printing of adjacent horizontal dots;
-        by not allowing the printing of adjacent dots, you increase the printing speed.
-            => If the mode you select does not allow adjacent dot printing, the printer ignores
-            the second of two consecutive horizontal dots as shown below:
+        by not allowing the printing of adjacent dots, you increase the printing
+        speed.
 
-            Double speed:
-                2, 3, 40, 72
+        => If the mode you select does not allow adjacent dot printing,
+        the printer ignores the second of two consecutive horizontal dots.
+        Double speed is enabled for the following dot densities: 2, 3, 40, 72.
 
-        NOTE: dot_density_m has the same meaning in ESC ? command
+        .. note:: dot_density_m has the same meaning in ESC ? command,
+            see :meth:`reassign_bit_image_mode`.
 
-        doc p184
-        doc p298 (table complète)
+        doc p184, p298 (full table)
         """
-        # print(args)
-        # print("bytes indexes: start:", args[0].start_pos, "end:", args[2].end_pos)
         dot_density_m, nL, nH = args[1].value
         dot_columns_nb = (nH << 8) + nL
 
+        # Configure the bit image printing mode according to the given dot density
         self.configure_bit_image(dot_density_m)
 
-        expected_bytes = self.bytes_per_column * dot_columns_nb
-        # 8 for 8 dots height
-        print(f"Expect {expected_bytes} bytes ({8 * self.bytes_per_column} dots = {self.bytes_per_column} byte(s) per column)")
-        print(f"Choosen dot density m: {dot_density_m}")
-        print(f"Columns number: {dot_columns_nb}")
-        print(f"Current line spacing: {self.current_line_spacing}")
+        if LOGGER.level == DEBUG:
+            expected_bytes = self.bytes_per_column * dot_columns_nb
 
-        # self.color = 5
-        # self.double_speed = True
+            # 8 for 8 dots height
+            LOGGER.debug("expect %s bytes (%s dots = %s byte(s) per column)", expected_bytes, 8 * self.bytes_per_column, self.bytes_per_column)
+            LOGGER.debug("Choosen dot density m: %s", dot_density_m)
+            LOGGER.debug("Columns number: %s", dot_columns_nb)
+            LOGGER.debug("line spacing: %s", self.current_line_spacing)
+            LOGGER.debug("start coord: %s, %s", self.cursor_x, self.cursor_y)
 
         data = args[2].value
-        # assert len(data) == expected_bytes, "expected_bytes not available !!!"
-
         self.print_bit_image_dots(data)
 
     def print_bit_image_dots(self, data, extended_dots=False):
-        """Print dots for 9, 24, 48 pins
+        """Print dots in bit image data for 9, 24, 48 pins printers
 
-        NOTE: cursor_y is NOT incremented; when the function ends the print position is at
-            top-right (y start, x end).
+        Unlike raster printing, bitimage mode prints the bytes received column
+        after column, from left to right. Each column is 1 dot large and covers
+        multiple lines (8 per byte).
 
-        :key extended_dots: Optional, enable support of print heads with 9 pins (Default: False).
+        The final print position is the dot after the far right dot on the top
+        row of the graphics printed with this command.
+
+        cursor_y is NOT incremented; when the function ends the print position
+        is at top-right (y start, x end).
+
+        :param data: Bytes of graphics data.
+        :key extended_dots: Optional, enable support of print heads with 9 pins
+            (Default: False).
+            For 9pins print heads, only the 1st bit of the 2nd byte of a column
+            in a line is used.
+        :type data: bytearray | bytes
         :type extended_dots: bool
         """
-
         # def chunk_this(iterable, length):
         #     """Split iterable in chunks of equal sizes"""
         #     iterator = iter(iterable)
         #     for i in range(0, len(iterable), length):
         #         yield tuple(it.islice(iterator, length))
-
-
 
         # # Iterate on columns
         # prev_col_int = 0
@@ -2828,16 +2834,16 @@ class ESCParser:
         def chunk_this(iterable, length):
             """Split iterable in chunks of equal sizes"""
             iterator = iter(iterable)
-            for i in range(0, len(iterable), length):
+            for _ in range(0, len(iterable), length):
                 yield int.from_bytes(it.islice(iterator, length), "big")
 
+        # Consume all bits of the current value (can be multiple bytes)
+        # at each loop the current byte is shifted to the left with an offset of 1.
+        # This avoids testing the remaining bits if their value is zero.
         mask = 1 << (self.bytes_per_column * 8 -1)
         overflow_mask = 2**(8*self.bytes_per_column) -1
         prev_col_int = 0
         for col_int in chunk_this(data, self.bytes_per_column):
-
-            # col_int = int.from_bytes(col_bytes, 'big')
-
             if self.double_speed:
                 # Clear bits using the previous column as a bitmask
                 col_int &= ~prev_col_int
@@ -2850,8 +2856,8 @@ class ESCParser:
             i = 0
             while col_int:
                 if col_int & mask:
+                    # At each bit, move the local cursor_y down
                     y_pos = self.cursor_y - i * self.vertical_resolution
-                    # print("y", y_pos)
                     self.current_pdf.circle(
                         self.cursor_x * 72,
                         y_pos * 72,
@@ -2860,6 +2866,7 @@ class ESCParser:
                         fill=1,
                     )
                 i += 1
+                # Consume the MSB
                 col_int = (col_int << 1) & overflow_mask
 
 
@@ -2878,12 +2885,27 @@ class ESCParser:
             #         fill=1,
             #     )
 
-            # Increment global x
+            # Increment global cursor_x
             self.cursor_x += self.horizontal_resolution
-            # print(self.cursor_x)
 
     def configure_bit_image(self, dot_density_m):
+        """Configure the bit image printing mode according to the given dot density (internal usage)
 
+        Set the following attributes used in :meth:`print_bit_image_dots`:
+
+            - horizontal_resolution
+            - vertical_resolution
+            - bytes_per_column
+            - double_speed
+
+        doc p298 (full table)
+
+        .. seealso:: :meth:`select_bit_image`, :meth:`select_xdpi_graphics`.
+
+        :param dot_density_m: Dot density used as an entry in horizontal &
+            vertical resolutions, and bytes per column tables.
+            Adjacent printing (double speed) value is also configured.
+        """
         # Get horizontal resolution via a mapping
         self.horizontal_resolution = self.bit_image_horizontal_resolution_mapping[dot_density_m]
 
@@ -2906,17 +2928,19 @@ class ESCParser:
         self.double_speed = dot_density_m in (2, 3, 40, 72)
 
     def reassign_bit_image_mode(self, *args):
-        """Assigns the dot density used during the ESC K, ESC L, ESC Y, or ESC Z commands to the
-        density specified by parameter m in the ESC * command - ESC ?
+        """Assign the dot density used during the ESC K, L, Y, Z commands to the
+        density specified by the same parameter m of the ESC * command - ESC ?
 
-        ESC K is assigned density 0
-        ESC L is assigned density 1
-        ESC Y is assigned density 2
-        ESC Z is assigned density 3
+        Allow to redefine default densities for the next calls of the ESC KLYZ commands
+
+        - ESC K is assigned density 0
+        - ESC L is assigned density 1
+        - ESC Y is assigned density 2
+        - ESC Z is assigned density 3
 
         doc p188
-        NOTE: nonrecommended command; use the ESC * command
-        NOTE: allows to redefine default densities for ESC KLYZ commands
+
+        .. note:: nonrecommended command; use the ESC * command
         """
         cmd_letter = chr(args[1].value[0])
         dot_density_m = args[1].value[1]
@@ -2935,22 +2959,20 @@ class ESCParser:
                 # Similar to ESC * 3
                 self.KLYZ_densities[3] = dot_density_m
 
-    def select_xdpi_graphics(self, _, cmd_code, header, data, *args):
-        """
-        Prints bit-image graphics in 8-dot columns, at a density of 60 horizontal - ESC K
-        p190
-        Prints bit-image graphics in 8-dot columns, at a density of 120 horizontal - ESC L
-        p192
-        Prints bit-image graphics in 8-dot columns, at a density of 120 horizontal at double speed - ESC Y
-        p194
-        Prints bit-image graphics in 8-dot columns, at a density of 240 horizontal - ESC Z
-        p196
+    def select_xdpi_graphics(self, esc, cmd_code, header, data, *_):
+        """Print bit-image graphics in 8-dot columns at various densities - ESC K, L, Y, Z
 
-        .. seealso:: :meth:`reassign_bit_image_mode`
+        - ESC K: density of 60 horizontal, p190
+        - ESC L: density of 120 horizontal, p192
+        - ESC Y: density of 120 horizontal at double speed, p194
+        - ESC Z: density of 240 horizontal, p196
+
+        .. seealso:: :meth:`reassign_bit_image_mode`, :meth:`configure_bit_image`,
+            :meth:`print_bit_image_dots`.
         """
         nL, nH = header.value
         expected_bytes = (nH << 8) + nL
-
+        cmd_code = cmd_code.value
         data = data.value
         assert len(data) == expected_bytes, "expected_bytes not available !!!"
 
@@ -2962,9 +2984,9 @@ class ESCParser:
         }
 
         # Get the corresponding density (potentially modified by ESC ?)
-        dot_density_m = self.KLYZ_densities[cmd_codes_mapping[cmd_code.value]]
+        dot_density_m = self.KLYZ_densities[cmd_codes_mapping[cmd_code]]
+        # Configure & print data
         self.configure_bit_image(dot_density_m)
-
         self.print_bit_image_dots(data)
 
     def select_60_120dpi_9pins_graphics(self, *args):
