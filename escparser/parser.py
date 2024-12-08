@@ -3013,7 +3013,9 @@ class ESCParser:
         self.print_bit_image_dots(data, extended_dots=True)
 
     def set_printing_color(self, *args):
-        """Selects the color of printing
+        """Select the color of printing
+
+        Available colors:
 
             0   Black
             1   Magenta
@@ -3023,12 +3025,12 @@ class ESCParser:
             5   Red
             6   Green
 
-        NOTE: also available during graphics mode selected with the ESC ( G command.
+        .. note:: also available during graphics mode selected with the ESC ( G command.
             In this mode for ESCP2, only Black, Cyan, Magenta, Yellow are available.
 
         TODO:
-            If you change the selected colors after entering raster graphics mode, the data
-            buffer will be flushed.
+            If you change the selected colors after entering raster graphics mode,
+            the data buffer will be flushed.
         """
         self.color = args[1].value[0]
 
