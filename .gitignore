@@ -1,5 +1,9 @@
 # Custom
 poc/
+*.prn
+*.pdf
+*.png
+*.pbm
 
 # PyCharm
 .idea/
