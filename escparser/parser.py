@@ -70,6 +70,10 @@ class ESCParser:
         :type single_sheets: bool
         :type pdf: bool
         """
+        # Misc #################################################################
+        # Prepare for methods search in run_esc_instruction()
+        self.dir = frozenset(dir(self))
+
         self.mode = PrintMode.LQ
         self.previous_mode = self.mode
         # Note: There are non-ESCP2 printers that have 24, 48 pins !
@@ -3165,43 +3169,36 @@ class ESCParser:
     # raster commands p224
     # doc p330+
     # lire p302 mix text + graphics
-    def run_esc_instruction(self, t):
-        """
+    def run_esc_instruction(self, tree):
+        """Recursive call of methods from the given parse tree
         TODO: do not emit ESC token: avoid to always have it at the first pos of *args
+
+        :param tree: Lark tree of tokens, we use aliases as method names.
+        :type tree: <lark.lexer.Tree>
         """
-        # print("tok searched", t)
-        if t.data in ("instruction", "tiff_compressed_rule"):
-            for cmd in t.children:
-                if isinstance(cmd, Token):
-                    continue
-                self.run_esc_instruction(cmd)
-
-        elif t.data in self.dir:
-            getattr(self, t.data)(*t.children)
-            # print("OK\n")
-            return
-
+        if tree.data in ("start", "instruction", "tiff_compressed_rule"):
+            # Recursive call
+            _ = [
+                self.run_esc_instruction(child) for child in tree.children
+                if not isinstance(child, Token)
+            ]
+        elif tree.data in self.dir:
+            # Call the method and send the tokens as arguments
+            getattr(self, tree.data)(*tree.children)
         else:
-            print("\nnot found", t)
-
-            print(t)
-            print(t.data)  # , t.children)
+            LOGGER.error("Command not implemented: %s; value: %s", tree, tree.data)
 
     def run_escp(self, program):
-        parse_tree = init_parser(program)
+        """Parse the printer data bytestream & build a pdf file
 
-        # esc_parser = Lark(esc_grammar, use_bytes=True, parser='lalr')  # ambiguity='explicit'
-        # parse_tree = esc_parser.parse(program)
-        # exit()
-        # print(parse_tree.pretty())
-        self.dir = dir(self)
+        This function is the entry point of the parser.
+        """
+        parse_tree = init_parser(program) # ambiguity='explicit'
 
-        # with PyCallGraph(output=GraphvizOutput(), config=config):
+        # Parse the tree (Note: The first tree token is Token('RULE', 'start'))
+        self.run_esc_instruction(parse_tree)
 
-        for inst in parse_tree.children:
-            self.run_esc_instruction(inst)
-
-
+        # Save the pdf file
         if self.current_pdf:
             self.current_pdf.save()
 
