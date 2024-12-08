@@ -3042,27 +3042,40 @@ class ESCParser:
         self.color = args[1].value[0]
 
     ## barcode
-    def barcode(self, esc, header, data, *args):
-        """Prints bar codes - ESC ( B
+    def barcode(self, esc, header, data, *_):
+        """Print bar codes - ESC ( B
 
-        doc p202
-        doc p315
+        doc p202, p315
 
-        NOTE: Bar code and text data are mixed in a line.
+        .. note:: About Code128 barcode:
+            A kind of Code 128 character sets (A, B or C) is identified by the
+            first data of Code 128.
+            The first data must be a hexadecimal 41 (A), 42 (B) and 43 (C).
 
-        A kind of Code 128 character sets (A, B or C) is identified by the first data of Code 128.
-        The first data must be a hexadecimal 41 (A), 42 (B) and 43 (C).
+        .. note:: About checksum:
+            When Code 128 Character Set C and Interleaved 2 of 5 is selected and
+            the number of characters are ODD, “0” is added to the data string.
+            => see the keyword `checksum`.
 
-        When Code 128 Character Set C and Interleaved 2 of 5 is selected and the number of
-        characters are ODD, “0” is added to the data string.
+        .. note:: About human-readable characters and Code39:
+            Start/stop characters of Code39 are generated automatically by the
+            printer, and added to human-readable characters.
 
-        printing position after the printing of a bar code
-        returns to the print position before bar code printing.
+        Limitations of bar length:
 
-        The bar code is not printed when part of the bar code is past the right margin.
+            45/180 inch ≤ bar length ≤ 22 inch : 24-pin printer
+            18/72 inch ≤ bar length ≤ 22 inch  : 9-pin printer
 
-        Start/stop characters(*) of Code39 are generated automatically by the printer,
-        and added to human readable characters.
+            Long bar length of POSTNET is always 0.125 inch.
+            Short bar length of POSTNET is always 0.050 inch.
+
+        .. warning:: UPCE codes are currently NOT supported.
+
+        - Printing position after the printing of a bar code
+          returns to the print position before bar code printing.
+
+        - TODO: The bar code is not printed when part of the bar code is past
+          the right margin.
         """
         barcode_types = {
             0: "EAN13",
@@ -3080,19 +3093,24 @@ class ESCParser:
         expected_bytes = (nH << 8) + nL - 6
 
         data = data.value
-        assert len(data) == expected_bytes, "expected_bytes not available !!!"
+        if len(data) != expected_bytes:
+            LOGGER.error(
+                "expected_bytes not available !!! expect: %s, found: %s",
+                expected_bytes, len(data)
+            )
 
         if barcode_type_k in not_supported_types:
-            print(f"Barcode type {barcode_types[barcode_type_k]} is NOT supported !")
+            LOGGER.error("Barcode type %s is NOT supported (yet)!", barcode_types[barcode_type_k])
             return
 
-        # Bar length is ignored when POSTNET is selected.
+        # PS: Bar length is ignored when POSTNET is selected
         unit = 1/72 if self.pins == 9 else 1/180
         bar_length = ((v2 << 8) + v1) * unit
         # Limit invalid data
         bar_length = min(max(bar_length, 18/72 if self.pins == 9 else 45/180), 22)
 
         if barcode_type_k == 7:
+            # Limit long bar length of POSTNET codes
             bar_length = 0.125
 
         # Control flags
@@ -3100,7 +3118,7 @@ class ESCParser:
         add_check_digit = bool(1 & control_flag_c)
         # Show code text
         human_readable = not (2 & control_flag_c)
-        # EAN-13 and UPC-A only; left flag center or under
+        # EAN-13 and UPC-A only; left flag center or under the bars
         # TODO: not supported by reportlab ?
         flag_char_under = bool(3 & control_flag_c)
 
