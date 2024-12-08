@@ -3165,10 +3165,11 @@ class ESCParser:
         self.graphics_mode = False
         self.microweave_mode = False
 
+        # Cancel HMI set_horizontal_motion_index() ESC c command,
+        # Cancel multipoint mode,
+        # Reset point_size to 10.5 TODO: use default point size instead
+        # self.cancel_multipoint_mode()
 
-    # raster commands p224
-    # doc p330+
-    # lire p302 mix text + graphics
     def run_esc_instruction(self, tree):
         """Recursive call of methods from the given parse tree
         TODO: do not emit ESC token: avoid to always have it at the first pos of *args
