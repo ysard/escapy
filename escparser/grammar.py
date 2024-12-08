@@ -14,6 +14,7 @@
 #
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Grammar definition and pre-parsing of commands with a variable number of bytes"""
 from lark import *
 from lark.lexer import Lexer, LexerState, LexerThread
 
