@@ -2148,6 +2148,8 @@ class ESCParser:
             elif self.character_pitch == 1 / 20:
                 self.character_pitch = 1 / 12
 
+        self.set_font()
+
     @multipoint_mode_ignore
     def select_condensed_printing(self, *_):
         """Enters condensed mode, in which character width is reduced - SI, ESC SI
