@@ -2599,7 +2599,7 @@ class ESCParser:
             LOGGER.debug("start coord: %s, %s", self.cursor_x, self.cursor_y)
 
     def transfer_raster_graphics_data(self, *args):
-        """Transfer raster graphics data - XFER
+        """Transfer raster graphics data - <XFER>
 
         - Does not affect the vertical print position.
         - Horizontal print position is moved to the next dot after this command
@@ -2618,41 +2618,34 @@ class ESCParser:
         self.print_raster_graphics_dots(data)
 
     def set_relative_horizontal_position(self, *args):
-        """Sets relative horizontal position - MOVX
+        """Set relative horizontal position - <MOVX>
 
-        The new horizontal position = current position + (parameter) × <MOVX> unit.
+        - The new horizontal position = current position + (parameter) × <MOVX> unit.
         <MOVX> unit is set by the <MOVXDOT> or <MOVXBYTE> command.
+        - If #BC has a negative value, it is described with two’s complement.
+        - The unit for this command is determined by the ESC ( U set unit command.
 
-        If #BC has a negative value, it is described with two’s complement.
+        TODO: Settings that exceed the right or left margin will be ignored.
 
-        The unit for this command is determined by the ESC ( U set unit command.
-
-        TODO:
-        Settings that exceed the right or left margin will be ignored.
-
-        NOTE: MOVX/MOVY: 0, 1, or 2 bytes (nL and nH are optional...)
+        .. note:: For MOVX/MOVY: 0, 1, or 2 bytes are expected (nL and nH are optional...)
         """
         dot_offset = args[1].value
 
         self.cursor_x += dot_offset * self.movx_unit
 
     def set_relative_vertical_position(self, *args):
-        """Moves relative vertical position by dot - MOVY
+        """Move relative vertical position by dot - <MOVY>
 
+        - Move the horizontal print position to 0 (left-most print position).
+        Positive value only is allowed. The print position cannot be moved in a
+        negative direction (up).
+        - The unit for this command is determined by the ESC ( U set unit command .
 
-        Moves the horizontal print position to 0 (left-most print position).
-        Positive value only is allowed. The print position cannot be moved in a negative
-        direction (up).
-        The unit for this command is determined by the ESC ( U set unit command .
+        TODO: - After the vertical print position is moved, all seed row(s) are
+            copied to the band buffer.
+            - Settings beyond 22 inches are ignored.
 
-        TODO:
-        After the vertical print position is moved, all seed row(s) are copied to the band buffer.
-        Settings beyond 22 inches are ignored.
-
-        TODO:
-        compressMode == 3) _print_seedRows(hPixelWidth, vPixelWidth);
-
-        NOTE: MOVX/MOVY: 0, 1, or 2 bytes (nL and nH are optional...)
+        .. note:: For MOVX/MOVY: 0, 1, or 2 bytes are expected (nL and nH are optional...)
         """
         dot_offset = args[1].value
 
@@ -2661,30 +2654,28 @@ class ESCParser:
         unit = self.defined_unit if self.defined_unit else 1/360
         self.cursor_y -= dot_offset * unit
 
-    def set_movx_unit_8dots(self, *args):
-        """Sets the increment of <MOVX> unit to 8. - <MOVXBYTE>
+    def set_movx_unit_8dots(self, *_):
+        """Set the increment of <MOVX> unit to 8 - <MOVXBYTE>
 
-        Moves the horizontal print position to 0 (left-most print position).
-        Does not move the vertical print position.
-        The unit for this command is determined by the ESC ( U set unit command.
+        - Move the horizontal print position to 0 (left-most print position).
+        - Do not move the vertical print position.
+        - The unit for this command is determined by the ESC ( U set unit command.
 
-        TODO:
-        Starts printing of stored data.
+        TODO: Start printing of stored data.
 
         .. seealso:: :meth:`set_movx_unit`
         """
         self.carriage_return()
         self.set_movx_unit(8)
 
-    def set_movx_unit_1dot(self, *args):
-        """Sets the increment of <MOVX> unit to 1 - <MOVXDOT>
+    def set_movx_unit_1dot(self, *_):
+        """Set the increment of <MOVX> unit to 1 - <MOVXDOT>
 
-        Moves the horizontal print position to 0 (left-most print position).
-        Does not move the vertical print position.
-        The unit for this command is determined by the ESC ( U set unit command.
+        - Move the horizontal print position to 0 (left-most print position).
+        - Do not move the vertical print position.
+        - The unit for this command is determined by the ESC ( U set unit command.
 
-        TODO:
-        Starts printing of stored data.
+        TODO: Start printing of stored data.
 
         .. seealso:: :meth:`set_movx_unit`
         """
@@ -2692,14 +2683,14 @@ class ESCParser:
         self.set_movx_unit(1)
 
     def set_movx_unit(self, dot_unit):
-        """Set the increment of <MOVX> unit - wrapper for MOVXDOT & MOVXBYTE
+        """Set the increment of <MOVX> unit - wrapper for <MOVXDOT> & <MOVXBYTE>
 
         .. seealso:: :meth:`set_movx_unit_8dots` & :meth:`set_movx_unit_1dot`
 
-        .. warning:: This command is sent immediately after entering raster
+        .. warning:: This command is/must be sent immediately after entering raster
             graphics mode.
-            THUS, we use the ESC ( U setting here (and not in the MOVX command),
-            since it can't be changed in the meantime.
+            THUS, we can use the ESC ( U setting here (and not in the MOVX command),
+            since it can't be changed in the meantime (the command is not allowed).
         """
         unit = self.defined_unit if self.defined_unit else 1/360
         self.movx_unit = dot_unit * unit
