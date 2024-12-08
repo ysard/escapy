@@ -139,7 +139,7 @@ class ESCParser:
 
         # Convert printable area from mm to inches
         printable_area_margins_inch = tuple(
-            [i / 25.4 for i in printable_area_margins_mm]
+            i / 25.4 for i in printable_area_margins_mm
         )
         # Convert printable area to absolute positions
         top, bottom, left, right = printable_area_margins_inch
@@ -207,7 +207,7 @@ class ESCParser:
         self.international_charset = 0
         self.typeface = self.default_typeface
         self.copied_font = {}
-        self.user_defined_RAM_characters = False
+        self.user_defined_ram_characters = False
         # scalable fonts possibility
         self.multipoint_mode = False
 
@@ -244,7 +244,7 @@ class ESCParser:
 
         # dot_density_m parameter reassigned by ESC ? for bit image related commands
         # (ESC K,L,Y,Z)
-        self.KLYZ_densities = [0, 1, 2, 3]
+        self.klyz_densities = [0, 1, 2, 3]
 
         self.bytes_per_line = 0
         self.bytes_per_column = 0
@@ -460,7 +460,7 @@ class ESCParser:
             becomes the top-of-form position.
         """
         mL, mH = args[1].value
-        value = ((mH << 8) + mL)
+        value = (mH << 8) + mL
         unit = self.defined_unit if self.defined_unit else 1 / 360
         self.page_length = value * unit
         LOGGER.debug("page length: %s", self.page_length)
@@ -806,7 +806,7 @@ class ESCParser:
         self.end_page_paper_handling()
 
     def set_unit(self, *args):
-        """Set the unit to m/3600 inch - ESC ( U
+        r"""Set the unit to m/3600 inch - ESC ( U
 
         The default unit varies depending on the command and print quality:
 
@@ -900,7 +900,7 @@ class ESCParser:
             self.binary_blob(Token("ANYTHING", b" " * n))
         elif m == 1:
             # vertically
-            [self.line_feed() for _ in range(n)]
+            _ = [self.line_feed() for _ in range(n)]
             self.carriage_return()
             self.double_width = False
         else:
@@ -1379,7 +1379,7 @@ class ESCParser:
         self.set_font()
 
     def switch_underline(self, *args):
-        """Turn on/off printing of a line below all characters and spaces - ESC -
+        r"""Turn on/off printing of a line below all characters and spaces - ESC -
 
         TODO: printed with the following characteristics: draft, LQ, bold, or double-strike.
         TODO: not printed across the distance the horizontal print position is moved
@@ -1706,16 +1706,16 @@ class ESCParser:
             Draft user-defined characters are converted to LQ characters during LQ mode.
         """
         value = args[1].value[0]
-        self.user_defined_RAM_characters = value in (1, 49)
+        self.user_defined_ram_characters = value in (1, 49)
 
         text = (
             "=> User-defined (RAM) characters"
-            if self.user_defined_RAM_characters
+            if self.user_defined_ram_characters
             else "=> Normal (ROM) characters"
         )
         print(text)
 
-    def select_10cpi(self, *args):
+    def select_10cpi(self, *_):
         """Selects 10.5-point, 10-cpi character printing - ESC P
 
         cancels the HMI set with the ESC c command.
@@ -1729,7 +1729,7 @@ class ESCParser:
         self.character_pitch = 1 / 10
         self.cancel_multipoint_mode()
 
-    def select_12cpi(self, *args):
+    def select_12cpi(self, *_):
         """Selects 10.5-point, 12-cpi character printing - ESC M
 
         cancels the HMI set with the ESC c command.
@@ -1742,7 +1742,7 @@ class ESCParser:
         self.character_pitch = 1 / 12
         self.cancel_multipoint_mode()
 
-    def select_15cpi(self, *args):
+    def select_15cpi(self, *_):
         """Selects 10.5-point, 15-cpi character printing - ESC g
 
         cancels the HMI set with the ESC c command.
@@ -1981,7 +1981,7 @@ class ESCParser:
         self.unset_bold()
 
     def select_line_score(self, *args):
-        """Turns on/off scoring of all characters and spaces following this command - ESC ( -
+        r"""Turns on/off scoring of all characters and spaces following this command - ESC ( -
 
         TODO: ESCP2 only
         TODO: Each type of scoring is independent of other types; any combination of scoring methods
@@ -2339,7 +2339,7 @@ class ESCParser:
     ## GRAPHIIICSSSss !!! (òÓ,)_\,,/
 
     def set_graphics_mode(self, *_):
-        """Select graphics mode (allowing to print raster graphics) - ESC ( G
+        r"""Select graphics mode (allowing to print raster graphics) - ESC ( G
 
         .. note:: only ESCP2
 
@@ -2950,16 +2950,16 @@ class ESCParser:
         match cmd_letter:
             case "K":
                 # Similar to ESC * 0
-                self.KLYZ_densities[0] = dot_density_m
+                self.klyz_densities[0] = dot_density_m
             case "L":
                 # Similar to ESC * 1
-                self.KLYZ_densities[1] = dot_density_m
+                self.klyz_densities[1] = dot_density_m
             case "Y":
                 # Similar to ESC * 2
-                self.KLYZ_densities[2] = dot_density_m
+                self.klyz_densities[2] = dot_density_m
             case "Z":
                 # Similar to ESC * 3
-                self.KLYZ_densities[3] = dot_density_m
+                self.klyz_densities[3] = dot_density_m
 
     def select_xdpi_graphics(self, esc, cmd_code, header, data, *_):
         """Print bit-image graphics in 8-dot columns at various densities - ESC K, L, Y, Z
@@ -2990,7 +2990,7 @@ class ESCParser:
         }
 
         # Get the corresponding density (potentially modified by ESC ?)
-        dot_density_m = self.KLYZ_densities[cmd_codes_idx_mapping[cmd_code]]
+        dot_density_m = self.klyz_densities[cmd_codes_idx_mapping[cmd_code]]
         # Configure & print data
         self.configure_bit_image(dot_density_m)
         self.print_bit_image_dots(data)
@@ -3123,7 +3123,7 @@ class ESCParser:
         # Printer generates and prints the check digit
         add_check_digit = bool(1 & control_flag_c)
         # Show code text
-        human_readable = not (2 & control_flag_c)
+        human_readable = not 2 & control_flag_c
         # EAN-13 and UPC-A only; left flag center or under the bars
         # TODO: not supported by reportlab ?
         flag_char_under = bool(3 & control_flag_c)
