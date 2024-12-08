@@ -3128,13 +3128,13 @@ class ESCParser:
         # TODO: not supported by reportlab ?
         flag_char_under = bool(3 & control_flag_c)
 
-
-        print(f"Barcode type {barcode_types[barcode_type_k]}")
-        print(f"Barcode height {bar_length}")
-        print(f"Barcode humanreadable {human_readable}")
-        print(f"Barcode flag under ? {flag_char_under}")
-        print(f"Barcode module width {module_width_m}")
-        print(f"Barcode add_check_digit {add_check_digit}")
+        if LOGGER.level == DEBUG:
+            LOGGER.debug("Barcode type: %s", barcode_types[barcode_type_k])
+            LOGGER.debug("Barcode height: %s", bar_length)
+            LOGGER.debug("Barcode humanreadable: %s", human_readable)
+            LOGGER.debug("Barcode flag under: %s", flag_char_under)
+            LOGGER.debug("Barcode module width: %s", module_width_m)
+            LOGGER.debug("Barcode add_check_digit: %s", add_check_digit)
 
         import reportlab.graphics.barcode as bc
 
@@ -3149,9 +3149,7 @@ class ESCParser:
             textColor=color,
             barFillColor=color,
         )
-        # barcode.height = bar_length
         barcode.drawOn(self.current_pdf, self.cursor_x * 72, self.cursor_y * 72)
-
 
     def reset_printer(self, *_):
         """Reset printer configuration
