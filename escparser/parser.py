@@ -2556,9 +2556,9 @@ class ESCParser:
         return decompressed_data
 
     def print_tiff_raster_graphics(self, *args):
-        """Enters TIFF raster graphics compressed mode (extended graphics mode) - ESC . 2
+        """Enter TIFF raster graphics compressed mode (extended graphics mode) - ESC . 2
 
-        The following commands are availiable in TIFF mode (all other codes are ignored):
+        The following commands are available in TIFF mode (all other codes are ignored):
             Graphics commands:
             <XFER>      Transfer raster graphics data
             <COLR>      Select printing color
@@ -2573,42 +2573,48 @@ class ESCParser:
             <MOVXBYTE>  Set <MOVX> unit to 8 dots
             <MOVXDOT>   Set <MOVX> unit to 1 dot
 
-        in graphics mode only via ESC ( G
+        In graphics mode only via ESC ( G.
+        Here, the band height (vertical dot count) is equal to 1. Thus, all the
+        received data bytes are for 1 unique line.
 
-        TODO: Only binary commands can be used after entering TIFF compressed mode.
+        .. note:: Only binary commands can be used after entering TIFF compressed mode.
 
-        NOTE: only one image density and do not change this setting after entering raster graphics mode.
-        doc p182
-            p223
-        doc p314
-        doc p333
+        .. warning:: Only one image density should be used, and do not change this
+         setting after entering raster graphics mode.
+
+        Doc p182, p223, p314, p333.
         """
-        graphics_mode, v_res, h_res, *_ = args[1].value
-        # Convert dpi to inches: 1/180 or 1/360 inches, (180 or 360 dpi)
+        # PS: Here v_dot_count_m is equal to 1 (filtered by the grammar)
+        # Because data is sent 1 line at a time
+        graphics_mode, v_res, h_res, v_dot_count_m, *_ = args[1].value
+        # Convert dpi to inches: 1/180, 1/360 or 1/720 inches, (180, 360 or 720 dpi)
         self.vertical_resolution = v_res / 3600
         self.horizontal_resolution = h_res / 3600
 
-        print(f"vertical x horizontal resolution: {v_res//10}/360 x {h_res // 10}/360")
-        print("microweave_mode:", self.microweave_mode)
-        print("line spacing:", self.current_line_spacing)
+        if LOGGER.level == DEBUG:
+            LOGGER.debug("vertical x horizontal resolution: %s/360 x %s/360", v_res//10, h_res // 10)
+            LOGGER.debug("height x width: %s x <unknown h dots>", v_dot_count_m)
+            # LOGGER.debug("microweave_mode: %s", self.microweave_mode)
+            LOGGER.debug("line spacing: %s", self.current_line_spacing)
+            LOGGER.debug("start coord: %s, %s", self.cursor_x, self.cursor_y)
 
     def transfer_raster_graphics_data(self, *args):
-        """ - XFER
-        does not affect the vertical print position.
-        Horizontal print position is moved to the next dot after this command is received
-        TODO:
-        Print data that exceeds the right margin is ignored.
+        """Transfer raster graphics data - XFER
 
-        TODO:
-        (TIFF format)
-        • Moves raster data to the band buffer of the selected color.
-        • Current data does not affect next raster data.
+        - Does not affect the vertical print position.
+        - Horizontal print position is moved to the next dot after this command
+          is received.
+        - TODO: Print data that exceeds the right margin is ignored.
+
+        .. note:: TIFF format:
+            - Moves raster data to the band buffer of the selected color.
+            - Current data does not affect next raster data.
         """
         data = self.decompress_rle_data(args[1].value)
-        # print(data)
-        # Do not chunk the data: all bytes are printed in the same line
-        # see v_dot_count_m == 1
+        # Do not chunk the data: all bytes are printed in the same line of 1 dot
+        # (v_dot_count_m should be equal to 1)
         self.bytes_per_line = len(data)
+        LOGGER.debug("expect %s bytes", self.bytes_per_line)
         self.print_raster_graphics_dots(data)
 
     def set_relative_horizontal_position(self, *args):
