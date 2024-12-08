@@ -3,6 +3,7 @@ from pathlib import Path
 from enum import Enum
 import itertools as it
 from functools import lru_cache
+from logging import DEBUG
 
 # Custom imports
 from lark import Token
@@ -235,6 +236,11 @@ class ESCParser:
             72: 1/360,
             73: 1/360,
         }
+        # Raster resolution (ESC . 0 or 1 or 2)
+        self.vertical_resolution = None
+        self.horizontal_resolution = None
+        # Bit image only
+        self.double_speed = False
 
         # dot_density_m parameter reassigned by ESC ? for bit image related commands
         # (ESC K,L,Y,Z)
@@ -2398,62 +2404,61 @@ class ESCParser:
     def print_raster_graphics(self, *args):
         """Print raster graphics - ESC .
 
-        graphics_mode:
-            0: full graphics mode
-            1: RLE compressed raster graphics mode
+        Doc p179, p304, examples p335
 
-        ESCP2 only !!
+        Graphics modes supported:
 
-        p179
-        doc p304
-        cf examples: p335
-        v_dot_count_m: (1, 8, or 24)
+            - 0: Full graphics mode
+            - 1: RLE compressed raster graphics mode
 
-        When MicroWeave is selected, the image height m must be set to 1.
-        Use only one image density and do not change this setting once in raster graphics mode.
+        - ESCP2 only !!
+        - TODO: available in graphics mode only via ESC ( G
+        - TODO: Print data that exceeds the right margin is ignored.
+        - When MicroWeave is selected, the image height m must be set to 1.
+        - Use only one image density and do not change this setting once in raster
+          graphics mode.
 
-        You can specify the horizontal dot count in 1-dot increments. If the dot count is not a
-        multiple of 8, the remaining data in the data byte at the far right of each row is ignored.
-
-        The final print position is the dot after the far right dot on the top row of the graphics
-        printed with this command.
-
-        TODO: in graphics mode only via ESC ( G
-        TODO: Print data that exceeds the right margin is ignored.
         TODO:
         You cannot move the print position in a negative direction (up) while in graphics mode.
         Also, the printer ignores commands moving the vertical print position in a negative
         direction if the final position would be above any graphics printed with this command.
         """
+        # v_dot_count_m (number of rows of dots): 1, 8, or 24
         graphics_mode, v_res, h_res, v_dot_count_m, nL, nH = args[1].value
-        # Convert dpi to inches: 1/180 or 1/360 inches, (180 or 360 dpi)
+        if (self.microweave_mode or graphics_mode == 2) and v_dot_count_m != 1:
+            # In these settings, one raster line printed at a time
+            LOGGER.warning(
+                "To use MicroWeave, the band height (m) in the ESC . command "
+                "must be set to 1 (one line) => value corrected"
+            )
+            v_dot_count_m = 1
+
+        # Convert dpi to inches: 1/180, 1/360 or 1/720 inches, (180, 360 or 720 dpi)
         self.vertical_resolution = v_res / 3600
         self.horizontal_resolution = h_res / 3600
 
+        # Number of columns of dots
         h_dot_count = (nH << 8) + nL
-        self.bytes_per_line = int((h_dot_count +7) / 8)
-        expected_bytes = v_dot_count_m * self.bytes_per_line
-        print(f"Expect {expected_bytes} bytes ({h_dot_count} dots = {h_dot_count / 8} byte(s) per column)")
+        # Used by print_raster_graphics_dots() to chunk data stream
+        self.bytes_per_line = int((h_dot_count + 7) / 8)
 
-        print(f"vertical x horizontal resolution: {v_res//10}/360 x {h_res // 10}/360")
-        print(f"height x width: {v_dot_count_m}x{h_dot_count}")
-        print("microweave_mode:", self.microweave_mode)
-        print("line spacing:", self.current_line_spacing)
+        if LOGGER.level == DEBUG:
+            expected_bytes = v_dot_count_m * self.bytes_per_line
+
+            LOGGER.debug("expect %s bytes (%s dots = %s byte(s) per column)", expected_bytes, h_dot_count, h_dot_count / 8)
+            LOGGER.debug("vertical x horizontal resolution: %s/360 x %s/360", v_res//10, h_res // 10)
+            LOGGER.debug("height x width: %sx%s", v_dot_count_m, h_dot_count)
+            # LOGGER.debug("microweave_mode: %s", self.microweave_mode)
+            LOGGER.debug("line spacing: %s", self.current_line_spacing)
+            LOGGER.debug("start coord: %s, %s", self.cursor_x, self.cursor_y)
 
         data = args[2].value
-
-        print("start coord:", self.cursor_x, self.cursor_y)
-
-        if self.microweave_mode or graphics_mode == 2:
-            # In these settings, one raster line printed at a time
-            assert v_dot_count_m == 1, \
-                "To use MicroWeave, the band height (m) in the ESC . command must be set to 1 (one line)"
-
-        # Decompress RLE compressed data
         if graphics_mode == 1:
+            # Decompress RLE compressed data
             data = self.decompress_rle_data(data)
 
-        self.print_raster_graphics_dots(data, h_dot_count)
+        # Print dots on the canvas
+        self.print_raster_graphics_dots(data, h_dot_count=h_dot_count)
 
     def print_raster_graphics_dots(self, data, h_dot_count=None):
         def chunk_this(iterable, length):
