@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 # Custom imports
 from lark.exceptions import UnexpectedToken
+
 # Local imports
 import escparser.commons as cm
 from .misc import format_databytes
@@ -16,6 +17,7 @@ from escparser.parser import ESCParser
 
 # Test data path depends on the current package name
 DIR_DATA = os.path.dirname(os.path.abspath(__file__)) + "/../test_data/"
+
 
 @pytest.mark.parametrize(
     "format_databytes",
@@ -36,7 +38,7 @@ DIR_DATA = os.path.dirname(os.path.abspath(__file__)) + "/../test_data/"
         "PC863 (Canada-French)_tb1",
         "PC863 (Canada-French)_tb2",
         "PC863 (Canada-French)_tb3",
-    ]
+    ],
 )
 def test_assign_character_table(format_databytes):
     """Assign character table - ESC ( t
@@ -74,7 +76,7 @@ def test_assign_character_table(format_databytes):
         "charset_ukn",
         "typeface_ukn",
         "table_ukn",
-    ]
+    ],
 )
 def test_wrong_commands(format_databytes):
     """Test various commands with wrong parameters that will raise a Lark exception"""
@@ -92,7 +94,7 @@ def test_wrong_commands(format_databytes):
     indirect=["format_databytes"],
     ids=[
         "ukn_d2_d3",
-    ]
+    ],
 )
 def test_bad_assign_character_table(format_databytes):
     """Assign character table - ESC ( t
@@ -119,20 +121,28 @@ def test_bad_assign_character_table(format_databytes):
         "charset_uk",
         "charset_korea",
         "charset_legal",
-    ]
+    ],
 )
 def test_select_international_charset(format_databytes):
-    """select_international_charset - ESC R """
+    """select_international_charset - ESC R"""
     print(format_databytes)
 
     escparser = ESCParser(format_databytes)
     expected = format_databytes[2 + 2]
     charset_name = cm.charset_mapping[expected]
 
-    assert escparser.international_charset == expected, f"Expected charset {charset_name}"
+    assert (
+        escparser.international_charset == expected
+    ), f"Expected charset {charset_name}"
 
 
-@patch("escparser.parser.typefaces", {0: (lambda *args: "FiraCode-Bold", "truetype/firacode/{}.ttf"), 2: ("FiraCode-Regular", "truetype/firacode/{}.ttf")})
+@patch(
+    "escparser.parser.typefaces",
+    {
+        0: (lambda *args: "FiraCode-Bold", "truetype/firacode/{}.ttf"),
+        2: ("FiraCode-Regular", "truetype/firacode/{}.ttf"),
+    },
+)
 def test_select_typeface():
     """select_typeface - ESC k"""
     format_databytes = b"\x1Bk\x02"
@@ -171,7 +181,7 @@ def test_select_typeface():
         "use_tb0_int",
         "use_tb1_chr",
         "use_tb1_int",
-    ]
+    ],
 )
 def test_select_character_table(format_databytes):
     """Select character table - ESC t 0-3\x00-\x03"""
@@ -187,7 +197,7 @@ def test_select_character_table(format_databytes):
 
 
 def test_horizontal_tabs(tmp_path: Path):
-    """Test horizontal tabs config & cancellation
+    """Test horizontal tabs config & cancellation - ESC D, ESC g, HT
 
     - default config tab
     - set config tab with similar config than default config
@@ -253,12 +263,14 @@ def test_horizontal_tabs(tmp_path: Path):
     assert escparser.horizontal_tabulations == expected
 
     # With a 1/15 character pitch the positions of the columns should be different
-    code += b"\r\n".join([
-        select_15cpi,
-        esc_htab + b"\x01\x08\x00",
-    ])
+    code += b"\r\n".join(
+        [
+            select_15cpi,
+            esc_htab + b"\x01\x08\x00",
+        ]
+    )
     escparser = ESCParser(code, pins=None, output_file=str(processed_file))
-    expected = [1/15, 8/15] + [0] * 30
+    expected = [1 / 15, 8 / 15] + [0] * 30
     assert escparser.horizontal_tabulations == expected
 
     # clean
