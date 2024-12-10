@@ -73,7 +73,7 @@ def pdf_comparison(processed_file: Path):
         "unknown_color",
     ],
 )
-def test_wrong_commands(format_databytes):
+def test_wrong_commands(format_databytes: bytes):
     """Test various commands with wrong parameters that will raise a Lark exception"""
     with pytest.raises(UnexpectedToken, match=r"Unexpected token Token.*"):
         _ = ESCParser(format_databytes)
@@ -122,7 +122,7 @@ def test_reassign_bit_image_mode():
         "reassign_bit_image_mode_dot72+select_xdpi_graphics_K_9pins",
     ],
 )
-def test_select_graphics(format_databytes, pins, dot_density, hori, verti, bytes_per_column, double_speed):
+def test_select_graphics(format_databytes: bytes, pins: int | None, dot_density: int, hori: float, verti: float, bytes_per_column: int, double_speed: bool):
     """Test select_xdpi_graphics (ESC K, L, Y, Z) & configure_bit_image function
 
     The tests use K command, thus, position 0 in klz_densities is updated.
@@ -136,7 +136,7 @@ def test_select_graphics(format_databytes, pins, dot_density, hori, verti, bytes
     assert escparser.double_speed == double_speed
 
 
-def test_select_bit_image(tmp_path):
+def test_select_bit_image(tmp_path: Path):
     """Test select_bit_image ESC *
 
     Show different representation of a form like the ⌐ (reversed not sign)
@@ -288,7 +288,7 @@ def get_raster_data_code(rle_compressed=False):
         "no_rle_not_allowed_color_change"
     ],
 )
-def test_print_raster_graphics(format_databytes, tmp_path):
+def test_print_raster_graphics(format_databytes: bytes, tmp_path: Path):
     """Test raster graphics 0 and 1 modes (no compress, RLE compress modes)
 
     Cover ESC . 0, ESC . 1 commands
@@ -306,7 +306,7 @@ def test_print_raster_graphics(format_databytes, tmp_path):
     pdf_comparison(processed_file)
 
 
-def test_print_tiff_raster_graphics(tmp_path):
+def test_print_tiff_raster_graphics(tmp_path: Path):
     """Test TIFF raster graphics
 
     Cover ESC . 2, <MOVY>, full <XFER> command (nibble combinations), <EXIT>.
