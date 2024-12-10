@@ -127,7 +127,7 @@ def test_select_graphics(format_databytes: bytes, pins: int | None, dot_density:
 
     The tests use K command, thus, position 0 in klz_densities is updated.
     """
-    escparser = ESCParser(format_databytes, pins=pins)
+    escparser = ESCParser(format_databytes, pins=pins, pdf=False)
 
     assert escparser.klyz_densities[0] == dot_density
     assert escparser.horizontal_resolution == hori
