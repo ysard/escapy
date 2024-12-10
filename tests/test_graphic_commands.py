@@ -123,6 +123,7 @@ def test_select_bit_image(tmp_path):
     magenta_cmd = b"\x1br\x01"
     cyan_cmd = b"\x1br\x02"
     yellow_cmd = b"\x1br\x04"
+    # unknown_color_cmd = b"\x1br\x20"
 
     m2_line = select_bit_image_cmd + dot_density_m_2 + expect_44_columns + data_44_columns
 
@@ -149,6 +150,10 @@ def test_select_bit_image(tmp_path):
 
         # Color in cyan
         cyan_cmd + m2_line,
+
+        # Color in unknown value (should not change the current color)
+        # NOTE: For now, it's captured by the grammar
+        # unknown_color_cmd + m2_line,
 
         b"\r\n",
 
