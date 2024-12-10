@@ -11,7 +11,7 @@ from lark.exceptions import UnexpectedToken
 # Local imports
 import escparser.commons as cm
 from .misc import format_databytes
-from .misc import esc_reset, cancel_bold
+from .misc import esc_reset, cancel_bold, graphics_mode
 from .helpers.diff_pdf import is_similar_pdfs
 from escparser.parser import ESCParser
 
@@ -242,3 +242,60 @@ def test_rle_decompress():
     found = ESCParser.decompress_rle_data(COMPRESSED_DATA)
 
     assert found == expected_decompressed_data
+
+
+def get_raster_data_code(rle_compressed=False):
+    """Generate raster data in graphics mode according to the compression level
+
+    ESC ( G + ESC . 0 or ESC ( G + ESC . 1
+    """
+    raster_graphics = b"\x1b.\x00"
+    raster_graphics_rle = b"\x1b.\x01"
+    v_res_h_res = b"\x14\x14"  # 180 dpi
+    v_dot_count_m = b"\x08"  # nL, hH: height of the band: 8 dots
+    bytes_count = b"\x48\x00"  # length of decompressed data: 72 bytes (vs 59 compressed)
+
+    code = [
+        graphics_mode,
+        raster_graphics_rle if rle_compressed else raster_graphics,
+        v_res_h_res + v_dot_count_m + bytes_count,
+        COMPRESSED_DATA if rle_compressed else DECOMPRESSED_DATA
+    ]
+    return b"".join(code)
+
+
+@pytest.mark.parametrize(
+    "format_databytes",
+    [
+        # No RLE
+        get_raster_data_code(),
+        # RLE
+        get_raster_data_code(rle_compressed=True),
+        # Try to use color other than CMYK inside graphics mode
+        # => The color should not be used
+        graphics_mode + b"\x1br\x05" + get_raster_data_code(),
+    ],
+    # First param goes in the 'databytes' param of the fixture format_databytes
+    indirect=["format_databytes"],
+    ids=[
+        "no_rle",
+        "rle",
+        "no_rle_not_allowed_color_change"
+    ],
+)
+def test_raster_graphics_mode(format_databytes, tmp_path):
+    """Test raster graphics 0 and 1 modes (no compress, RLE compress modes)
+
+    Cover ESC . 0, ESC . 1 commands
+
+    Data examples from the doc p313.
+    """
+    processed_file = tmp_path / "test_raster_graphics_compress_no_and_rle.pdf"
+    escparser = ESCParser(format_databytes, output_file=str(processed_file))
+
+    assert escparser.horizontal_resolution == 1/180
+    assert escparser.vertical_resolution == 1/180
+    assert escparser.bytes_per_line == int((72 + 7) / 8)
+    assert escparser.double_speed == False
+
+    pdf_comparison(processed_file)
