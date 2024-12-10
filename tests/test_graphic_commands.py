@@ -91,3 +91,99 @@ def test_select_graphics(format_databytes, pins, dot_density, hori, verti, bytes
     assert escparser.bytes_per_column == bytes_per_column
     assert escparser.double_speed == double_speed
 
+
+def test_select_bit_image(tmp_path):
+    """Test select_bit_image ESC *
+
+    Show different representation of a form like the ⌐ (reversed not sign)
+
+    About the dot densities used:
+
+        - 1: h x v:  1/120 x 1/60, 1 byte per column, double speed off
+        - 2: h x v:  1/120 x 1/60, 1 byte per column, double speed on
+
+    What is printed here:
+
+        - Normal line
+        - double speed line
+        - Line if magenta, yellow, cyan patterns
+        - Line in red
+        - Line in green
+        - Line in blue
+
+    """
+    select_bit_image_cmd = b'\x1b*'
+    dot_density_m_1 = b'\x01'
+    dot_density_m_2 = b'\x02'
+    expect_44_columns = b'\x2c\x00'
+    data_44_columns = b'\x00\x00\x7f\x7f@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00'
+    magenta_cmd = b"\x1br\x01"
+    cyan_cmd = b"\x1br\x02"
+    yellow_cmd = b"\x1br\x04"
+
+    m2_line = select_bit_image_cmd + dot_density_m_2 + expect_44_columns + data_44_columns
+
+    lines = [
+        # Look the two \x7f values, they are 2 bytes for 2 successive columns
+        # Disabling adjacent dots should not print the second one
+        # (like if the bytes were \x7f\x00)
+        select_bit_image_cmd,
+        # dot density 1: adjacent dots are ENABLED
+        dot_density_m_1 + expect_44_columns,
+        data_44_columns,
+        b"\r\n",
+        select_bit_image_cmd,
+        # dot density 2: adjacent dots are DISABLED
+        dot_density_m_2 + expect_44_columns,
+        data_44_columns,
+        b"\r\n",
+
+        # Color in magenta
+        magenta_cmd + m2_line,
+
+        # Color in yellow
+        yellow_cmd + m2_line,
+
+        # Color in cyan
+        cyan_cmd + m2_line,
+
+        b"\r\n",
+
+        # Color in red: merge magenta + yellow
+        yellow_cmd + m2_line,
+        b"\r",  # print at the same start position (just do a carriage return)
+        magenta_cmd + m2_line,
+        b"\r\n",
+
+        # Color in green: merge cyan + yellow
+        cyan_cmd + m2_line,
+        b"\r",  # print at the same start position (just do a carriage return)
+        yellow_cmd + m2_line,
+        b"\r\n",
+
+        # Color in blue: merge cyan + magenta
+        cyan_cmd + m2_line,
+        b"\r",  # print at the same start position (just do a carriage return)
+        magenta_cmd + m2_line,
+        b"\r\n",
+    ]
+
+    code = b"".join(lines)
+
+    processed_file = tmp_path / "test_bitimage_doublespeed_and_colors.pdf"
+    escparser = ESCParser(code, output_file=str(processed_file))
+
+    assert escparser.horizontal_resolution == 1/120
+    assert escparser.vertical_resolution == 1/60
+    assert escparser.bytes_per_column == 1
+    assert escparser.double_speed == True  # m2 effect
+
+    # comparaison of PDFs
+    # Keep track of the generated file in /tmp in case of error
+    backup_file = Path("/tmp/" + processed_file.name)
+    backup_file.write_bytes(processed_file.read_bytes())
+
+    ret = is_similar_pdfs(processed_file, Path(DIR_DATA + processed_file.name))
+    assert ret, f"Problematic file is saved at <{backup_file}> for further study."
+    # All is ok => delete the generated file
+    backup_file.unlink()
