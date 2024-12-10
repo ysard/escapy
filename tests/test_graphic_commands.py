@@ -1,5 +1,6 @@
 # Standard imports
 import os
+import struct
 from pathlib import Path
 import pytest
 from unittest.mock import patch
@@ -39,6 +40,8 @@ def test_wrong_commands(format_databytes):
     with pytest.raises(UnexpectedToken, match=r"Unexpected token Token.*"):
         _ = ESCParser(format_databytes)
 
+
+# Bit-image graphics ###########################################################
 
 def test_reassign_bit_image_mode():
     """Test reassign bit-image - ESC ?
@@ -195,3 +198,30 @@ def test_select_bit_image(tmp_path):
     assert ret, f"Problematic file is saved at <{backup_file}> for further study."
     # All is ok => delete the generated file
     backup_file.unlink()
+
+
+# Raster graphics ##############################################################
+
+def test_rle_decompress():
+    """Test TIFF/RLE decompression"""
+    expected_decompressed_data = [
+        60, 90, 30, 128, 37, 79, 42, 15, 53, 14, 99, 155, 155, 63, 97, 22, 0, 0, 0, 0,
+        60, 15, 15, 15, 15, 15, 128, 32, 9, 27, 34, 173, 91, 92, 8, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 37, 14, 16, 88, 103, 77, 61, 13, 25, 155, 155, 63, 97, 22,
+        31, 97, 44, 110, 109, 15, 15, 15, 15, 15, 0
+    ]
+
+    compressed_data = [
+        15, 60, 90, 30, 128, 37, 79, 42, 15, 53, 14, 99, 155, 155, 63, 97, 22, -3,
+        0, 0, 60, -4, 15, 8, 128, 32, 9, 27, 34, 173, 91, 92, 8, -11, 0, 18, 37, 14,
+        16, 88, 103, 77, 61, 13, 25, 155, 155, 63, 97, 22, 31, 97, 44, 110, 109, -4, 15, 0, 0
+    ]
+
+    compressed_data = bytearray(b"".join([struct.pack('>b', i) if i < 0 else struct.pack('>B', i) for i in compressed_data]))
+
+    # Pay attention to convert negative counters into signed bytes
+    expected_decompressed_data = bytearray(b"".join([struct.pack('>B', i) for i in expected_decompressed_data]))
+
+    found = ESCParser.decompress_rle_data(compressed_data)
+
+    assert found == expected_decompressed_data
