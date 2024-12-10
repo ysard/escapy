@@ -150,10 +150,11 @@ def test_select_bit_image(tmp_path):
 
         - Normal line
         - double speed line
-        - Line if magenta, yellow, cyan patterns
-        - Line in red
-        - Line in green
-        - Line in blue
+        - Line in magenta, yellow, cyan patterns
+        - Line in red (from RGB, not allowed in raster graphics mode, BUT here we are in bit-image mode!)
+        - Line in red (from CMYK combination)
+        - Line in green (from CMYK combination)
+        - Line in blue (from CMYK combination)
 
     """
     select_bit_image_cmd = b'\x1b*'
@@ -164,6 +165,7 @@ def test_select_bit_image(tmp_path):
     magenta_cmd = b"\x1br\x01"
     cyan_cmd = b"\x1br\x02"
     yellow_cmd = b"\x1br\x04"
+    red_cmd = b"\x1br\x05"
     # unknown_color_cmd = b"\x1br\x20"
 
     m2_line = select_bit_image_cmd + dot_density_m_2 + expect_44_columns + data_44_columns
@@ -192,12 +194,15 @@ def test_select_bit_image(tmp_path):
         # Color in cyan
         cyan_cmd + m2_line,
 
+        # Color in red is allowed here (bit-image mode)
+        red_cmd + m2_line,
+
         # Color in unknown value (should not change the current color)
         # NOTE: For now, it's captured by the grammar
         # unknown_color_cmd + m2_line,
 
         b"\r\n",
-
+        # Combinations
         # Color in red: merge magenta + yellow
         yellow_cmd + m2_line,
         b"\r",  # print at the same start position (just do a carriage return)
