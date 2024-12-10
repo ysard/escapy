@@ -288,7 +288,7 @@ def get_raster_data_code(rle_compressed=False):
         "no_rle_not_allowed_color_change"
     ],
 )
-def test_raster_graphics_mode(format_databytes, tmp_path):
+def test_print_raster_graphics(format_databytes, tmp_path):
     """Test raster graphics 0 and 1 modes (no compress, RLE compress modes)
 
     Cover ESC . 0, ESC . 1 commands
