@@ -24,11 +24,14 @@ DIR_DATA = os.path.dirname(os.path.abspath(__file__)) + "/../test_data/"
     [
         # 0x4f (79) is not an authorized value
         b"\x1b?K\x4f" + cancel_bold,
+        # unknown_color_cmd ESC r
+        b"\x1br\x20",
     ],
     # First param goes in the 'databytes' param of the fixture format_databytes
     indirect=["format_databytes"],
     ids=[
-        "reassign_bit_image_wrong_density"
+        "reassign_bit_image_wrong_density",
+        "unknown_color",
     ],
 )
 def test_wrong_commands(format_databytes):
