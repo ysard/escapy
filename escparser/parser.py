@@ -65,7 +65,7 @@ class ESCParser:
 
     default_typeface = 0  # Roman
 
-    def __init__(self, code, pins=None, printable_area_margins_mm=None, page_size=A4, single_sheets=True, pdf=True):
+    def __init__(self, code, pins=None, printable_area_margins_mm=None, page_size=A4, single_sheets=True, pdf=True, output_file="output.pdf"):
         """
 
         :param code: Binary code to be parsed.
@@ -141,7 +141,7 @@ class ESCParser:
 
         if pdf:
             # Init PDF render
-            self.current_pdf = Canvas("output.pdf", pagesize=page_size, pageCompression=1)
+            self.current_pdf = Canvas(output_file, pagesize=page_size, pageCompression=1)
             self.current_pdf.setLineWidth(0.3)
 
         # Page configuration ###################################################
