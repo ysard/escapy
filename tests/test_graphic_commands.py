@@ -19,6 +19,44 @@ from escparser.parser import ESCParser
 # Test data path depends on the current package name
 DIR_DATA = os.path.dirname(os.path.abspath(__file__)) + "/../test_data/"
 
+DECOMPRESSED_DATA = [
+    60, 90, 30, 128, 37, 79, 42, 15, 53, 14, 99, 155, 155, 63, 97, 22, 0, 0,
+    0, 0, 60, 15, 15, 15, 15, 15, 128, 32, 9, 27, 34, 173, 91, 92, 8, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 37, 14, 16, 88, 103, 77, 61, 13, 25, 155,
+    155, 63, 97, 22, 31, 97, 44, 110, 109, 15, 15, 15, 15, 15, 0
+]
+
+COMPRESSED_DATA = [
+    15, 60, 90, 30, 128, 37, 79, 42, 15, 53, 14, 99, 155, 155, 63, 97, 22, -3,
+    0, 0, 60, -4, 15, 8, 128, 32, 9, 27, 34, 173, 91, 92, 8, -11, 0, 18, 37,
+    14, 16, 88, 103, 77, 61, 13, 25, 155, 155, 63, 97, 22, 31, 97, 44, 110,
+    109, -4, 15, 0, 0
+]
+
+DECOMPRESSED_DATA = bytearray(b"".join([struct.pack('>B', i) for i in DECOMPRESSED_DATA]))
+# Pay attention to convert negative counters into signed bytes
+COMPRESSED_DATA = bytearray(b"".join([struct.pack('>b', i) if i < 0 else struct.pack('>B', i) for i in COMPRESSED_DATA]))
+
+def pdf_comparison(processed_file: Path):
+    """Wrapper to compare two PDFs files
+
+    In case of error, the wrong pdf and the diff file will be copied in /tmp/.
+
+    :param processed_file: Test file Path object. Its name is used to make
+        the comparison with an expected file with the same name, expected in
+        the test_data directory.
+    """
+    #
+    # Keep track of the generated file in /tmp in case of error
+    backup_file = Path("/tmp/" + processed_file.name)
+    backup_file.write_bytes(processed_file.read_bytes())
+
+    ret = is_similar_pdfs(processed_file, Path(DIR_DATA + processed_file.name))
+    assert ret, f"Problematic file is saved at <{backup_file}> for further study."
+    # All is ok => delete the generated file
+    backup_file.unlink()
+
+################################################################################
 
 @pytest.mark.parametrize(
     "format_databytes",
@@ -189,39 +227,18 @@ def test_select_bit_image(tmp_path):
     assert escparser.bytes_per_column == 1
     assert escparser.double_speed == True  # m2 effect
 
-    # comparaison of PDFs
-    # Keep track of the generated file in /tmp in case of error
-    backup_file = Path("/tmp/" + processed_file.name)
-    backup_file.write_bytes(processed_file.read_bytes())
-
-    ret = is_similar_pdfs(processed_file, Path(DIR_DATA + processed_file.name))
-    assert ret, f"Problematic file is saved at <{backup_file}> for further study."
-    # All is ok => delete the generated file
-    backup_file.unlink()
+    pdf_comparison(processed_file)
 
 
 # Raster graphics ##############################################################
 
 def test_rle_decompress():
-    """Test TIFF/RLE decompression"""
-    expected_decompressed_data = [
-        60, 90, 30, 128, 37, 79, 42, 15, 53, 14, 99, 155, 155, 63, 97, 22, 0, 0, 0, 0,
-        60, 15, 15, 15, 15, 15, 128, 32, 9, 27, 34, 173, 91, 92, 8, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 37, 14, 16, 88, 103, 77, 61, 13, 25, 155, 155, 63, 97, 22,
-        31, 97, 44, 110, 109, 15, 15, 15, 15, 15, 0
-    ]
+    """Test TIFF/RLE decompression
 
-    compressed_data = [
-        15, 60, 90, 30, 128, 37, 79, 42, 15, 53, 14, 99, 155, 155, 63, 97, 22, -3,
-        0, 0, 60, -4, 15, 8, 128, 32, 9, 27, 34, 173, 91, 92, 8, -11, 0, 18, 37, 14,
-        16, 88, 103, 77, 61, 13, 25, 155, 155, 63, 97, 22, 31, 97, 44, 110, 109, -4, 15, 0, 0
-    ]
+    Data examples from the doc p313.
+    """
+    expected_decompressed_data = DECOMPRESSED_DATA
 
-    compressed_data = bytearray(b"".join([struct.pack('>b', i) if i < 0 else struct.pack('>B', i) for i in compressed_data]))
-
-    # Pay attention to convert negative counters into signed bytes
-    expected_decompressed_data = bytearray(b"".join([struct.pack('>B', i) for i in expected_decompressed_data]))
-
-    found = ESCParser.decompress_rle_data(compressed_data)
+    found = ESCParser.decompress_rle_data(COMPRESSED_DATA)
 
     assert found == expected_decompressed_data
