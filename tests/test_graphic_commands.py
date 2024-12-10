@@ -55,6 +55,8 @@ def test_reassign_bit_image_mode():
 
 
 @pytest.mark.parametrize(
+    # The dot density impacts horizontal & vertical resolutions + bytes per column and double speed mode
+    # The number of pins can modify vertical resolution
     "format_databytes, pins, dot_density, hori, verti, bytes_per_column, double_speed",
     [
         # ESC K: cancel_bold belongs to the command, it is used to test the parsing

@@ -30,7 +30,7 @@ DIR_DATA = os.path.dirname(os.path.abspath(__file__)) + "/../test_data/"
         b"\x1B\x28\x74\x03\x00\x02\x08\x00" + cancel_bold,
         b"\x1B\x28\x74\x03\x00\x03\x08\x00" + cancel_bold,
     ],
-    # First param goes in the 'databytes' param of the fixture format_databytes
+    # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
     ids=[
         "PC863 (Canada-French)_tb0",
@@ -69,7 +69,7 @@ def test_assign_character_table(format_databytes):
         # Wrong character table ID - ESC t
         b"\x1Bt\x04" + cancel_bold,
     ],
-    # First param goes in the 'databytes' param of the fixture format_databytes
+    # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
     ids=[
         "ukn_tb4",
@@ -90,7 +90,7 @@ def test_wrong_commands(format_databytes):
         # Combination 0, 8 doesn't exist
         b"\x1B\x28\x74\x03\x00\x30\x00\x08" + cancel_bold,
     ],
-    # First param goes in the 'databytes' param of the fixture format_databytes
+    # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
     ids=[
         "ukn_d2_d3",
@@ -115,7 +115,7 @@ def test_bad_assign_character_table(format_databytes):
         # Legal
         b"\x1BR\x40" + cancel_bold,
     ],
-    # First param goes in the 'databytes' param of the fixture format_databytes
+    # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
     ids=[
         "charset_uk",
@@ -174,7 +174,7 @@ def test_select_typeface():
         b"\x1Bt\x31" + cancel_bold,
         b"\x1Bt\x01" + cancel_bold,
     ],
-    # First param goes in the 'databytes' param of the fixture format_databytes
+    # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
     ids=[
         "use_tb0_chr",
