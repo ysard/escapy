@@ -279,7 +279,7 @@ esc_grammar = r"""
     #0b00110001,0b00110010
     # [\x00-\xff] used to allow \n character ???
     # use [\x00-\xff]/ instead of /./
-    XFER_HEADER: /([\x20-\x2f]|[\x31\x32])/ DATA
+    XFER_HEADER: /([\x20-\x2f]|[\x31\x32])/
     MOVY_HEADER: /([\x60-\x6f]|[\x71\x72])/
     MOVX_HEADER: /([\x40-\x4f]|[\x51\x52])/
     # 0b1000_0000-0b1000_0100
@@ -401,40 +401,44 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
                 # 2F 80
                 # 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
                 # #BC = Low nibble value
-                cmd, nL = token.value
+                cmd = token.value[0]
                 # print(cmd, bin(cmd), nL)
                 cmd_bc = cmd & 0x0f
                 lexer_state = interactive.lexer_thread.state
 
+                token_start_pos = lexer_state.line_ctr.char_pos
                 if not (cmd >> 4) & 1:
                     # #BC = number of raster image data
                     expected_decompressed_bytes = cmd_bc
                 elif cmd_bc == 1:
                     # F = 1 then #BC = number of raster image data counter
                     # #BC = 1: number of raster data = n1
+                    nL = lexer_state.text[token_start_pos]
                     expected_decompressed_bytes = nL
+
+                    token_start_pos += 1
                 elif cmd_bc == 2:
                     # F = 1 then #BC = number of raster image data counter
                     # #BC = 2: number of raster data = n1 + n2 × 256
-                    # Get the next byte as nH
-                    nH = lexer_state.text[lexer_state.line_ctr.char_pos]
+                    # Get the next bytes as nL and nH
+                    nL = lexer_state.text[token_start_pos]
+                    nH = lexer_state.text[token_start_pos+1]
                     expected_decompressed_bytes = (nH << 8) + nL
 
-                    lexer_state.line_ctr.char_pos += 1
+                    token_start_pos += 2
                 else:
-                    raise ValueError
+                    raise ValueError("<XFER> F or BC (nibble) value not expected!")
 
-                print("token val", token.value)
-                print(f"Expect {expected_decompressed_bytes} decompressed bytes")
+                # print("token val", token.value)
+                LOGGER.debug("Expect %d decompressed bytes", expected_decompressed_bytes)
                 bit_image_flag = True
 
-                token_start_pos = lexer_state.line_ctr.char_pos
-                # print(lexer_state.text[token_start_pos:])
+                lexer_state.line_ctr.char_pos = token_start_pos
                 iter_data = iter(lexer_state.text[token_start_pos:])
                 data, expected_bytes = decompress_rle_data(iter_data, expected_decompressed_bytes)
 
-
-                print("used bytes to decomp", expected_bytes)
+                # print(lexer_state.text[token_start_pos:])
+                # print("used bytes to decomp", expected_bytes)
                 # print("result, length", data, len(data))
                 # input("pause")
 
