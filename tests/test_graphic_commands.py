@@ -316,7 +316,7 @@ def test_print_tiff_raster_graphics(tmp_path: Path):
     raster_graphics_tiff = b"\x1b.\x02"
     v_res_h_res = b"\x14\x14"  # 180 dpi
     v_dot_count_m = b"\x01"  # nL, hH: height of the band: 8 dots
-    trailing_bytes = b"\x00\x00"  # length of decompressed data: 72 bytes (vs 59 compressed)
+    trailing_bytes = b"\x00\x00"
 
     expected_bytes_count = 10
     # Move 10 units down used as a linefeed between the dot lines
@@ -339,6 +339,7 @@ def test_print_tiff_raster_graphics(tmp_path: Path):
         raster_graphics_tiff,
         v_res_h_res + v_dot_count_m + trailing_bytes,
 
+        # 3 lines
         xfer_cmd_f0_bc10 + raster_data,
         movy_cmd,
         xfer_cmd_f1_bc1 + raster_data,
@@ -391,7 +392,7 @@ def test_set_movx_unit_functions(binary_cmd: bytes, set_unit_cmd: bytes, expecte
     raster_graphics_tiff = b"\x1b.\x02"
     v_res_h_res = b"\x14\x14"  # 180 dpi
     v_dot_count_m = b"\x01"  # nL, hH: height of the band: 8 dots
-    trailing_bytes = b"\x00\x00"  # length of decompressed data: 72 bytes (vs 59 compressed)
+    trailing_bytes = b"\x00\x00"
 
     exit_cmd = b"\xe3"
 
