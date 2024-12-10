@@ -304,3 +304,55 @@ def test_print_raster_graphics(format_databytes, tmp_path):
     assert escparser.double_speed == False
 
     pdf_comparison(processed_file)
+
+
+def test_print_tiff_raster_graphics(tmp_path):
+    """Test TIFF raster graphics
+
+    Cover ESC . 2, <MOVY>, full <XFER> command (nibble combinations), <EXIT>.
+
+    Print 3 lines of 10*8 dots (10 bytes) with various <XFER> configurations.
+    """
+    raster_graphics_tiff = b"\x1b.\x02"
+    v_res_h_res = b"\x14\x14"  # 180 dpi
+    v_dot_count_m = b"\x01"  # nL, hH: height of the band: 8 dots
+    trailing_bytes = b"\x00\x00"  # length of decompressed data: 72 bytes (vs 59 compressed)
+
+    expected_bytes_count = 10
+    # Move 10 units down used as a linefeed between the dot lines
+    movy_cmd = b"r\n\x00"
+    # Count is inside the nibble of cmd
+    # 0b0010_0000 (0x20) + 10 bytes = 0b0010_1010
+    xfer_cmd_f0_bc10 = b'*'
+    # Count is inside the next byte nL
+    # 0b0011_0000 (0x30) + 1 = 0b0010_0001
+    xfer_cmd_f1_bc1 = b'1\x0a'
+    # Count is inside the 2 next bytes
+    # 0b0011_0000 (0x30) + 2 = 0b0010_0010
+    xfer_cmd_f1_bc2 = b'2\x0a\x00'
+    raster_data = b'\xff' * expected_bytes_count
+
+    exit_cmd = b"\xe3"
+
+    code = [
+        graphics_mode,
+        raster_graphics_tiff,
+        v_res_h_res + v_dot_count_m + trailing_bytes,
+
+        xfer_cmd_f0_bc10 + raster_data,
+        movy_cmd,
+        xfer_cmd_f1_bc1 + raster_data,
+        movy_cmd,
+        xfer_cmd_f1_bc2 + raster_data,
+
+        exit_cmd
+    ]
+
+    processed_file = tmp_path / "test_print_tiff_raster_graphics.pdf"
+    escparser = ESCParser(b"".join(code), output_file=str(processed_file))
+
+    assert escparser.horizontal_resolution == 1 / 180
+    assert escparser.vertical_resolution == 1 / 180
+    assert escparser.bytes_per_line == expected_bytes_count
+
+    pdf_comparison(processed_file)
