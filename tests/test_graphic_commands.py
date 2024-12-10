@@ -356,3 +356,57 @@ def test_print_tiff_raster_graphics(tmp_path):
     assert escparser.bytes_per_line == expected_bytes_count
 
     pdf_comparison(processed_file)
+
+
+@pytest.mark.parametrize(
+    "binary_cmd, set_unit_cmd, expected_unit",
+    [
+        # default unit from constructor
+        (b"", b"", 1 / 360),
+        # movxbyte_cmd: default
+        (b"\xe4", b"", 8 / 360),
+        # movxdot_cmd: default:
+        (b"\xe5", b"", 1 / 360),
+        # Redefine unit before binary commands to 60 / 3600 via ESC ( U
+        (b"\xe4", b"\x1b(U\x01\x00\x3c", 6 * 8 * 1 / 360),
+        (b"\xe5", b"\x1b(U\x01\x00\x3c", 6 * 1 / 360)
+    ],
+    ids=[
+        "unit_default",
+        "unit_movxbyte_default",
+        "unit_movxdot_default",
+        "unit_movxbyte_6/360",
+        "unit_movxdot_6/360",
+    ],
+)
+def test_set_movx_unit_functions(binary_cmd: bytes, set_unit_cmd: bytes, expected_unit: float):
+    """Test TIFF mode MOV* units
+
+    Cover:
+        - set_unit ESC ( U
+        - set_movx_unit_8dots <MOVXBYTE>
+        - set_movx_unit_1dot <MOVXDOT>
+        - set_movx_unit
+    """
+    raster_graphics_tiff = b"\x1b.\x02"
+    v_res_h_res = b"\x14\x14"  # 180 dpi
+    v_dot_count_m = b"\x01"  # nL, hH: height of the band: 8 dots
+    trailing_bytes = b"\x00\x00"  # length of decompressed data: 72 bytes (vs 59 compressed)
+
+    exit_cmd = b"\xe3"
+
+    code = [
+        graphics_mode,
+
+        # ESC ( U must be used before entering into the TIFF binary mode
+        set_unit_cmd,
+
+        raster_graphics_tiff,
+        v_res_h_res + v_dot_count_m + trailing_bytes,
+
+        binary_cmd,
+
+        exit_cmd,
+    ]
+    escparser = ESCParser(b"".join(code), pdf=False)
+    assert escparser.movx_unit == expected_unit
