@@ -320,9 +320,17 @@ class ESCParser:
 
     @color.setter
     def color(self, color: int):
-        """Set the current color id"""
+        """Set the current color id
+
+        .. note:: Also available during graphics mode selected with the ESC ( G command.
+            In this mode for ESCP2, only Black, Cyan, Magenta, Yellow are available.
+            Non-ESCP2 printers can use any color.
+        """
         if color >= len(self.RGB_colors):
             # Color doesn't exist: ignore the command
+            return
+        if self.graphics_mode and self.pins != 9 and color not in (0, 1, 2, 4):
+            LOGGER.warning("Color id %s not allowed in ESC ( G raster graphics mode")
             return
 
         self._color = color
