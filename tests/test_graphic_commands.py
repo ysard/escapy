@@ -313,7 +313,7 @@ def test_print_raster_graphics(format_databytes: bytes, tmp_path: Path):
 
 
 def test_print_tiff_raster_graphics(tmp_path: Path):
-    """Test TIFF raster graphics
+    """Test TIFF raster graphics (mainly <XFER>)
 
     Cover ESC . 2, <MOVY>, full <XFER> command (nibble combinations), <EXIT>.
 
@@ -321,7 +321,10 @@ def test_print_tiff_raster_graphics(tmp_path: Path):
     """
     raster_graphics_tiff = b"\x1b.\x02"
     v_res_h_res = b"\x14\x14"  # 180 dpi
-    v_dot_count_m = b"\x01"  # nL, hH: height of the band: 8 dots
+    # HERE I CAN NOT put 2 instead of 1, this value is nonsense in TIFF mode;
+    # It SHOULD be fixed automatically and set to 1.
+    # THIS code section CAN'T be tested since the grammar doesn't accept such value.
+    v_dot_count_m = b"\x01"  # nL, hH: height of the band: 1 dot
     trailing_bytes = b"\x00\x00"
 
     expected_bytes_count = 10
@@ -398,7 +401,7 @@ def test_set_movx_unit_functions(binary_cmd: bytes, set_unit_cmd: bytes,
     """
     raster_graphics_tiff = b"\x1b.\x02"
     v_res_h_res = b"\x14\x14"  # 180 dpi
-    v_dot_count_m = b"\x01"  # nL, hH: height of the band: 8 dots
+    v_dot_count_m = b"\x01"  # nL, hH: height of the band: 1 dot
     trailing_bytes = b"\x00\x00"
 
     exit_cmd = b"\xe3"
@@ -495,7 +498,7 @@ def test_set_relative_horizontal_vertical_position(movx_cmd: bytes,
     """
     raster_graphics_tiff = b"\x1b.\x02"
     v_res_h_res = b"\x14\x14"  # 180 dpi
-    v_dot_count_m = b"\x01"  # nL, hH: height of the band: 8 dots
+    v_dot_count_m = b"\x01"  # nL, hH: height of the band: 1 dot
     trailing_bytes = b"\x00\x00"
 
     exit_cmd = b"\xe3"
