@@ -15,7 +15,6 @@ from .misc import esc_reset, cancel_bold, graphics_mode
 from .helpers.diff_pdf import is_similar_pdfs
 from escparser.parser import ESCParser
 
-
 # Test data path depends on the current package name
 DIR_DATA = os.path.dirname(os.path.abspath(__file__)) + "/../test_data/"
 
@@ -55,6 +54,7 @@ def pdf_comparison(processed_file: Path):
     assert ret, f"Problematic file is saved at <{backup_file}> for further study."
     # All is ok => delete the generated file
     backup_file.unlink()
+
 
 ################################################################################
 
@@ -227,8 +227,8 @@ def test_select_bit_image(tmp_path: Path):
     processed_file = tmp_path / "test_bitimage_doublespeed_and_colors.pdf"
     escparser = ESCParser(code, output_file=str(processed_file))
 
-    assert escparser.horizontal_resolution == 1/120
-    assert escparser.vertical_resolution == 1/60
+    assert escparser.horizontal_resolution == 1 / 120
+    assert escparser.vertical_resolution == 1 / 60
     assert escparser.bytes_per_column == 1
     assert escparser.double_speed == True  # m2 effect
 
@@ -298,8 +298,8 @@ def test_print_raster_graphics(format_databytes: bytes, tmp_path: Path):
     processed_file = tmp_path / "test_raster_graphics_compress_no_and_rle.pdf"
     escparser = ESCParser(format_databytes, output_file=str(processed_file))
 
-    assert escparser.horizontal_resolution == 1/180
-    assert escparser.vertical_resolution == 1/180
+    assert escparser.horizontal_resolution == 1 / 180
+    assert escparser.vertical_resolution == 1 / 180
     assert escparser.bytes_per_line == int((72 + 7) / 8)
     assert escparser.double_speed == False
 
@@ -380,8 +380,9 @@ def test_print_tiff_raster_graphics(tmp_path: Path):
         "unit_movxdot_6/360",
     ],
 )
-def test_set_movx_unit_functions(binary_cmd: bytes, set_unit_cmd: bytes, expected_unit: float):
-    """Test TIFF mode MOV* units
+def test_set_movx_unit_functions(binary_cmd: bytes, set_unit_cmd: bytes,
+                                 expected_unit: float):
+    """Test TIFF mode <MOV*> units
 
     Cover:
         - set_unit ESC ( U
