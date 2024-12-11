@@ -110,10 +110,9 @@ def test_reassign_bit_image_mode():
         # ESC K: cancel_bold belongs to the command, it is used to test the parsing
         (b"\x1bK\x04\x00\xff\x0a" + cancel_bold, 9, 0, 1 / 60, 1 / 72, 1, False),
         (b"\x1bK\x04\x00\xff\x0a" + cancel_bold, None, 0, 1 / 60, 1 / 60, 1, False),
-        # Set dot_density to 7 via ESC ? K command, before ESC K command
+        # Set dot_density to 7 via ESC ? K command, before ESC K command (cf configure_bit_image)
         (b"\x1b?K\x07\x1bK\x04\x00\xff\x0a" + cancel_bold, 9, 7, 1 / 144, 1 / 72, 1, False),
-        # Test other densities (cf configure_bit_image),
-        # also, double_speed is enabled for these modes.
+        # 40, 72 densities also, double_speed is enabled for these modes
         (b"\x1b?K\x28\x1bK\x04\x00\xff\x0a" + cancel_bold, None, 40, 1 / 360, 1 / 180, 3, True),
         (b"\x1b?K\x48\x1bK\x04\x00\xff\x0a" + cancel_bold, None, 72, 1 / 360, 1 / 360, 6, True),
     ],
@@ -154,7 +153,7 @@ def test_select_bit_image(tmp_path: Path):
 
     Show different representation of a form like the ⌐ (reversed not sign)
 
-    About the dot densities used:
+    About the dot densities used (ESCP2):
 
         - 1: h x v:  1/120 x 1/60, 1 byte per column, double speed off
         - 2: h x v:  1/120 x 1/60, 1 byte per column, double speed on
