@@ -32,9 +32,19 @@ COMPRESSED_DATA = [
     109, -4, 15, 0, 0
 ]
 
-DECOMPRESSED_DATA = bytearray(b"".join([struct.pack('>B', i) for i in DECOMPRESSED_DATA]))
+DECOMPRESSED_DATA = bytearray(
+    b"".join([struct.pack(">B", i) for i in DECOMPRESSED_DATA])
+)
 # Pay attention to convert negative counters into signed bytes
-COMPRESSED_DATA = bytearray(b"".join([struct.pack('>b', i) if i < 0 else struct.pack('>B', i) for i in COMPRESSED_DATA]))
+COMPRESSED_DATA = bytearray(
+    b"".join(
+        [
+            struct.pack(">b", i) if i < 0 else struct.pack(">B", i)
+            for i in COMPRESSED_DATA
+        ]
+    )
+)
+
 
 def pdf_comparison(processed_file: Path):
     """Wrapper to compare two PDFs files
@@ -57,6 +67,7 @@ def pdf_comparison(processed_file: Path):
 
 
 ################################################################################
+
 
 @pytest.mark.parametrize(
     "format_databytes",
@@ -87,6 +98,7 @@ def test_wrong_commands(format_databytes: bytes):
 
 # Bit-image graphics ###########################################################
 
+
 def test_reassign_bit_image_mode():
     """Test reassign bit-image - ESC ?
 
@@ -97,7 +109,9 @@ def test_reassign_bit_image_mode():
     cmd_letters = b"KLYZ"
     dot_density_m = [0, 4, 7, 73]
 
-    code = b"\x1b?".join(bytearray(cmd_density) for cmd_density in zip(cmd_letters, dot_density_m))
+    code = b"\x1b?".join(
+        bytearray(cmd_density) for cmd_density in zip(cmd_letters, dot_density_m)
+    )
 
     escparser = ESCParser(esc_reset + code)
 
@@ -110,8 +124,8 @@ def test_reassign_bit_image_mode():
     "format_databytes, pins, dot_density, hori, verti, bytes_per_column, double_speed",
     [
         # ESC K: cancel_bold belongs to the command, it is used to test the parsing
-        (b"\x1bK\x04\x00\xff\x0a" + cancel_bold, 9, 0, 1/60, 1/72, 1, False),
-        (b"\x1bK\x04\x00\xff\x0a" + cancel_bold, None, 0, 1/60, 1/60, 1, False),
+        (b"\x1bK\x04\x00\xff\x0a" + cancel_bold, 9, 0, 1 / 60, 1 / 72, 1, False),
+        (b"\x1bK\x04\x00\xff\x0a" + cancel_bold, None, 0, 1 / 60, 1 / 60, 1, False),
         # Set dot_density to 7 via ESC ? K command, before ESC K command
         (b"\x1b?K\x07\x1bK\x04\x00\xff\x0a" + cancel_bold, 9, 7, 1/144, 1/72, 1, False),
         # Test other densities (cf configure_bit_image), also, double_speed is enabled for these modes
@@ -128,7 +142,15 @@ def test_reassign_bit_image_mode():
         "reassign_bit_image_mode_dot72+select_xdpi_graphics_K_9pins",
     ],
 )
-def test_select_graphics(format_databytes: bytes, pins: int | None, dot_density: int, hori: float, verti: float, bytes_per_column: int, double_speed: bool):
+def test_select_graphics(
+    format_databytes: bytes,
+    pins: int | None,
+    dot_density: int,
+    hori: float,
+    verti: float,
+    bytes_per_column: int,
+    double_speed: bool,
+):
     """Test select_xdpi_graphics (ESC K, L, Y, Z) & configure_bit_image function
 
     The tests use K command, thus, position 0 in klz_densities is updated.
@@ -163,11 +185,11 @@ def test_select_bit_image(tmp_path: Path):
         - Line in blue (from CMYK combination)
 
     """
-    select_bit_image_cmd = b'\x1b*'
-    dot_density_m_1 = b'\x01'
-    dot_density_m_2 = b'\x02'
-    expect_44_columns = b'\x2c\x00'
-    data_44_columns = b'\x00\x00\x7f\x7f@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00'
+    select_bit_image_cmd = b"\x1b*"
+    dot_density_m_1 = b"\x01"
+    dot_density_m_2 = b"\x02"
+    expect_44_columns = b"\x2c\x00"
+    data_44_columns = b"\x00\x00\x7f\x7f@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00"
     magenta_cmd = b"\x1br\x01"
     cyan_cmd = b"\x1br\x02"
     yellow_cmd = b"\x1br\x04"
@@ -243,6 +265,7 @@ def test_select_bit_image(tmp_path: Path):
 
 # Raster graphics ##############################################################
 
+
 def test_rle_decompress():
     """Test TIFF/RLE decompression
 
@@ -270,7 +293,7 @@ def get_raster_data_code(rle_compressed=False):
         graphics_mode,
         raster_graphics_rle if rle_compressed else raster_graphics,
         v_res_h_res + v_dot_count_m + bytes_count,
-        COMPRESSED_DATA if rle_compressed else DECOMPRESSED_DATA
+        COMPRESSED_DATA if rle_compressed else DECOMPRESSED_DATA,
     ]
     return b"".join(code)
 
@@ -288,11 +311,7 @@ def get_raster_data_code(rle_compressed=False):
     ],
     # First param goes in the 'databytes' param of the fixture format_databytes
     indirect=["format_databytes"],
-    ids=[
-        "no_rle",
-        "rle",
-        "no_rle_not_allowed_color_change"
-    ],
+    ids=["no_rle", "rle", "no_rle_not_allowed_color_change"],
 )
 def test_print_raster_graphics(format_databytes: bytes, tmp_path: Path):
     """Test raster graphics 0 and 1 modes (no compress, RLE compress modes)
@@ -332,14 +351,14 @@ def test_print_tiff_raster_graphics(tmp_path: Path):
     movy_cmd = b"r\n\x00"
     # Count is inside the nibble of cmd
     # 0b0010_0000 (0x20) + 10 bytes = 0b0010_1010
-    xfer_cmd_f0_bc10 = b'*'
+    xfer_cmd_f0_bc10 = b"*"
     # Count is inside the next byte nL
     # 0b0011_0000 (0x30) + 1 = 0b0010_0001
-    xfer_cmd_f1_bc1 = b'1\x0a'
+    xfer_cmd_f1_bc1 = b"1\x0a"
     # Count is inside the 2 next bytes
     # 0b0011_0000 (0x30) + 2 = 0b0010_0010
-    xfer_cmd_f1_bc2 = b'2\x0a\x00'
-    raster_data = b'\xff' * expected_bytes_count
+    xfer_cmd_f1_bc2 = b"2\x0a\x00"
+    raster_data = b"\xff" * expected_bytes_count
 
     exit_cmd = b"\xe3"
 
@@ -379,7 +398,7 @@ def test_print_tiff_raster_graphics(tmp_path: Path):
         (b"\xe5", b"", 1 / 360),
         # Redefine unit before binary commands to 60 / 3600 via ESC ( U
         (b"\xe4", b"\x1b(U\x01\x00\x3c", 6 * 8 * 1 / 360),
-        (b"\xe5", b"\x1b(U\x01\x00\x3c", 6 * 1 / 360)
+        (b"\xe5", b"\x1b(U\x01\x00\x3c", 6 * 1 / 360),
     ],
     ids=[
         "unit_default",
@@ -389,8 +408,9 @@ def test_print_tiff_raster_graphics(tmp_path: Path):
         "unit_movxdot_6/360",
     ],
 )
-def test_set_movx_unit_functions(binary_cmd: bytes, set_unit_cmd: bytes,
-                                 expected_unit: float):
+def test_set_movx_unit_functions(
+    binary_cmd: bytes, set_unit_cmd: bytes, expected_unit: float
+):
     """Test TIFF mode <MOV*> units
 
     Cover:
@@ -429,39 +449,36 @@ def test_set_movx_unit_functions(binary_cmd: bytes, set_unit_cmd: bytes,
     [
         # Offset is inside the SIGNED nibble of cmd
         # 0b0100_0000 (0x20) -8 = 0b0100_1000
-        (b"\x48", b"", - 8*1/360, 0),
+        (b"\x48", b"", -8 * 1 / 360, 0),
         # Offset is inside the SIGNED nibble of cmd
         # 0b0100_0000 (0x20)  7 = 0b0100_0111
-        (b"\x47", b"", 7/360, 0),
+        (b"\x47", b"", 7 / 360, 0),
         # Offset is inside the next SIGNED byte nL
         # 0b0101_0001 (0x51)
-        (b"\x51\xf8", b"", - 8/360, 0),
+        (b"\x51\xf8", b"", -8 / 360, 0),
         # Offset is inside the next SIGNED byte nL
         # 0b0101_0001 (0x51)
-        (b"\x51\x07", b"", 7/360, 0),
+        (b"\x51\x07", b"", 7 / 360, 0),
         # Offset is inside the 2 next SIGNED short
         # 0b0101_0010 (0x52)
-        (b"\x52\xf8\xff", b"", - 8/360, 0),
+        (b"\x52\xf8\xff", b"", -8 / 360, 0),
         # Offset is inside the 2 next SIGNED short
         # 0b0101_0010 (0x52)
-        (b"\x52\x07\x00", b"", 7/360, 0),
-
+        (b"\x52\x07\x00", b"", 7 / 360, 0),
         # Offset is inside the UNSIGNED nibble of cmd
         # 0b0110_0000 (0x60) + 15 (0x0f)
         # -15 because the system is bottom up
         # (positive movement is towards the bottom of the page: so coordinates decrease)
-        (b"", b"\x6f", 0, - 15/360),
+        (b"", b"\x6f", 0, -15 / 360),
         # Offset is inside the next UNSIGNED byte nL
         # 0b0111_0001 ()
-        (b"", b"\x71\x0f", 0, - 15/360),
+        (b"", b"\x71\x0f", 0, -15 / 360),
         # Offset is inside the 2 next bytes: next UNSIGNED short
         # 0b0111_0010 ()
-        (b"", b"\x72\x0f\x00", 0, - 15/360),
-
+        (b"", b"\x72\x0f\x00", 0, -15 / 360),
         # Using the movy command triggers a carriage return
         # => cancel the cursor_x movement of movx
-        (b"\x47", b"\x6f", 0, - 15/360),
-
+        (b"\x47", b"\x6f", 0, -15 / 360),
     ],
     ids=[
         "movx_f0_negative_offset",
@@ -482,10 +499,9 @@ def test_set_movx_unit_functions(binary_cmd: bytes, set_unit_cmd: bytes,
     "escparser.parser.ESCParser.exit_tiff_raster_graphics",
     lambda *args: None,
 )
-def test_set_relative_horizontal_vertical_position(movx_cmd: bytes,
-                                                   movy_cmd: bytes,
-                                                   offset_cursor_x: float,
-                                                   offset_cursor_y: float):
+def test_set_relative_horizontal_vertical_position(
+    movx_cmd: bytes, movy_cmd: bytes, offset_cursor_x: float, offset_cursor_y: float
+):
     """Test TIFF <MOVX>, <MOVX> commands
 
     Cover:
@@ -527,7 +543,6 @@ def test_set_relative_horizontal_vertical_position(movx_cmd: bytes,
     assert escparser.cursor_y == expected_cursor_y
 
 
-
 def test_global_print_tiff_raster_graphics(tmp_path: Path):
     """Global test for a full pdf rendered in TIFF raster graphics mode
 
@@ -549,8 +564,8 @@ def test_global_print_tiff_raster_graphics(tmp_path: Path):
     movy_cmd = b"r\n\x00"
     # Count is inside the nibble of cmd
     # 0b0010_0000 (0x20) + 10 bytes = 0b0010_1010
-    xfer_cmd_f0_bc10 = b'*'
-    raster_data = b'\xff' * expected_bytes_count
+    xfer_cmd_f0_bc10 = b"*"
+    raster_data = b"\xff" * expected_bytes_count
     xfer_graphics_line = xfer_cmd_f0_bc10 + raster_data
 
     # <EXIT>
