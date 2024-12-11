@@ -12,7 +12,7 @@ import escparser.commons as cm
 from .misc import format_databytes
 from .misc import esc_reset, cancel_bold
 from .helpers.diff_pdf import is_similar_pdfs
-from escparser.parser import ESCParser
+from escparser.parser import ESCParser, PrintMode
 
 
 # Test data path depends on the current package name
@@ -275,3 +275,16 @@ def test_horizontal_tabs(tmp_path: Path):
 
     # clean
     processed_file.unlink()
+
+
+def test_select_letter_quality_or_draft():
+    """ESC x Select LQ or draft"""
+    dataset = [
+        (b"\x1bx\x00", PrintMode.DRAFT),
+        (b"\x1bx\x30", PrintMode.DRAFT),
+        (b"\x1bx\x01", PrintMode.LQ),
+        (b"\x1bx\x31", PrintMode.LQ),
+    ]
+    for code, expected in dataset:
+        escparser = ESCParser(code, pdf=False)
+        assert escparser.mode == expected
