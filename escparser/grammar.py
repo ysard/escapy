@@ -364,8 +364,8 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
                     bytes_per_column = 6
 
                 expected_bytes = bytes_per_column * dot_columns_nb
-                print(f"Expect {expected_bytes} bytes ({8 * bytes_per_column} dots per column)")
 
+                LOGGER.debug("Expect %d bytes (%d dots per column)", expected_bytes, 8 * bytes_per_column)
                 bit_image_flag = True
 
             if token.type in ("PRINT_DATA_AS_CHARACTERS_HEADER", "SELECT_XDPI_GRAPHICS_HEADER"):
@@ -378,21 +378,25 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
                 graphics_mode, v_res, h_res, v_dot_count_m, nL, nH = token.value
                 h_dot_count = (nH << 8) + nL
                 expected_decompressed_bytes = v_dot_count_m * int((h_dot_count +7) / 8)
-                print(f"Expect {expected_decompressed_bytes} bytes")
+                # print(f"Expect {expected_decompressed_bytes} bytes")
                 if graphics_mode == 1:
+                    # RLE/TIFF compression
                     token_start_pos = interactive.lexer_thread.state.line_ctr.char_pos
                     iter_data = iter(interactive.lexer_thread.state.text[token_start_pos:])
                     data, expected_bytes = decompress_rle_data(iter_data, expected_decompressed_bytes)
-                    print(data, "ret expected", expected_bytes, "curr", len(data))
+                    # print(data, "ret expected", expected_bytes, "curr", len(data))
                 else:
+                    # No compression
                     expected_bytes = expected_decompressed_bytes
-                # input("pause")
+
+                LOGGER.debug("Expect %d bytes", expected_bytes)
                 bit_image_flag = True
 
             elif token.type == "BARCODE_HEADER":
                 nL, nH, *_ = token.value
                 expected_bytes = (nH << 8) + nL - 6
-                print(f"Expect {expected_bytes} bytes")
+
+                LOGGER.debug("Expect %d bytes", expected_bytes)
                 bit_image_flag = True
 
             elif token.type == "XFER_HEADER":
