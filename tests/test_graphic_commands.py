@@ -394,6 +394,7 @@ def test_set_movx_unit_functions(binary_cmd: bytes, set_unit_cmd: bytes,
     """Test TIFF mode <MOV*> units
 
     Cover:
+
         - set_unit ESC ( U
         - set_movx_unit_8dots <MOVXBYTE>
         - set_movx_unit_1dot <MOVXDOT>
