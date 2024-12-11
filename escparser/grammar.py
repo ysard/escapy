@@ -350,7 +350,7 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
         except StopIteration:
             break
         else:
-            print(token.type, token.value)
+            # print(token.type, token.value)
 
             if token.type == "SELECT_BIT_IMAGE_HEADER":
                 dot_density_m, nL, nH = token.value
@@ -397,12 +397,7 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
                 bit_image_flag = True
 
             elif token.type == "XFER_HEADER":
-                # p224
-                # 2F 80
-                # 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F
-                # #BC = Low nibble value
                 cmd = token.value[0]
-                # print(cmd, bin(cmd), nL)
                 cmd_bc = cmd & 0x0f
                 lexer_state = interactive.lexer_thread.state
 
@@ -411,14 +406,14 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
                     # #BC = number of raster image data
                     expected_decompressed_bytes = cmd_bc
                 elif cmd_bc == 1:
-                    # F = 1 then #BC = number of raster image data counter
+                    # F = 1 then #BC = number of next bytes to read
                     # #BC = 1: number of raster data = n1
                     nL = lexer_state.text[token_start_pos]
                     expected_decompressed_bytes = nL
 
                     token_start_pos += 1
                 elif cmd_bc == 2:
-                    # F = 1 then #BC = number of raster image data counter
+                    # F = 1 then #BC = number of next bytes to read
                     # #BC = 2: number of raster data = n1 + n2 × 256
                     # Get the next bytes as nL and nH
                     nL = lexer_state.text[token_start_pos]
@@ -429,7 +424,6 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
                 else:
                     raise ValueError("<XFER> F or BC (nibble) value not expected!")
 
-                # print("token val", token.value)
                 LOGGER.debug("Expect %d decompressed bytes", expected_decompressed_bytes)
                 bit_image_flag = True
 
@@ -450,24 +444,25 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
                 cmd = token.value[0]
                 cmd_bc = cmd & 0x0f
                 if not (cmd >> 4) & 1:
-                    # #BC = number of raster image data
+                    # #BC = interval of values: 0-15
                     dot_offset = cmd_bc
                 elif cmd_bc == 1:
-                    # F = 1 then #BC = number of raster image data counter: 1
-                    # #BC = 1: number of raster data = n1
+                    # F = 1 then
+                    # #BC = 1: nL = interval of values 16-255
                     nL = next(iter_data)
                     dot_offset = nL
                     lexer_state.line_ctr.char_pos += 1
                 elif cmd_bc == 2:
-                    # F = 1 then #BC = number of raster image data counter: 2
-                    # #BC = 2: number of raster data = n1 + n2 × 256
+                    # F = 1 then
+                    # #BC = 2: interval of values = nL + nH × 256
                     nL, nH = next(iter_data), next(iter_data)
                     dot_offset = (nH << 8) + nL
                     lexer_state.line_ctr.char_pos += 2
                 else:
-                    raise ValueError
+                    raise ValueError("<MOVY> F or BC (nibble) value not expected!")
 
-                print(dot_offset)
+                # print("MOVY dot_offset:", dot_offset)
+
                 # Feed the token now!
                 interactive.feed_token(token)
                 # Build a DATA token with the FINAL built value
@@ -485,21 +480,24 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
                     #BC = parameter where –8 ≤ #BC ≤ 7
                     dot_offset = cmd_bc - 2**4 if cmd_bc & 0x08 else cmd_bc
                 elif cmd_bc == 1:
-                    # F = 1 then #BC = number of parameter counter: 1
+                    # F = 1 then #BC = 1: number of next bytes to read
                     # nL (–128 ~ 127)
                     nL = next(iter_data)
                     dot_offset = nL - 2**8 if nL & 0x80 else nL
                     lexer_state.line_ctr.char_pos += 1
                 elif cmd_bc == 2:
-                    # F = 1 then #BC = number of parameter counter: 2
-                    # (–32768 ~ 32767)
+                    # F = 1 then #BC = 2: number of next bytes to read
+                    # nL, nH (–32768 ~ 32767)
                     nL, nH = next(iter_data), next(iter_data)
                     dot_offset = (nH << 8) + nL
                     if dot_offset & 0x8000:
                         dot_offset -= 2**16
                     lexer_state.line_ctr.char_pos += 2
+                else:
+                    raise ValueError("<MOVX> F or BC (nibble) value not expected!")
 
-                print(dot_offset)
+                # print("MOVX dot_offset:", dot_offset)
+
                 # Feed the token now!
                 interactive.feed_token(token)
                 # Build a DATA token with the FINAL built value
