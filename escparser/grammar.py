@@ -203,7 +203,7 @@ esc_grammar = r"""
         # Barcode
         | ESC "(B" BARCODE_HEADER DATA+ -> barcode
 
-    tiff_compressed_rule.2: tiff_enter tiff_instruction+ exit_ex
+    tiff_compressed_rule.2: tiff_enter tiff_instruction* exit_ex
 
     # Not variable
     tiff_enter: ESC "." PRINT_TIFF_RASTER_GRAPHICS_HEADER -> print_tiff_raster_graphics
