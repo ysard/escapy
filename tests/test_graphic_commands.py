@@ -65,12 +65,18 @@ def pdf_comparison(processed_file: Path):
         b"\x1b?K\x4f" + cancel_bold,
         # unknown_color_cmd ESC r
         b"\x1br\x20",
+        # ESC . 2 with a value in vertical dot (v_dot_count_m) which is not 1
+        b"\x1b.\x02\x14\x14\x03\x00\x00",
+        # Color 5 is not allowed in TIFF ESC . 2 mode
+        b"\x1b.\x02\x14\x14\x03\x00\x00\x85",
     ],
     # First param goes in the 'databytes' param of the fixture format_databytes
     indirect=["format_databytes"],
     ids=[
         "reassign_bit_image_wrong_density",
         "unknown_color",
+        "tiff_wrong_v_dot_count_m",
+        "tiff_color_not_allowed",
     ],
 )
 def test_wrong_commands(format_databytes: bytes):
