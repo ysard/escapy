@@ -3024,8 +3024,10 @@ class ESCParser:
         self.configure_bit_image(dot_density_m)
         self.print_bit_image_dots(data)
 
-    def select_60_120dpi_9pins_graphics(self, *args):
+    def select_bit_image_9pins(self, *args):
         """Print dot-graphics in 9-dot columns - ESC ^
+
+        - 9-pins only
 
         Each dot column requires two bytes of data. The first byte represents
         the top 8 dots in the print head.

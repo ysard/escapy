@@ -179,7 +179,8 @@ esc_grammar = r"""
         # Graphics
         # NOTE: Variable size
         # /[^\x1b]{1,49146}
-        | ESC "*" SELECT_BIT_IMAGE_HEADER DATA+     -> select_bit_image
+        | ESC "*" SELECT_BIT_IMAGE_HEADER DATA+       -> select_bit_image
+        | ESC "^" SELECT_BIT_IMAGE_9PINS_HEADER DATA+ -> select_bit_image_9pins
         # 75, 76, 89, 90 = KLYZ
         # 2nd byte can be more precise
         | ESC "?" /[KLYZ]./                         -> reassign_bit_image_mode
@@ -198,7 +199,6 @@ esc_grammar = r"""
         # | ESC "Y" SELECT_XDPI_GRAPHICS_HEADER DATA+ -> select_120dpi_double_speed_graphics
         # Similar to ESC * 3
         # | ESC "Z" SELECT_XDPI_GRAPHICS_HEADER DATA+ -> select_240dpi_graphics
-        | ESC "^" SELECT_XDPI_GRAPHICS_9PIN_HEADER DATA+ -> select_60_120dpi_9pins_graphics
 
         # Barcode
         | ESC "(B" BARCODE_HEADER DATA+ -> barcode
@@ -267,11 +267,11 @@ esc_grammar = r"""
 
     # 0 1 2 3 4 5 6 7 32 33 38 39 40 71 72 73 + 64 65 70
     SELECT_BIT_IMAGE_HEADER: /[\x00\x01\x02\x03\x04\x05\x06\x07\x20\x21\x26\x27\x28\x40\x41\x46\x47\x48\x49].[\x00-\x1f]/
+    SELECT_BIT_IMAGE_9PINS_HEADER: /[\x00\x01].[\x00-\x1f]/
     PRINT_DATA_AS_CHARACTERS_HEADER: /.[\x00-\x7f]/
     PRINT_RASTER_GRAPHICS_HEADER: /[\x00\x01][\x05\x0A\x14]{2}[\x01\x08\x18].[\x00-\x1f]/
     PRINT_TIFF_RASTER_GRAPHICS_HEADER: /\x02[\x05\x0A\x14]{2}\x01\x00\x00/
     SELECT_XDPI_GRAPHICS_HEADER: /.[\x00-\x1f]/
-    SELECT_XDPI_GRAPHICS_9PIN_HEADER: /[\x00\x01].[\x00-\x1f]/
     BARCODE_HEADER: /.[\x00-\x1f][\x00-\x07][\x02-\x05]..[\x00-\x1f]./
 
 
@@ -352,7 +352,7 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
         else:
             # print(token.type, token.value)
 
-            if token.type == "SELECT_BIT_IMAGE_HEADER":
+            if token.type in ("SELECT_BIT_IMAGE_HEADER", "SELECT_BIT_IMAGE_9PINS_HEADER"):
                 dot_density_m, nL, nH = token.value
                 dot_columns_nb = (nH << 8) + nL
 
@@ -368,8 +368,7 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
 
                 bit_image_flag = True
 
-            if token.type in (
-                "PRINT_DATA_AS_CHARACTERS_HEADER", "SELECT_XDPI_GRAPHICS_HEADER", "SELECT_XDPI_GRAPHICS_9PIN_HEADER"):
+            if token.type in ("PRINT_DATA_AS_CHARACTERS_HEADER", "SELECT_XDPI_GRAPHICS_HEADER"):
                 nL, nH = token.value
                 expected_bytes = (nH << 8) + nL
                 bit_image_flag = True
