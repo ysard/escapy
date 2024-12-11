@@ -524,3 +524,100 @@ def test_set_relative_horizontal_vertical_position(movx_cmd: bytes,
 
     assert escparser.cursor_x == expected_cursor_x
     assert escparser.cursor_y == expected_cursor_y
+
+
+
+def test_global_print_tiff_raster_graphics(tmp_path: Path):
+    """Global test for a full pdf rendered in TIFF raster graphics mode
+
+    What is printed here:
+
+        - 1 line of 3 colored patterns: magenta, yellow, cyan
+        - 1 line of cyan (bad color using the previous one)
+        - 1 line of 3 colored patterns obtained by combining colors
+        - 1 line of red obtained by combining yellow & magenta,
+          using <CR> & <MOVX> commands.
+    """
+    raster_graphics_tiff = b"\x1b.\x02"
+    v_res_h_res = b"\x14\x14"  # 180 dpi
+    v_dot_count_m = b"\x01"  # nL, hH: height of the band: 1 dot
+    trailing_bytes = b"\x00\x00"
+
+    expected_bytes_count = 10
+    # Move 10 units down used as a linefeed between the dot lines
+    movy_cmd = b"r\n\x00"
+    # Count is inside the nibble of cmd
+    # 0b0010_0000 (0x20) + 10 bytes = 0b0010_1010
+    xfer_cmd_f0_bc10 = b'*'
+    raster_data = b'\xff' * expected_bytes_count
+    xfer_graphics_line = xfer_cmd_f0_bc10 + raster_data
+
+    # <EXIT>
+    exit_cmd = b"\xe3"
+
+    # <MOVXBYTE>
+    movxbyte_cmd = b"\xe4"
+    # movxdot_cmd = b"\xe5"
+
+    # <COLR>
+    magenta_cmd = b"\x81"
+    cyan_cmd = b"\x82"
+    yellow_cmd = b"\x84"
+    # The grammar allows only this not existing value in the interval.
+    # This permits to test the absence of effect of this command.
+    unknown_color_cmd = b"\x83"
+
+    # <MOVX> Move 20*unit = 20 * 8 dots
+    movx_cmd = b"\x52\x14\x00"
+
+    # <CR>
+    cr_cmd = b"\xe2"
+
+    code = [
+        graphics_mode,
+        raster_graphics_tiff,
+        v_res_h_res + v_dot_count_m + trailing_bytes,
+        # Move unit: 8 dots
+        movxbyte_cmd,
+
+        # Color in magenta
+        magenta_cmd + xfer_graphics_line,
+        # Color in yellow
+        yellow_cmd + movx_cmd + movx_cmd + xfer_graphics_line,
+        # Color in cyan
+        cyan_cmd + movx_cmd + movx_cmd + movx_cmd + movx_cmd + xfer_graphics_line,
+
+        movy_cmd,
+
+        # Unknwon color => should use the previous color (cyan)
+        unknown_color_cmd + xfer_graphics_line,
+        movy_cmd,
+
+        # Combinations
+        # Color in red: merge magenta + yellow
+        yellow_cmd + xfer_graphics_line,
+        magenta_cmd + xfer_graphics_line,
+
+        # Color in green: merge cyan + yellow
+        cyan_cmd + movx_cmd + movx_cmd + xfer_graphics_line,
+        yellow_cmd + movx_cmd + movx_cmd + xfer_graphics_line,
+
+        # Color in blue: merge cyan + magenta
+        cyan_cmd + movx_cmd + movx_cmd + movx_cmd + movx_cmd + xfer_graphics_line,
+        magenta_cmd + movx_cmd + movx_cmd + movx_cmd + movx_cmd + xfer_graphics_line,
+
+        movy_cmd,
+
+        # Carriage return is made automatically after changing color
+        yellow_cmd + xfer_graphics_line,
+        # Move horizontally, then go to the left origin:
+        # should show a unique red band
+        magenta_cmd + movx_cmd + cr_cmd + xfer_graphics_line,
+
+        exit_cmd
+    ]
+
+    processed_file = tmp_path / "test_global_print_tiff_raster_graphics.pdf"
+    _ = ESCParser(b"".join(code), output_file=str(processed_file))
+
+    pdf_comparison(processed_file)
