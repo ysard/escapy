@@ -148,6 +148,39 @@ def test_select_graphics(
     assert escparser.double_speed == double_speed
 
 
+def test_select_bit_image_9pins(tmp_path: Path):
+    """Test print dot-graphics in 9-dot columns - ESC ^
+
+    Similar to the other bit-image modes.
+
+    In the test toy example, a 9th dot is set for all columns.
+    See implementation details especially about the masked last byte.
+    """
+    select_9pins_graphics_cmd = b"\x1b^"
+    dot_density_m_0 = b"\x00"
+    expect_88_columns = b"\x58\x00"
+    # Toy data used in test_select_bit_image
+    data_44_columns = b"\x00\x00\x7f\x7f@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00@\x00"
+
+    # Double the bytes for each column, with a MSB set on this new byte.
+    # Yeah, it's ugly, but bytes-like object join's argument doesn't accept
+    # an iterable of ints. Iterating over bytes-like objects returns ints.
+    # https://bugs.python.org/issue24892
+    # /!\ We add a full last byte at the end, this byte (like any other 2nd byte)
+    # should be masked with 0x80, so, just the 1st bit is kept.
+    data_88_columns = b"\x80".join(data_44_columns[i:i + 1] for i in range(len(data_44_columns))) + b"\xff"
+
+    m0_line = select_9pins_graphics_cmd + dot_density_m_0 + expect_88_columns + data_88_columns
+
+    processed_file = tmp_path / "test_select_bit_image_9pins.pdf"
+    escparser = ESCParser(m0_line, pins=9, output_file=str(processed_file))
+    assert escparser.horizontal_resolution == 1 / 60
+    assert escparser.vertical_resolution == 1 / 72  # We are in 9 pins mode
+    assert escparser.bytes_per_column == 2
+
+    pdf_comparison(processed_file)
+
+
 def test_select_bit_image(tmp_path: Path):
     """Test select_bit_image ESC *
 
