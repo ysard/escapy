@@ -318,7 +318,7 @@ def decompress_rle_data(iter_data, expected_decompressed_bytes):
         else:
             # Data-length counters: number of data bytes to follow
             block_length = counter + 1
-            [decompressed_data.append(next(iter_data)) for _ in range(block_length)]
+            decompressed_data += bytearray(islice(iter_data, block_length))
             bytes_read += block_length
 
         bytes_read += 1
