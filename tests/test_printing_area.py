@@ -48,7 +48,7 @@ def test_wrong_commands(format_databytes: bytes):
         "unit_20/3600",
     ],
 )
-def test_set_unit(format_databytes, expected_unit):
+def test_set_unit(format_databytes: bytes, expected_unit: float):
     """Test ESC ( U
 
     The given value is divided by 3600.
@@ -78,7 +78,7 @@ def test_set_unit(format_databytes, expected_unit):
         "carriage_return"
     ],
 )
-def test_set_left_margin(format_databytes, expected_offset: float):
+def test_set_left_margin(format_databytes: bytes, expected_offset: float):
     """Test ESC l
 
     :param expected_offset: Expected offset in character_pitch unit.
@@ -112,7 +112,7 @@ def test_set_left_margin(format_databytes, expected_offset: float):
         "carriage_return"
     ],
 )
-def test_set_right_margin(format_databytes, expected_offset: float):
+def test_set_right_margin(format_databytes: bytes, expected_offset: float):
     """Test ESC Q
 
     :param expected_offset: Expected offset in character_pitch unit.
