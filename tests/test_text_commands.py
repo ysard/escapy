@@ -12,7 +12,7 @@ import escparser.commons as cm
 from .misc import format_databytes
 from .misc import esc_reset, cancel_bold
 from .helpers.diff_pdf import is_similar_pdfs
-from escparser.parser import ESCParser, PrintMode
+from escparser.parser import ESCParser, PrintMode, PrintScripting
 
 
 # Test data path depends on the current package name
@@ -288,3 +288,20 @@ def test_select_letter_quality_or_draft():
     for code, expected in dataset:
         escparser = ESCParser(code, pdf=False)
         assert escparser.mode == expected
+
+
+def test_set_script_printing():
+    """ESC S sup/subscripting, ESC T cancel scripting"""
+    dataset = [
+        (b"\x1bS\x00", PrintScripting.SUP),
+        (b"\x1bS\x30", PrintScripting.SUP),
+        (b"\x1bS\x01", PrintScripting.SUB),
+        (b"\x1bS\x31", PrintScripting.SUB),
+        # Default
+        (b"", None),
+        # ESC S is canceled by ESC T
+        (b"\x1bS\x31\x1bT", None),
+    ]
+    for code, expected in dataset:
+        escparser = ESCParser(esc_reset + code, pdf=False)
+        assert escparser.scripting == expected
