@@ -47,7 +47,7 @@ def test_assign_character_table(format_databytes):
     """
     print(format_databytes)
 
-    escparser = ESCParser(format_databytes)
+    escparser = ESCParser(format_databytes, pdf=False)
     d1_slot = format_databytes[5 + 2]  # +2 for the ESC reset added by the fixture
     if d1_slot >= 0x30:
         d1_slot -= 0x30
@@ -81,7 +81,7 @@ def test_assign_character_table(format_databytes):
 def test_wrong_commands(format_databytes):
     """Test various commands with wrong parameters that will raise a Lark exception"""
     with pytest.raises(UnexpectedToken, match=r"Unexpected token Token.*"):
-        _ = ESCParser(format_databytes)
+        _ = ESCParser(format_databytes, pdf=False)
 
 
 @pytest.mark.parametrize(
@@ -102,7 +102,7 @@ def test_bad_assign_character_table(format_databytes):
     Play with not expected values of d2, d3.
     """
     with pytest.raises(KeyError, match=r"\([0-9], [0-9]\)"):
-        _ = ESCParser(format_databytes)
+        _ = ESCParser(format_databytes, pdf=False)
 
 
 @pytest.mark.parametrize(
@@ -127,7 +127,7 @@ def test_select_international_charset(format_databytes):
     """select_international_charset - ESC R"""
     print(format_databytes)
 
-    escparser = ESCParser(format_databytes)
+    escparser = ESCParser(format_databytes, pdf=False)
     expected = format_databytes[2 + 2]
     charset_name = cm.charset_mapping[expected]
 
@@ -187,7 +187,7 @@ def test_select_character_table(format_databytes):
     """Select character table - ESC t 0-3\x00-\x03"""
     print(format_databytes)
 
-    escparser = ESCParser(format_databytes)
+    escparser = ESCParser(format_databytes, pdf=False)
     expected = format_databytes[2 + 2]
 
     if expected >= 0x30:
