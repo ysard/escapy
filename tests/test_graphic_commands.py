@@ -411,3 +411,106 @@ def test_set_movx_unit_functions(binary_cmd: bytes, set_unit_cmd: bytes, expecte
     ]
     escparser = ESCParser(b"".join(code), pdf=False)
     assert escparser.movx_unit == expected_unit
+
+
+@pytest.mark.parametrize(
+    "movx_cmd, movy_cmd, offset_cursor_x, offset_cursor_y",
+    [
+        # Offset is inside the SIGNED nibble of cmd
+        # 0b0100_0000 (0x20) -8 = 0b0100_1000
+        (b"\x48", b"", - 8*1/360, 0),
+        # Offset is inside the SIGNED nibble of cmd
+        # 0b0100_0000 (0x20)  7 = 0b0100_0111
+        (b"\x47", b"", 7/360, 0),
+        # Offset is inside the next SIGNED byte nL
+        # 0b0101_0001 (0x51)
+        (b"\x51\xf8", b"", - 8/360, 0),
+        # Offset is inside the next SIGNED byte nL
+        # 0b0101_0001 (0x51)
+        (b"\x51\x07", b"", 7/360, 0),
+        # Offset is inside the 2 next SIGNED short
+        # 0b0101_0010 (0x52)
+        (b"\x52\xf8\xff", b"", - 8/360, 0),
+        # Offset is inside the 2 next SIGNED short
+        # 0b0101_0010 (0x52)
+        (b"\x52\x07\x00", b"", 7/360, 0),
+
+        # Offset is inside the UNSIGNED nibble of cmd
+        # 0b0110_0000 (0x60) + 15 (0x0f)
+        # -15 because the system is bottom up
+        # (positive movement is towards the bottom of the page: so coordinates decrease)
+        (b"", b"\x6f", 0, - 15/360),
+        # Offset is inside the next UNSIGNED byte nL
+        # 0b0111_0001 ()
+        (b"", b"\x71\x0f", 0, - 15/360),
+        # Offset is inside the 2 next bytes: next UNSIGNED short
+        # 0b0111_0010 ()
+        (b"", b"\x72\x0f\x00", 0, - 15/360),
+
+        # Using the movy command triggers a carriage return
+        # => cancel the cursor_x movement of movx
+        (b"\x47", b"\x6f", 0, - 15/360),
+
+    ],
+    ids=[
+        "movx_f0_negative_offset",
+        "movx_f0_positive_offset",
+        "movx_f1_bc1_negative_offset",
+        "movx_f1_bc1_positive_offset",
+        "movx_f1_bc2_negative_offset",
+        "movx_f1_bc2_positive_offset",
+        "movy_f0",
+        "movy_f1_bc1",
+        "movy_f1_bc2",
+        "movx_f0_positive_offset+movy_f0",
+    ],
+)
+# We want to measure influence on x & y cursors
+# Cancel the carriage return due to <EXIT>
+@patch(
+    "escparser.parser.ESCParser.exit_tiff_raster_graphics",
+    lambda *args: None,
+)
+def test_set_relative_horizontal_vertical_position(movx_cmd: bytes,
+                                                   movy_cmd: bytes,
+                                                   offset_cursor_x: float,
+                                                   offset_cursor_y: float):
+    """Test TIFF <MOVX>, <MOVX> commands
+
+    Cover:
+
+        - set_relative_horizontal_position <MOVX>
+        - set_relative_vertical_position <MOVX>
+
+    TODO: implement the check of cursor outside margins
+        => need to check that the values are not changed in these cases
+        => move current tests to an area away from the margins
+    """
+    raster_graphics_tiff = b"\x1b.\x02"
+    v_res_h_res = b"\x14\x14"  # 180 dpi
+    v_dot_count_m = b"\x01"  # nL, hH: height of the band: 8 dots
+    trailing_bytes = b"\x00\x00"
+
+    exit_cmd = b"\xe3"
+
+    code = [
+        graphics_mode,
+        raster_graphics_tiff,
+        v_res_h_res + v_dot_count_m + trailing_bytes,
+
+        movx_cmd,
+        movy_cmd,
+
+        exit_cmd,
+    ]
+    escparser = ESCParser(b"".join(code), pdf=False)
+
+    print("cursor_x:", escparser.cursor_x)
+    print("cursor_y:", escparser.cursor_y)
+
+    # For now: The moves are relative to the margins
+    expected_cursor_x = escparser.printable_area[2] + offset_cursor_x
+    expected_cursor_y = escparser.printable_area[0] + offset_cursor_y
+
+    assert escparser.cursor_x == expected_cursor_x
+    assert escparser.cursor_y == expected_cursor_y
