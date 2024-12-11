@@ -127,7 +127,8 @@ def test_reassign_bit_image_mode():
 
 
 @pytest.mark.parametrize(
-    # The dot density impacts horizontal & vertical resolutions + bytes per column and double speed mode
+    # The dot density setting impacts horizontal & vertical resolutions,
+    # bytes per column and double speed mode.
     # The number of pins can modify vertical resolution
     "format_databytes, pins, dot_density, hori, verti, bytes_per_column, double_speed",
     [
@@ -136,7 +137,8 @@ def test_reassign_bit_image_mode():
         (b"\x1bK\x04\x00\xff\x0a" + cancel_bold, None, 0, 1 / 60, 1 / 60, 1, False),
         # Set dot_density to 7 via ESC ? K command, before ESC K command
         (b"\x1b?K\x07\x1bK\x04\x00\xff\x0a" + cancel_bold, 9, 7, 1 / 144, 1 / 72, 1, False),
-        # Test other densities (cf configure_bit_image), also, double_speed is enabled for these modes
+        # Test other densities (cf configure_bit_image),
+        # also, double_speed is enabled for these modes.
         (b"\x1b?K\x28\x1bK\x04\x00\xff\x0a" + cancel_bold, None, 40, 1 / 360, 1 / 180, 3, True),
         (b"\x1b?K\x48\x1bK\x04\x00\xff\x0a" + cancel_bold, None, 72, 1 / 360, 1 / 360, 6, True),
     ],
@@ -187,7 +189,8 @@ def test_select_bit_image(tmp_path: Path):
         - Normal line
         - double speed line
         - Line in magenta, yellow, cyan patterns
-        - Line in red (from RGB, not allowed in raster graphics mode, BUT here we are in bit-image mode!)
+        - Line in red (from RGB, not allowed in raster graphics mode,
+          BUT here we are in bit-image mode!)
         - Line in red (from CMYK combination)
         - Line in green (from CMYK combination)
         - Line in blue (from CMYK combination)
@@ -266,7 +269,7 @@ def test_select_bit_image(tmp_path: Path):
     assert escparser.horizontal_resolution == 1 / 120
     assert escparser.vertical_resolution == 1 / 60
     assert escparser.bytes_per_column == 1
-    assert escparser.double_speed == True  # m2 effect
+    assert escparser.double_speed is True  # m2 effect
 
     pdf_comparison(processed_file)
 
@@ -334,7 +337,7 @@ def test_print_raster_graphics(format_databytes: bytes, tmp_path: Path):
     assert escparser.horizontal_resolution == 1 / 180
     assert escparser.vertical_resolution == 1 / 180
     assert escparser.bytes_per_line == int((72 + 7) / 8)
-    assert escparser.double_speed == False
+    assert escparser.double_speed is False
 
     pdf_comparison(processed_file)
 
