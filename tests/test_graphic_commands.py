@@ -127,10 +127,10 @@ def test_reassign_bit_image_mode():
         (b"\x1bK\x04\x00\xff\x0a" + cancel_bold, 9, 0, 1 / 60, 1 / 72, 1, False),
         (b"\x1bK\x04\x00\xff\x0a" + cancel_bold, None, 0, 1 / 60, 1 / 60, 1, False),
         # Set dot_density to 7 via ESC ? K command, before ESC K command
-        (b"\x1b?K\x07\x1bK\x04\x00\xff\x0a" + cancel_bold, 9, 7, 1/144, 1/72, 1, False),
+        (b"\x1b?K\x07\x1bK\x04\x00\xff\x0a" + cancel_bold, 9, 7, 1 / 144, 1 / 72, 1, False),
         # Test other densities (cf configure_bit_image), also, double_speed is enabled for these modes
-        (b"\x1b?K\x28\x1bK\x04\x00\xff\x0a" + cancel_bold, None, 40, 1/360, 1/180, 3, True),
-        (b"\x1b?K\x48\x1bK\x04\x00\xff\x0a" + cancel_bold, None, 72, 1/360, 1/360, 6, True),
+        (b"\x1b?K\x28\x1bK\x04\x00\xff\x0a" + cancel_bold, None, 40, 1 / 360, 1 / 180, 3, True),
+        (b"\x1b?K\x48\x1bK\x04\x00\xff\x0a" + cancel_bold, None, 72, 1 / 360, 1 / 360, 6, True),
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
@@ -374,7 +374,7 @@ def test_print_tiff_raster_graphics(tmp_path: Path):
         movy_cmd,
         xfer_cmd_f1_bc2 + raster_data,
 
-        exit_cmd
+        exit_cmd,
     ]
 
     processed_file = tmp_path / "test_print_tiff_raster_graphics.pdf"
@@ -397,8 +397,8 @@ def test_print_tiff_raster_graphics(tmp_path: Path):
         # movxdot_cmd: default:
         (b"\xe5", b"", 1 / 360),
         # Redefine unit before binary commands to 60 / 3600 via ESC ( U
-        (b"\xe4", b"\x1b(U\x01\x00\x3c", 6 * 8 * 1 / 360),
-        (b"\xe5", b"\x1b(U\x01\x00\x3c", 6 * 1 / 360),
+        (b"\xe4", b"\x1b(U\x01\x00\x3c", 6 * 8 / 360),
+        (b"\xe5", b"\x1b(U\x01\x00\x3c", 6 / 360),
     ],
     ids=[
         "unit_default",
@@ -465,6 +465,7 @@ def test_set_movx_unit_functions(
         # Offset is inside the 2 next SIGNED short
         # 0b0101_0010 (0x52)
         (b"\x52\x07\x00", b"", 7 / 360, 0),
+        ##
         # Offset is inside the UNSIGNED nibble of cmd
         # 0b0110_0000 (0x60) + 15 (0x0f)
         # -15 because the system is bottom up
@@ -476,6 +477,7 @@ def test_set_movx_unit_functions(
         # Offset is inside the 2 next bytes: next UNSIGNED short
         # 0b0111_0010 ()
         (b"", b"\x72\x0f\x00", 0, -15 / 360),
+        ##
         # Using the movy command triggers a carriage return
         # => cancel the cursor_x movement of movx
         (b"\x47", b"\x6f", 0, -15 / 360),
