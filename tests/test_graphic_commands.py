@@ -1,3 +1,12 @@
+"""Test commands involved in graphics printing.
+
+Tested modes:
+
+- Bit-image
+- ESC . 0; Raster no compression
+- ESC . 1; Raster TIFF/RLE compression
+- ESC . 2; Raster TIFF
+"""
 # Standard imports
 import os
 import struct
