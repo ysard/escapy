@@ -11,18 +11,17 @@ Tested modes:
 import os
 import struct
 from pathlib import Path
-import pytest
 from unittest.mock import patch
+import pytest
 
 # Custom imports
 from lark.exceptions import UnexpectedToken
 
 # Local imports
-import escparser.commons as cm
+from escparser.parser import ESCParser
 from .misc import format_databytes
 from .misc import esc_reset, cancel_bold, graphics_mode
 from .helpers.diff_pdf import is_similar_pdfs
-from escparser.parser import ESCParser
 
 # Test data path depends on the current package name
 DIR_DATA = os.path.dirname(os.path.abspath(__file__)) + "/../test_data/"
