@@ -414,7 +414,7 @@ def test_print_tiff_raster_graphics(tmp_path: Path):
         (b"\xe4", b"", 8 / 360),
         # movxdot_cmd: default:
         (b"\xe5", b"", 1 / 360),
-        # Redefine unit before binary commands to 60 / 3600 via ESC ( U
+        # Redefine unit before binary commands to 60 (0x3c) / 3600 via ESC ( U
         (b"\xe4", b"\x1b(U\x01\x00\x3c", 6 * 8 / 360),
         (b"\xe5", b"\x1b(U\x01\x00\x3c", 6 / 360),
     ],
