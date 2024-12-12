@@ -286,7 +286,7 @@ def test_select_letter_quality_or_draft():
         (b"\x1bx\x31", PrintMode.LQ),
     ]
     for code, expected in dataset:
-        escparser = ESCParser(code, pdf=False)
+        escparser = ESCParser(esc_reset + code, pdf=False)
         assert escparser.mode == expected
 
 
