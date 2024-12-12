@@ -82,6 +82,7 @@ class ESCParser:
         :key single_sheets: Single-sheet of paper if True, Continuous paper
             otherwise. (default: True).
         :key pdf: Enable pdf generation via reportlab. (default: True).
+        :type code: bytes
         :type pins: int | None
         :type printable_area_margins_mm: tuple[int] | None
         :type single_sheets: bool
@@ -1123,7 +1124,7 @@ class ESCParser:
         # use inches: convert pixels to inch
         text_width = graphical_text.getlength(text) / 72
         if self.double_width or self.double_height:
-            # TODO: Bad evaluation of double-height text width
+            # TODO: Bad evaluation of double-height text width for non monospaced font
             text_width *= horizontal_scale_coef
         self.cursor_x += text_width
 
@@ -1470,7 +1471,7 @@ class ESCParser:
             # Execute the lambda to obtain the fontname
             fontname = fontname(self.condensed, self.bold, self.italic)
         if fontpath:
-            # Not an already available font
+            # Not a font already available in reportlab
             self.register_fonts(fontname, fontpath_formatter=fontpath)
 
             # Retain filepath
@@ -2398,8 +2399,6 @@ class ESCParser:
         - clear tab settings
         - clear all user-defined characters
 
-        TODO: Text printing is not possible => DO NOT MIX text/graphics on the same page
-
         Only available commands:
             LF          Line feed
             FF          Form feed
@@ -2425,6 +2424,8 @@ class ESCParser:
         TODO: You cannot move the print position in a negative direction (up) while in graphics mode.
             Also, the printer ignores commands moving the vertical print position in a negative
             direction if the final position would be above any graphics printed with this command.
+
+        TODO: Text printing should not be possible; DO NOT MIX text/graphics on the same page.
 
         .. tip:: The print position is the top printable row of dots.
         """
@@ -2592,6 +2593,8 @@ class ESCParser:
         In the first case, the printer read as is the number of bytes specified.
         In the last case, the printer repeats the following byte of data the
         specified number of times.
+
+        :return: Decompressed data.
         """
         decompressed_data = bytearray()
         iter_data = iter(compressed_data)
@@ -2682,7 +2685,6 @@ class ESCParser:
         .. note:: For MOVX/MOVY: 0, 1, or 2 bytes are expected (nL and nH are optional...)
         """
         dot_offset = args[1].value
-
         self.cursor_x += dot_offset * self.movx_unit
 
     def set_relative_vertical_position(self, *args):
@@ -2976,7 +2978,7 @@ class ESCParser:
             self.vertical_resolution = 1/360
             self.bytes_per_column = 6
 
-        # Get speed (adjacent dot printing)
+        # Get speed (adjacent dot printing not enabled for the following densities)
         self.double_speed = dot_density_m in (2, 3, 40, 72)
 
     def reassign_bit_image_mode(self, *args):
@@ -3078,7 +3080,7 @@ class ESCParser:
         self.print_bit_image_dots(data, extended_dots=True)
 
     def set_printing_color(self, *args):
-        """Select the color of printing
+        """Select the color of printing - ESC r
 
         Available colors:
 
@@ -3090,8 +3092,9 @@ class ESCParser:
             5   Red
             6   Green
 
-        .. note:: also available during graphics mode selected with the ESC ( G command.
+        .. note:: Also available during graphics mode selected with the ESC ( G command.
             In this mode for ESCP2, only Black, Cyan, Magenta, Yellow are available.
+            Non-ESCP2 printers can use any color.
 
         TODO:
             If you change the selected colors after entering raster graphics mode,
