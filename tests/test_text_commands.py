@@ -1,5 +1,4 @@
 # Standard imports
-import os
 from pathlib import Path
 import pytest
 from unittest.mock import patch
@@ -10,13 +9,9 @@ from lark.exceptions import UnexpectedToken
 # Local imports
 import escparser.commons as cm
 from .misc import format_databytes, pdf_comparison
-from .misc import esc_reset, cancel_bold
+from .misc import DIR_DATA, esc_reset, cancel_bold
 from .helpers.diff_pdf import is_similar_pdfs
 from escparser.parser import ESCParser, PrintMode, PrintScripting
-
-
-# Test data path depends on the current package name
-DIR_DATA = os.path.dirname(os.path.abspath(__file__)) + "/../test_data/"
 
 
 @pytest.mark.parametrize(

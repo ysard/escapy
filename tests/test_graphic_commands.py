@@ -8,7 +8,6 @@ Tested modes:
 - ESC . 2; Raster TIFF
 """
 # Standard imports
-import os
 import struct
 from pathlib import Path
 from unittest.mock import patch
@@ -22,8 +21,6 @@ from escparser.parser import ESCParser
 from .misc import format_databytes, pdf_comparison
 from .misc import esc_reset, cancel_bold, graphics_mode
 
-# Test data path depends on the current package name
-DIR_DATA = os.path.dirname(os.path.abspath(__file__)) + "/../test_data/"
 
 DECOMPRESSED_DATA = [
     60, 90, 30, 128, 37, 79, 42, 15, 53, 14, 99, 155, 155, 63, 97, 22, 0, 0,

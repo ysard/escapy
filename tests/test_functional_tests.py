@@ -1,5 +1,4 @@
 # Standard imports
-import os
 from pathlib import Path
 import pytest
 
@@ -9,10 +8,8 @@ from reportlab.lib.pagesizes import landscape
 
 # Local imports
 from escparser.parser import ESCParser
-from .misc import pdf_comparison
+from .misc import DIR_DATA, pdf_comparison
 
-# Test data path depends on the current package name
-DIR_DATA = os.path.dirname(os.path.abspath(__file__)) + "/../test_data/"
 
 @pytest.mark.parametrize(
     "code_file, expected_pdf, args",
