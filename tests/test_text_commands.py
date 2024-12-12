@@ -561,15 +561,14 @@ def test_double_width_height(tmp_path: Path, pins: int, expected_filename: str):
     :param pins: Configure the number of pins of the printer.
     :param expected_filename: Test pdf used as a reference.
     """
-    # Disable multipoint mode used by cpi_8 because it ignores the
-    # intercharacter_space command => ESC p 0
+    # Disable multipoint mode due to cpi_8 => ESC p 0
     reset_intercharacter_space = b"\x1bp\x00"
     cpi_8 = b"\x1bX\x00\x10\x00"  # ESC X: 0x10 => 16 / 2 = 8 cpi
     cpi_21 = b"\x1BX\x00\x2a\x00"  # ESC X: 0x2a => 42 / 2 = 21 cpi
-    # double width
+    # double-width
     double_width = b"\x1BW\x01"
     reset_double_width = b"\x1BW\x00"
-    # double height
+    # double-height
     double_height = b"\x1Bw\x01"
     reset_double_height = b"\x1Bw\x00"
 
