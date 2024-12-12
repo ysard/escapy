@@ -408,3 +408,135 @@ def test_international_charset_tables(tmp_path: Path):
     _ = ESCParser(code, output_file=str(processed_file))
 
     pdf_comparison(processed_file)
+
+
+def test_fonts(tmp_path: Path):
+    """Print english pangram to test font switching & support
+
+    Cover mainly:
+
+        - Select typeface, ESC k
+
+    .. seealso:: For lower-level test cf :meth:`test_select_typeface`.
+    """
+    test_phrase = b"The quick brown fox jumps over the lazy dog; THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG; 1234567890"
+    cancel_left_margin = b"\x1bl\x00"  # ESC l
+    cpi_8 = b"\x1BX\x00\x10\x00"  # ESC X: 0x10 => 16 / 2 = 8 cpi
+    roman = b"\x1Bk\x00"  # ESC k
+    # Test typefaces
+    lines = [
+        esc_reset + cancel_left_margin + cpi_8,
+        b"Default font (Roman):",
+        test_phrase,
+        b"Roman:",
+        roman + test_phrase,
+        roman + b"Sans serif:",
+        b"\x1Bk\x01" + test_phrase,
+        roman + b"Courier:",
+        b"\x1Bk\x02" + test_phrase,
+        roman + b"Prestige:",
+        b"\x1Bk\x03" + test_phrase,
+        roman + b"OCR-B:",
+        b"\x1Bk\x05" + test_phrase,
+        roman + b"OCR-A:",
+        b"\x1Bk\x06" + test_phrase,
+        roman + b"Orator:",
+        b"\x1Bk\x07" + test_phrase,
+        roman + b"Script-C:",
+        b"\x1Bk\x09" + test_phrase,
+        roman + b"Roman T:",
+        b"\x1Bk\x0a" + test_phrase,
+        roman + b"SV Jittra (not available, fallback to default):",
+        b"\x1Bk\x1f" + test_phrase,
+    ]
+
+    code = b"\r\n".join(lines)
+    processed_file = tmp_path / "test_fonts.pdf"
+    _ = ESCParser(code, output_file=str(processed_file))
+
+    pdf_comparison(processed_file)
+
+
+def test_select_font_by_pitch_and_point(tmp_path: Path):
+    """Test the pitch and point attributes of the font - ESC X
+
+    .. todo:: test pitch
+    """
+    # Change point size
+    # ESC X: 8 cpi (m, nL, nH)
+    # The nL value is divided by 2 later
+    cancel_left_margin = b"\x1bl\x00"  # ESC l
+    cpi_8 = b"\x1bX\x00\x10\x00"  # ESC X: 0x10 => 16 / 2 = 8 cpi
+    alphabet = b"abcdefghijklmnopqrstuvwxz"
+    sans_serif = b"\x1bk\x01"
+    lines = [
+        esc_reset + cancel_left_margin + cpi_8,
+        # Use Sans Serif
+        sans_serif,
+        cpi_8 + b"Font size 8",
+        b"\x1bX\x00\x10\x00" + alphabet,  # 8
+        cpi_8 + b"Font size 10 (10.5)",
+        b"\x1bX\x00\x15\x00" + alphabet,  # 10 (10.5)
+        cpi_8 + b"Font size 12",
+        b"\x1bX\x00\x18\x00" + alphabet,  # 12
+        cpi_8 + b"Font size 14",
+        b"\x1bX\x00\x1c\x00" + alphabet,  # 14
+        cpi_8 + b"Font size 16",
+        b"\x1bX\x00\x20\x00" + alphabet,  # 16
+        cpi_8 + b"Font size 18",
+        b"\x1bX\x00\x24\x00" + alphabet,  # 18
+        cpi_8 + b"Font size 20 (21)",
+        b"\x1bX\x00\x28\x00" + alphabet,  # 20 (21)
+        cpi_8 + b"Font size 22",
+        b"\x1bX\x00\x2c\x00" + alphabet,  # 22
+        cpi_8 + b"Font size 24",
+        b"\x1bX\x00\x30\x00" + alphabet,  # 24
+        cpi_8 + b"Font size 26",
+        b"\x1bX\x00\x34\x00" + alphabet,  # 26
+        cpi_8 + b"Font size 30",
+        b"\x1bX\x00\x3c\x00" + alphabet,  # 30
+        cpi_8 + b"Font size 40",
+        b"\x1bX\x00\x40\x00" + alphabet,  # 40
+    ]
+
+    code = b"\r\n".join(lines)
+    processed_file = tmp_path / "test_select_font_by_pitch_and_point.pdf"
+    _ = ESCParser(code, output_file=str(processed_file))
+
+    pdf_comparison(processed_file)
+
+
+def test_set_intercharacter_space(tmp_path: Path):
+    """Test intercharacter space size - ESC SP
+
+    Also tests text scripting which should support the setting.
+    """
+    intercharacter_space_prefix = b"\x1b\x20"
+    # Disable multipoint mode used by cpi_8 because it ignores the
+    # intercharacter_space command => ESC p 0
+    reset_intercharacter_space = b"\x1bp\x00"
+    enable_upperscripting = b"\x1bS\x00"
+    disable_upperscripting = b"\x1bT"
+    cpi_8 = b"\x1bX\x00\x10\x00"  # ESC X: 0x10 => 16 / 2 = 8 cpi
+    alphabet = b"abcdefghijklmnopqrstuvwxz"
+    lines = [
+        cpi_8 + b"Intercharacter space from 0 to 128 (steps 20)"
+        + reset_intercharacter_space
+    ]
+    for i in range(0, 128, 20):
+        lines.append(intercharacter_space_prefix + i.to_bytes() + alphabet)
+
+    # Same thing but with upper scripting text
+    lines.append(
+        cpi_8 + b"Intercharacter space from 0 to 128 (steps 20) for scripting text"
+        + reset_intercharacter_space + enable_upperscripting
+    )
+    for i in range(0, 128, 20):
+        lines.append(intercharacter_space_prefix + i.to_bytes() + alphabet)
+    lines.append(disable_upperscripting)
+
+    code = b"\r\n".join(lines)
+    processed_file = tmp_path / "test_intercharacter_space.pdf"
+    _ = ESCParser(code, output_file=str(processed_file))
+
+    pdf_comparison(processed_file)
