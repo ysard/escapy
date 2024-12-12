@@ -68,6 +68,8 @@ def test_assign_character_table(format_databytes):
         b"\x1B[\x0b" + cancel_bold,
         # Wrong character table ID - ESC t
         b"\x1Bt\x04" + cancel_bold,
+        # More than 128 is not allowed for intercharacter space - ESC SP
+        b"\x1b\x20\x80",
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
@@ -76,6 +78,7 @@ def test_assign_character_table(format_databytes):
         "charset_ukn",
         "typeface_ukn",
         "table_ukn",
+        "intercharacter_space_value_not_allowed",
     ],
 )
 def test_wrong_commands(format_databytes):
