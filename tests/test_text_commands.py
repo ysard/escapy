@@ -9,7 +9,7 @@ from lark.exceptions import UnexpectedToken
 
 # Local imports
 import escparser.commons as cm
-from .misc import format_databytes
+from .misc import format_databytes, pdf_comparison
 from .misc import esc_reset, cancel_bold
 from .helpers.diff_pdf import is_similar_pdfs
 from escparser.parser import ESCParser, PrintMode, PrintScripting
@@ -305,3 +305,101 @@ def test_set_script_printing():
     for code, expected in dataset:
         escparser = ESCParser(esc_reset + code, pdf=False)
         assert escparser.scripting == expected
+
+
+def test_international_charset_tables(tmp_path: Path):
+    """Print various pangrams in various languages using their own encoding
+
+    .. note:: Pangrams source: https://en.wikipedia.org/wiki/Pangram
+
+    .. todo:: Support more (custom) encodings.
+    """
+    english_pangram = "The quick brown fox jumps over the lazy dog.".encode("cp437")
+    # The Italic table is symmetric, all italic characters are in the upper part
+    english_italic_pangram = bytearray(i + 0x80 for i in english_pangram)
+    # 8 0; œ not supported
+    french_pangram = "Portez ce vieux whisky au juge blond qui fume. Voie ambigüe d'un coeur qui au zéphyr préfère les jattes de kiwis.".encode("cp863")
+    # 10 0
+    czech_pangram = "Příliš žluťoučký kůň úpěl ďábelské ódy.".encode("cp852")
+    # estonian_pangram = "See väike mölder jõuab rongile hüpata."
+    # finnish_pangram = "Törkylempijävongahdus."
+    # 1, 16; τὴν not supported
+    greek_pangram = "Ξεσκεπάζω την ψυχοφθόρα βδελυγμία.".encode("cp737")
+    # 15, 0; τὴν not supported
+    greek_pangram_2 = "Ξεσκεπάζω την ψυχοφθόρα βδελυγμία.".encode("cp869")
+    # 29, 7; τὴν not supported
+    greek_pangram_3 = "Ξεσκεπάζω την ψυχοφθόρα βδελυγμία.".encode("iso8859_7")
+    # 25, 0
+    german_pangram = "Victor jagt zwölf Boxkämpfer quer über den großen Sylter Deich.".encode("iso8859_1")
+    # 24, 0
+    icelandic_pangram = "Kæmi ný öxi hér, ykist þjófum nú bæði víl og ádrepa.".encode("cp861")
+    # 11, 0
+    turkish_pangram = "Pijamalı hasta yağız şoföre çabucak güvendi.".encode("cp857")
+    # 42, 0
+    arabic_pangram = "نص حكيم له سر قاطع وذو شأن عظيم مكتوب على ثوب أخضر ومغلف بجلد أزرق".encode("cp720")
+    # 14, 0
+    russian_pangram = "Съешь ещё этих мягких французских булок, да выпей же чаю".encode("cp866")
+    # 18, 0
+    thai_pangram = "นายสังฆภัณฑ์ เฮงพิทักษ์ฝั่ง ผู้เฒ่าซึ่งมีอาชีพเป็นฅนขายฃวด ถูกตำรวจปฏิบัติการจับฟ้องศาล ฐานลักนาฬิกาคุณหญิงฉัตรชฎา ฌานสมาธิ".encode("iso8859_11")
+    # 12, 0
+    hebrew_pangram = "איש עם זקן טס לצרפת ודג בחכה".encode("cp862")
+
+    # ESC ( t d1 d2 d3
+    table_0 = b"\x1b\x74\x00" # ESC t 0 Italic
+    table_1 = b"\x1b\x74\x01" # ESC t 1 cp437 (default table)
+    table_3 = b"\x1b\x74\x03" # ESC t 3 cp437
+    cpi_8 = b"\x1B\x58\x00\x10\x00"
+    left_margin = b"\x1bl\x03"
+    cancel_left_margin = b"\x1bl\x00"
+
+    lines = [
+        esc_reset,
+        # cancel any left margin
+        cancel_left_margin,
+        # ESC X: 8 cpi
+        cpi_8,
+        # b"\x1B\x6B\x00", # Roman (default)
+        # b"\x1B\x6B\x02", # Courier
+        b"\x1B\x6B\x01", # Sans Serif
+
+        b"English, cp437 (default)",
+        english_pangram,
+        table_3 + b"English table 2, cp437 (default)",
+        table_1 + english_pangram,
+        table_3 + b"Italic table 0, italic (default) (FOR NOW, should show only the same characters as cp437)",
+        table_0 + english_italic_pangram,
+        # From now, use table 1 for pangrams, table 3 (cp437) for other text
+        # See the last 2 bytes of the command to know d2 & d3 values
+        table_3 + b"French, cp863",
+        table_1 + b"\x1b\x28\x74\x03\x00\x01\x08\x00" + french_pangram,
+        table_3 + b"Czech, cp852",
+        table_1 + b"\x1b\x28\x74\x03\x00\x01\x0a\x00" + czech_pangram,
+        table_3 + b"Greek, cp737",
+        table_1 + b"\x1b\x28\x74\x03\x00\x01\x01\x10" + greek_pangram,
+        table_3 + b"Greek, cp869",
+        table_1 + b"\x1b\x28\x74\x03\x00\x01\x0f\x00" + greek_pangram_2,
+        table_3 + b"Greek, iso8859_7",
+        table_1 + b"\x1b\x28\x74\x03\x00\x01\x1d\x07" + greek_pangram_3,
+        table_3 + b"German, iso8859_1",
+        table_1 + b"\x1b\x28\x74\x03\x00\x01\x19\x00" + german_pangram,
+        table_3 + b"Icelandic, cp861",
+        table_1 + b"\x1b\x28\x74\x03\x00\x01\x18\x00" + icelandic_pangram,
+        table_3 + b"Turkish, cp857",
+        table_1 + b"\x1b\x28\x74\x03\x00\x01\x0b\x00" + turkish_pangram,
+        table_3 + b"Arabic, cp720",
+        table_1 + b"\x1b\x28\x74\x03\x00\x01\x2a\x00" + arabic_pangram,
+        table_3 + b"Russian, cp866",
+        table_1 + b"\x1b\x28\x74\x03\x00\x01\x0e\x00" + russian_pangram,
+        table_3 + b"Thai, iso8859_11",
+        table_1 + b"\x1b\x28\x74\x03\x00\x01\x12\x00" + thai_pangram,
+        table_3 + b"Hebrew, cp862",
+        table_1 + b"\x1b\x28\x74\x03\x00\x01\x0c\x00" + hebrew_pangram,
+        table_3 + b"Greek - Not supported charset 4,0 (should not crash)",
+        table_1 + b"\x1b\x28\x74\x03\x00\x01\x04\x00" + greek_pangram,
+    ]
+
+    code = b"\r\n".join(lines)
+    processed_file = tmp_path / "test_international_charset_tables.pdf"
+    _ = ESCParser(code, output_file=str(processed_file))
+
+    pdf_comparison(processed_file)
