@@ -348,16 +348,22 @@ def decompress_rle_data(iter_data, expected_decompressed_bytes) -> tuple[bytearr
     return decompressed_data, bytes_read
 
 def parse_from_stream(parser, code, start=None, *args, **kwargs):
-    """
-    Parses iteratively from a potentially huge stream, throwing away text that is no longer needed.
-    Uses the interactive parser interface, as well as implementation details of the LexerState objects.
+    """Parse interatively the given ESC code and build DATA tokens for commands
+    that expect a variable (not predicted) number of bytes.
 
-    parser is a Lark instance
-    provider is a string producer with the signature `() -> str`, for example via `partial(file.read, 64)`
-    start get's passed to the Lark instance
+
+    Uses the interactive parser interface, as well as implementation details
+    of the LexerState objects.
+
+    :param parser: A Lark instance
+    :param code: ESC code to be parsed
+    :type parser: lark.lark.Lark
+    :type code: bytearray
+    :return: Lark tree.
+    :rtype: lark.tree.Tree
     """
     interactive = parser.parse_interactive(code, start)
-    bit_image_flag = False
+    data_token_flag = False  # Used to trigger DATA token build
     expected_bytes = 0
     rewind_offset = 0
     while True:
@@ -384,12 +390,12 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
                 expected_bytes = bytes_per_column * dot_columns_nb
 
                 LOGGER.debug("Expect %d bytes (%d dots per column)", expected_bytes, 8 * bytes_per_column)
-                bit_image_flag = True
+                data_token_flag = True
 
             if token.type in ("PRINT_DATA_AS_CHARACTERS_HEADER", "SELECT_XDPI_GRAPHICS_HEADER"):
                 nL, nH = token.value
                 expected_bytes = (nH << 8) + nL
-                bit_image_flag = True
+                data_token_flag = True
 
             elif token.type == "PRINT_RASTER_GRAPHICS_HEADER":
                 # b"\x01\x14\x14\x18\xa0\x01"
@@ -408,14 +414,14 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
                     expected_bytes = expected_decompressed_bytes
 
                 LOGGER.debug("Expect %d bytes", expected_bytes)
-                bit_image_flag = True
+                data_token_flag = True
 
             elif token.type == "BARCODE_HEADER":
                 nL, nH, *_ = token.value
                 expected_bytes = (nH << 8) + nL - 6
 
                 LOGGER.debug("Expect %d bytes", expected_bytes)
-                bit_image_flag = True
+                data_token_flag = True
 
             elif token.type == "XFER_HEADER":
                 cmd = token.value[0]
@@ -446,7 +452,7 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
                     raise ValueError("<XFER> F or BC (nibble) value not expected!")
 
                 LOGGER.debug("Expect %d decompressed bytes", expected_decompressed_bytes)
-                bit_image_flag = True
+                data_token_flag = True
 
                 lexer_state.line_ctr.char_pos = token_start_pos
                 iter_data = iter(lexer_state.text[token_start_pos:])
@@ -524,21 +530,10 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
                 # Build a DATA token with the FINAL built value
                 token = Token("DATA", dot_offset)
 
-
-
-            # elif bit_image_flag:
-            #     rewind_offset = len(token.value) - expected_bytes
-            #     # DO NOT DO THIS, internal value will not be modified !!!
-            #     # token.value = xxx
-            #     lexer_state = interactive.lexer_thread.state
-            #     token_start_pos = lexer_state.line_ctr.char_pos - len(token.value)
-            #     token_end_pos = token_start_pos + expected_bytes
-            #     # print("ici", lexer_state.text, token_start_pos, token_end_pos)
-            #     value = lexer_state.text[token_start_pos:token_end_pos]
-            #     token = Token(token.type, value)
-            #     bit_image_flag = False
-
-            if bit_image_flag:
+            if data_token_flag:
+                # For commands with variable size.
+                # We need to accept the current token and build a DATA token.
+                # The limits of the DATA token are built in previous conditions.
                 interactive.feed_token(token)
                 rewind_offset = -expected_bytes
 
@@ -546,6 +541,9 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
                 token_start_pos = lexer_state.line_ctr.char_pos
                 token_end_pos = token_start_pos + expected_bytes
                 # print("ici", lexer_state.text, token_start_pos, token_end_pos)
+                # print("ici", token_start_pos, token_end_pos)
+                # NOTE: DO NOT DO THIS, internal value will not be modified !!!
+                # token.value = ...
                 value = lexer_state.text[token_start_pos:token_end_pos]
                 token = Token("DATA", value)
 
@@ -553,10 +551,9 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
                 token.start_pos = token_start_pos
                 token.end_pos = token_end_pos
 
-                bit_image_flag = False
+                data_token_flag = False
                 # print(value)
                 # input("pause")
-
 
             interactive.feed_token(token)
 
@@ -564,10 +561,19 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
     if LOGGER.level == DEBUG:
         print(tree.pretty())
 
-    # exit()
     return tree
 
 def init_parser(code, *args, **kwargs):
-    parser = Lark(esc_grammar, parser="lalr", use_bytes=True, *args, **kwargs)
+    """Call Lark to parse the given code
 
-    return parse_from_stream(parser, code, **kwargs)
+    .. note:: All arguments and keyword arguments are sent to Lark and to
+        the interactive parser that handles variable size commands.
+
+    :param code: ESC code to be parsed
+    :type code: bytearray
+    :return: Lark tree.
+    :rtype: lark.tree.Tree
+    """
+    parser = Lark(esc_grammar, parser="lalr", use_bytes=True, **kwargs)
+
+    return parse_from_stream(parser, code, *args, **kwargs)
