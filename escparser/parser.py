@@ -439,24 +439,38 @@ class ESCParser:
         self.bottom_margin = self.page_height - bottom_margin
         self.top_margin = self.page_height - top_margin
 
-        # Check limits
         printable_top, printable_bottom, *_ = self.printable_area
+        # Bottom-up
+        if not self.top_margin > self.bottom_margin:
+            LOGGER.warning("top margin not > to bottom margin => fix it")
+            # Use printable area limits
+            self.bottom_margin = printable_bottom
+            self.top_margin = printable_top
+
+        # Check limits
         if self.bottom_margin < printable_bottom or self.top_margin > printable_top:
+            LOGGER.warning("set margins, raw values: %s, %s", top_margin, bottom_margin)
             LOGGER.warning(
-                "set margins (top, bottom) outside printable area: %s, %s (printable: %s, %s)",
-                top_margin, bottom_margin, printable_top, printable_bottom
+                "set margins (top, bottom) outside printable area: %s, %s, but printable area: %s, %s",
+                self.top_margin, self.bottom_margin, printable_top, printable_bottom
             )
+            # Use printable area limits
+            self.bottom_margin = printable_bottom
+            self.top_margin = printable_top
 
         LOGGER.debug("set margins (top, bottom): %s ,%s", self.top_margin, self.bottom_margin)
 
         calculated_page_length = self.top_margin - self.bottom_margin
+        LOGGER.debug("calculated page-length: %s", calculated_page_length)
         if calculated_page_length > 22:
             # Bottom margin must be less than 22 inches
             LOGGER.error("bottom margin too low (page_length > 22 in), fix it")
             self.bottom_margin = self.page_height - 22
             calculated_page_length = 22
 
-        elif calculated_page_length > self.page_length:
+        elif calculated_page_length > self.page_length:  # pragma: no cover
+            # This section should not be reached...
+            # Previous checks should cancel this case.
             LOGGER.error("set page_length > current page_length (%s)", self.page_length)
             # TODO: Fix the bottom_margin in this case. The doc is unclear
             #   with the top edge page notion for which paper.
@@ -467,9 +481,6 @@ class ESCParser:
             # position must be less than the page length; otherwise, the end of
             # the page length becomes the bottom-margin position.
             self.bottom_margin = self.page_height - self.page_length
-
-        # Bottom-up
-        assert self.top_margin > self.bottom_margin
 
         self.reset_cursor_y()
         self.page_length = calculated_page_length
