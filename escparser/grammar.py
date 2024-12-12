@@ -16,6 +16,7 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Grammar definition and pre-parsing of commands with a variable number of bytes"""
 # Standard imports
+from logging import DEBUG
 from itertools import islice
 # Custom imports
 from lark import *
@@ -536,14 +537,15 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
                 token.end_pos = token_end_pos
 
                 bit_image_flag = False
+                # print(value)
                 # input("pause")
 
 
             interactive.feed_token(token)
 
     tree = interactive.resume_parse()
-    print(tree)
-    print(tree.pretty())
+    if LOGGER.level == DEBUG:
+        print(tree.pretty())
 
     # exit()
     return tree
