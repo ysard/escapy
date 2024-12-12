@@ -72,12 +72,7 @@ def test_set_unit(format_databytes: bytes, expected_unit: float):
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
-    ids=[
-        "default",
-        "3chars_width",
-        "equal_right_margin",
-        "carriage_return"
-    ],
+    ids=["default", "3chars_width", "equal_right_margin", "carriage_return"],
 )
 def test_set_left_margin(format_databytes: bytes, expected_offset: float):
     """Test ESC l
@@ -106,12 +101,7 @@ def test_set_left_margin(format_databytes: bytes, expected_offset: float):
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
-    ids=[
-        "default",
-        "3chars_width",
-        "equal_left_margin",
-        "carriage_return"
-    ],
+    ids=["default", "3chars_width", "equal_left_margin", "carriage_return"],
 )
 def test_set_right_margin(format_databytes: bytes, expected_offset: float):
     """Test ESC Q
@@ -192,4 +182,3 @@ def test_set_page_format(format_databytes, page_size, expected_margins):
     print("Page length:", escparser.page_length)
     assert escparser.top_margin == expected_top_margin
     assert escparser.bottom_margin == expected_bottom_margin
-
