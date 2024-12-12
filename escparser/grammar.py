@@ -365,10 +365,7 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
     interactive = parser.parse_interactive(code, start)
     data_token_flag = False  # Used to trigger DATA token build
     expected_bytes = 0
-    rewind_offset = 0
     while True:
-        interactive.lexer_thread.state.line_ctr.char_pos -= rewind_offset
-        rewind_offset = 0
         try:
             token = next(interactive.lexer_thread.lex(interactive.parser_state))
         except StopIteration:
@@ -542,6 +539,8 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
                 token_end_pos = token_start_pos + expected_bytes
                 # print("ici", lexer_state.text, token_start_pos, token_end_pos)
                 # print("ici", token_start_pos, token_end_pos)
+
+                # Build the new token
                 # NOTE: DO NOT DO THIS, internal value will not be modified !!!
                 # token.value = ...
                 value = lexer_state.text[token_start_pos:token_end_pos]
@@ -550,6 +549,9 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
                 # Not mandatory but useful for debugging
                 token.start_pos = token_start_pos
                 token.end_pos = token_end_pos
+
+                # Repositioning the lexer head for the next tokens
+                lexer_state.line_ctr.char_pos -= rewind_offset
 
                 data_token_flag = False
                 # print(value)
