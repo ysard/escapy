@@ -306,9 +306,26 @@ esc_grammar = r"""
     %import common.ESCAPED_STRING   -> STRING
 """
 
-def decompress_rle_data(iter_data, expected_decompressed_bytes):
+def decompress_rle_data(iter_data, expected_decompressed_bytes) -> tuple[bytearray, int]:
+    """Decompress the given data bytes (TIFF decompression)
+
+    During compressed mode, the first byte of data must be a counter.
+    If the counter is positive, it is treated as a data-length counter.
+    If the counter is negative (as determined by two’s complement),
+    it is treated as a repeat counter.
+
+    In the first case, the printer read as is the number of bytes specified.
+    In the last case, the printer repeats the following byte of data the
+    specified number of times.
+
+    :param iter_data: Iterator over the data stream.
+    :param expected_decompressed_bytes: The number of bytes that should be
+        decompressed. Iterating on iter_data stops when this number is reached.
+    :type iter_data: Iterator[bytearray]
+    :type expected_decompressed_bytes: int
+    :return: Tuple of decompressed data, and number of bytes read.
+    """
     decompressed_data = bytearray()
-    # iter_data = iter(compressed_data)
     bytes_read = 0
     for counter in iter_data:
         if counter & 0x80:
@@ -324,8 +341,8 @@ def decompress_rle_data(iter_data, expected_decompressed_bytes):
 
         bytes_read += 1
 
-        # print(len(decompressed_data), bytes_read)
         if len(decompressed_data) >= expected_decompressed_bytes:
+            # We have all the data we needed
             break
 
     return decompressed_data, bytes_read
