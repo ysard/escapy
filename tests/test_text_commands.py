@@ -538,3 +538,86 @@ def test_set_intercharacter_space(tmp_path: Path):
     _ = ESCParser(code, output_file=str(processed_file))
 
     pdf_comparison(processed_file)
+
+
+@pytest.mark.parametrize(
+    "pins, expected_filename",
+    [
+        (None, "test_double_width_height_escp2.pdf"),
+        (9, "test_double_width_height_9pins.pdf"),
+    ],
+    ids=[
+        "ESCP2",
+        "9pins",
+    ],
+)
+def test_double_width_height(tmp_path: Path, pins: int, expected_filename: str):
+    """Test combinations of double-width, double-height modes
+
+    .. note:: About 9 pins:
+        In 9 pins mode, double-height should temporarily stop upper/subscripting,
+        condensed font and Draft printing.
+
+    :param pins: Configure the number of pins of the printer.
+    :param expected_filename: Test pdf used as a reference.
+    """
+    # Disable multipoint mode used by cpi_8 because it ignores the
+    # intercharacter_space command => ESC p 0
+    reset_intercharacter_space = b"\x1bp\x00"
+    cpi_8 = b"\x1bX\x00\x10\x00"  # ESC X: 0x10 => 16 / 2 = 8 cpi
+    cpi_21 = b"\x1BX\x00\x2a\x00"  # ESC X: 0x2a => 42 / 2 = 21 cpi
+    # double width
+    double_width = b"\x1BW\x01"
+    reset_double_width = b"\x1BW\x00"
+    # double height
+    double_height = b"\x1Bw\x01"
+    reset_double_height = b"\x1Bw\x00"
+
+    pangram = b"The quick brown fox jumps over the lazy dog"
+
+    lines = [
+        cpi_8 + b"Normal width (10.5 cpi)" + reset_intercharacter_space,
+        pangram,
+        cpi_8 + b"Double point-size (21 cpi)" + reset_intercharacter_space,
+        cpi_21 + pangram,
+        cpi_8 + b"Double width (ESC W) (horizontal scale * 2)" + reset_intercharacter_space,
+        double_width + pangram + reset_double_width,
+        cpi_8 + b"Double height (ESC w) (point-size * 2 + horizontal scale / 2)" + reset_intercharacter_space,
+        double_height + pangram + reset_double_height,
+        # Should more or less correspond to 2 x 10.5 cpi
+        cpi_8 + b"Double height + width (point-size * 2 + horizontal scale * 2)" + reset_intercharacter_space,
+        double_width + double_height + pangram + reset_double_height + reset_double_width,
+        cpi_8 + b"Back to normal width (10.5 cpi)" + reset_intercharacter_space,
+        pangram,
+        b"\r\n"
+    ]
+
+    # Mix with scripting with various interlaced commands
+    enable_upperscripting = b"\x1bS\x00"
+    disable_upperscripting = b"\x1bT"
+    lines += [
+        cpi_8 + b"NOTE: In 9 pins mode, double-height should temporarily stop " +
+        b"upper/subscripting, condensed font and Draft printing.",
+        cpi_8 + b"upperscripting enabled for ref" + reset_intercharacter_space,
+        enable_upperscripting + pangram + disable_upperscripting,
+        cpi_8 + b"double-height enabled for ref" + reset_intercharacter_space,
+        double_height + pangram + reset_double_height,
+        cpi_8 + b"upperscripting should have no effect in 9pins mode" + reset_intercharacter_space,
+        enable_upperscripting + double_height + pangram + reset_double_height + disable_upperscripting,
+        # Handle the risk to reactivate scripting while it was disabled by a legit
+        # command before exiting double-height
+        cpi_8 + b"in 9pins mode make sure scripting is enabled, then disabled by double-height, then disabled,",
+        b"then not set anymore when exiting double-height" + reset_intercharacter_space,
+        enable_upperscripting + b"The quick " + double_height + b"brown fox jumps " + disable_upperscripting + reset_double_height + b"over the lazy dog",
+        cpi_8 + b"upperscripting should have no effect in 9pins mode" + reset_intercharacter_space,
+        double_height + enable_upperscripting + pangram + reset_double_height + disable_upperscripting,
+        cpi_8 + b"upperscripting should have no effect on the first part in 9pins mode" + reset_intercharacter_space,
+        double_height + enable_upperscripting + pangram + reset_double_height + pangram + disable_upperscripting,
+        # TODO: same for condensed
+    ]
+
+    code = b"\r\n".join(lines)
+    processed_file = tmp_path / expected_filename
+    _ = ESCParser(code, pins=pins, output_file=str(processed_file))
+
+    pdf_comparison(processed_file)
