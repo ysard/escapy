@@ -620,3 +620,61 @@ def test_double_width_height(tmp_path: Path, pins: int, expected_filename: str):
     _ = ESCParser(code, pins=pins, output_file=str(processed_file))
 
     pdf_comparison(processed_file)
+
+
+def test_select_character_style(tmp_path: Path):
+    """Test character styles: outline + shadow - ESC q"""
+    cpi_8 = b"\x1BX\x00\x10\x00"
+    # Disable multipoint mode due to cpi_8 => ESC p 0
+    reset_intercharacter_space = b"\x1Bp\x00"
+    # double-width
+    double_width = b"\x1BW\x01"
+    reset_double_width = b"\x1BW\x00"
+    # double-height
+    double_height = b"\x1Bw\x01"
+    reset_double_height = b"\x1Bw\x00"
+
+    pangram = b"The quick brown fox jumps over the lazy dog"
+    esc_q0 = b"\x1bq\x00"
+    esc_q1 = b"\x1bq\x01"
+    esc_q2 = b"\x1bq\x02"
+    esc_q3 = b"\x1bq\x03"
+
+    lines = [
+        cpi_8 + b'Character style - outline - ESC q 1' + reset_intercharacter_space,
+        esc_q1 + pangram + esc_q0,
+        cpi_8 + b'Character style - shadow - ESC q 2' + reset_intercharacter_space,
+        esc_q2 + pangram + esc_q0,
+        cpi_8 + b'Character style - outline + shadow - ESC q 3' + reset_intercharacter_space,
+        esc_q3 + pangram + esc_q0,
+        cpi_8 + b'Character style - off - ESC q 0' + reset_intercharacter_space,
+        esc_q0 + pangram + esc_q0,
+        b"\r\n",
+
+        cpi_8 + b'Double-width + Character style - outline - ESC q 1' + reset_intercharacter_space,
+        double_width + esc_q1 + pangram + esc_q0 + reset_double_width,
+        cpi_8 + b'Double-width + Character style - shadow - ESC q 2' + reset_intercharacter_space,
+        double_width + esc_q2 + pangram + esc_q0 + reset_double_width,
+        cpi_8 + b'Double-width + Character style - outline + shadow - ESC q 3' + reset_intercharacter_space,
+        double_width + esc_q3 + pangram + esc_q0 + reset_double_width,
+        cpi_8 + b'Double-width + Character style - off - ESC q 0' + reset_intercharacter_space,
+        double_width + esc_q0 + pangram + esc_q0 + reset_double_width,
+        b"\r\n",
+
+        cpi_8 + b'Double-height + Character style - outline - ESC q 1' + reset_intercharacter_space,
+        double_height + esc_q1 + pangram + esc_q0 + reset_double_height,
+        cpi_8 + b'Double-height + Character style - shadow - ESC q 2' + reset_intercharacter_space,
+        double_height + esc_q2 + pangram + esc_q0 + reset_double_height,
+        cpi_8 + b'Double-height + Character style - outline + shadow - ESC q 3' + reset_intercharacter_space,
+        double_height + esc_q3 + pangram + esc_q0 + reset_double_height,
+        cpi_8 + b'Double-height + Character style - off - ESC q 0' + reset_intercharacter_space,
+        double_height + esc_q0 + pangram + esc_q0 + reset_double_height,
+        b"\r\n",
+
+    ]
+
+    code = b"\r\n".join(lines)
+    processed_file = tmp_path / "test_select_character_style.pdf"
+    _ = ESCParser(code, output_file=str(processed_file))
+
+    pdf_comparison(processed_file)
