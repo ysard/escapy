@@ -1720,8 +1720,14 @@ class ESCParser:
 
         raise NotImplementedError
 
-    def copy_ROM_to_RAM(self, *args):
+    def copy_rom_to_ram(self, *args):
         """Copies the data for the characters between 0 and 126 of the n typeface from ROM to RAM - ESC :
+
+        TODO:
+            erases any characters that are currently stored in RAM.
+            Always copy ROM characters to RAM before you define user-defined characters.
+
+            You cannot copy ROM characters to RAM during multipoint mode.
 
         9 pins: only:
             Copies the data for the characters between 0 and 255 of the Roman or Sans Serif typeface
@@ -1729,6 +1735,10 @@ class ESCParser:
             0: Roman
             1: Sans serif
         """
+        if self.multipoint_mode:
+            LOGGER.error("You cannot copy ROM characters to RAM during multipoint mode.")
+            return
+
         value = args[1].value[0]
 
         # Save typeface, international character set, size (super/subscript or normal), and quality (draft/LQ)

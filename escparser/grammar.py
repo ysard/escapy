@@ -165,7 +165,7 @@ esc_grammar = r"""
         # les nb de bytes fixes sont a coder en .{x} mais les tailles dynamiques
         | ESC "&" NUL /[\x00-\x7f]{2}/ /[^\x1b]{3}/ /[^\x1b]+/ -> define_user_defined_ram_characters
         # TODO/ERROR: parsing ???
-        # | ESC ":" NUL HALF_BYTE_ARG NUL   -> copy_ROM_to_RAM
+        # | ESC ":" NUL HALF_BYTE_ARG NUL   -> copy_rom_to_ram
         | ESC "%" BIN_ARG_EX                -> select_user_defined_set
         | ESC "6"                           -> set_upper_control_codes_printing
         # Not implemented
