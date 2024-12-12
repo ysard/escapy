@@ -350,12 +350,12 @@ def test_international_charset_tables(tmp_path: Path):
     hebrew_pangram = "איש עם זקן טס לצרפת ודג בחכה".encode("cp862")
 
     # ESC ( t d1 d2 d3
-    table_0 = b"\x1bt\x00" # ESC t 0 Italic
-    table_1 = b"\x1bt\x01" # ESC t 1 cp437 (default table)
-    table_3 = b"\x1bt\x03" # ESC t 3 cp437
-    cpi_8 = b"\x1bX\x00\x10\x00" # ESC X
-    left_margin = b"\x1bl\x03" # ESC l
-    cancel_left_margin = b"\x1bl\x00" # ESC l
+    table_0 = b"\x1bt\x00"  # ESC t 0 Italic
+    table_1 = b"\x1bt\x01"  # ESC t 1 cp437 (default table)
+    table_3 = b"\x1bt\x03"  # ESC t 3 cp437
+    cpi_8 = b"\x1bX\x00\x10\x00"  # ESC X
+    left_margin = b"\x1bl\x03"  # ESC l
+    cancel_left_margin = b"\x1bl\x00"  # ESC l
 
     lines = [
         esc_reset,
@@ -363,8 +363,7 @@ def test_international_charset_tables(tmp_path: Path):
         cpi_8,
         # b"\x1bk\x00", # Roman (default)
         # b"\x1bk\x02", # Courier
-        b"\x1bk\x01", # Sans Serif
-
+        b"\x1bk\x01",  # Sans Serif
         b"English, cp437 (default)",
         english_pangram,
         table_3 + b"English table 2, cp437 (default)",
