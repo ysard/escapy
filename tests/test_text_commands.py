@@ -310,6 +310,11 @@ def test_set_script_printing():
 def test_international_charset_tables(tmp_path: Path):
     """Print various pangrams in various languages using their own encoding
 
+    Cover mainly:
+
+        - Assign character table, ESC ( t
+        - Select character table, ESC t
+
     .. note:: Pangrams source: https://en.wikipedia.org/wiki/Pangram
 
     .. todo:: Support more (custom) encodings.
