@@ -23,12 +23,12 @@ DIR_DATA = os.path.dirname(os.path.abspath(__file__)) + "/../test_data/"
     "format_databytes",
     [
         # Test "0" as a chr (0x30) for d1; move to tb0
-        b"\x1B\x28\x74\x03\x00\x30\x08\x00" + cancel_bold,
+        b"\x1B(t\x03\x00\x30\x08\x00" + cancel_bold,
         # Test d1 as an int; move to tb0 to tb3
-        b"\x1B\x28\x74\x03\x00\x00\x08\x00" + cancel_bold,
-        b"\x1B\x28\x74\x03\x00\x01\x08\x00" + cancel_bold,
-        b"\x1B\x28\x74\x03\x00\x02\x08\x00" + cancel_bold,
-        b"\x1B\x28\x74\x03\x00\x03\x08\x00" + cancel_bold,
+        b"\x1B(t\x03\x00\x00\x08\x00" + cancel_bold,
+        b"\x1B(t\x03\x00\x01\x08\x00" + cancel_bold,
+        b"\x1B(t\x03\x00\x02\x08\x00" + cancel_bold,
+        b"\x1B(t\x03\x00\x03\x08\x00" + cancel_bold,
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
@@ -60,8 +60,8 @@ def test_assign_character_table(format_databytes):
 @pytest.mark.parametrize(
     "format_databytes",
     [
-        # Table with id 4 doesn't exist - ESC ( t
-        b"\x1B\x28\x74\x03\x00\x04\x08\x00" + cancel_bold,
+        # Assign character table; Table with id 4 doesn't exist - ESC ( t
+        b"\x1B(t\x03\x00\x04\x08\x00" + cancel_bold,
         # International charset id 0x0e doesn't exist - ESC R
         b"\x1BR\x0e" + cancel_bold,
         # Wrong typeface ID - ESC k
@@ -87,8 +87,8 @@ def test_wrong_commands(format_databytes):
 @pytest.mark.parametrize(
     "format_databytes",
     [
-        # Combination 0, 8 doesn't exist
-        b"\x1B\x28\x74\x03\x00\x30\x00\x08" + cancel_bold,
+        # ESC ( t; Assign character table; Combination 0,8 for d2,d3 doesn't exist
+        b"\x1B(t\x03\x00\x30\x00\x08" + cancel_bold,
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
@@ -345,22 +345,20 @@ def test_international_charset_tables(tmp_path: Path):
     hebrew_pangram = "איש עם זקן טס לצרפת ודג בחכה".encode("cp862")
 
     # ESC ( t d1 d2 d3
-    table_0 = b"\x1b\x74\x00" # ESC t 0 Italic
-    table_1 = b"\x1b\x74\x01" # ESC t 1 cp437 (default table)
-    table_3 = b"\x1b\x74\x03" # ESC t 3 cp437
-    cpi_8 = b"\x1B\x58\x00\x10\x00"
-    left_margin = b"\x1bl\x03"
-    cancel_left_margin = b"\x1bl\x00"
+    table_0 = b"\x1bt\x00" # ESC t 0 Italic
+    table_1 = b"\x1bt\x01" # ESC t 1 cp437 (default table)
+    table_3 = b"\x1bt\x03" # ESC t 3 cp437
+    cpi_8 = b"\x1bX\x00\x10\x00" # ESC X
+    left_margin = b"\x1bl\x03" # ESC l
+    cancel_left_margin = b"\x1bl\x00" # ESC l
 
     lines = [
         esc_reset,
-        # cancel any left margin
         cancel_left_margin,
-        # ESC X: 8 cpi
         cpi_8,
-        # b"\x1B\x6B\x00", # Roman (default)
-        # b"\x1B\x6B\x02", # Courier
-        b"\x1B\x6B\x01", # Sans Serif
+        # b"\x1bk\x00", # Roman (default)
+        # b"\x1bk\x02", # Courier
+        b"\x1bk\x01", # Sans Serif
 
         b"English, cp437 (default)",
         english_pangram,
@@ -371,31 +369,31 @@ def test_international_charset_tables(tmp_path: Path):
         # From now, use table 1 for pangrams, table 3 (cp437) for other text
         # See the last 2 bytes of the command to know d2 & d3 values
         table_3 + b"French, cp863",
-        table_1 + b"\x1b\x28\x74\x03\x00\x01\x08\x00" + french_pangram,
+        table_1 + b"\x1b(t\x03\x00\x01\x08\x00" + french_pangram,
         table_3 + b"Czech, cp852",
-        table_1 + b"\x1b\x28\x74\x03\x00\x01\x0a\x00" + czech_pangram,
+        table_1 + b"\x1b(t\x03\x00\x01\x0a\x00" + czech_pangram,
         table_3 + b"Greek, cp737",
-        table_1 + b"\x1b\x28\x74\x03\x00\x01\x01\x10" + greek_pangram,
+        table_1 + b"\x1b(t\x03\x00\x01\x01\x10" + greek_pangram,
         table_3 + b"Greek, cp869",
-        table_1 + b"\x1b\x28\x74\x03\x00\x01\x0f\x00" + greek_pangram_2,
+        table_1 + b"\x1b(t\x03\x00\x01\x0f\x00" + greek_pangram_2,
         table_3 + b"Greek, iso8859_7",
-        table_1 + b"\x1b\x28\x74\x03\x00\x01\x1d\x07" + greek_pangram_3,
+        table_1 + b"\x1b(t\x03\x00\x01\x1d\x07" + greek_pangram_3,
         table_3 + b"German, iso8859_1",
-        table_1 + b"\x1b\x28\x74\x03\x00\x01\x19\x00" + german_pangram,
+        table_1 + b"\x1b(t\x03\x00\x01\x19\x00" + german_pangram,
         table_3 + b"Icelandic, cp861",
-        table_1 + b"\x1b\x28\x74\x03\x00\x01\x18\x00" + icelandic_pangram,
+        table_1 + b"\x1b(t\x03\x00\x01\x18\x00" + icelandic_pangram,
         table_3 + b"Turkish, cp857",
-        table_1 + b"\x1b\x28\x74\x03\x00\x01\x0b\x00" + turkish_pangram,
+        table_1 + b"\x1b(t\x03\x00\x01\x0b\x00" + turkish_pangram,
         table_3 + b"Arabic, cp720",
-        table_1 + b"\x1b\x28\x74\x03\x00\x01\x2a\x00" + arabic_pangram,
+        table_1 + b"\x1b(t\x03\x00\x01\x2a\x00" + arabic_pangram,
         table_3 + b"Russian, cp866",
-        table_1 + b"\x1b\x28\x74\x03\x00\x01\x0e\x00" + russian_pangram,
+        table_1 + b"\x1b(t\x03\x00\x01\x0e\x00" + russian_pangram,
         table_3 + b"Thai, iso8859_11",
-        table_1 + b"\x1b\x28\x74\x03\x00\x01\x12\x00" + thai_pangram,
+        table_1 + b"\x1b(t\x03\x00\x01\x12\x00" + thai_pangram,
         table_3 + b"Hebrew, cp862",
-        table_1 + b"\x1b\x28\x74\x03\x00\x01\x0c\x00" + hebrew_pangram,
+        table_1 + b"\x1b(t\x03\x00\x01\x0c\x00" + hebrew_pangram,
         table_3 + b"Greek - Not supported charset 4,0 (should not crash)",
-        table_1 + b"\x1b\x28\x74\x03\x00\x01\x04\x00" + greek_pangram,
+        table_1 + b"\x1b(t\x03\x00\x01\x04\x00" + greek_pangram,
     ]
 
     code = b"\r\n".join(lines)
