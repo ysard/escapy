@@ -142,7 +142,10 @@ def test_select_international_charset(format_databytes):
     },
 )
 def test_select_typeface():
-    """select_typeface - ESC k"""
+    """Test internal changes in ESCParser object due to select_typeface - ESC k
+
+    .. seealso:: For higher-level test cf :meth:`test_fonts`.
+    """
     format_databytes = b"\x1Bk\x02"
     escparser = ESCParser(format_databytes)
     expected = format_databytes[2]
