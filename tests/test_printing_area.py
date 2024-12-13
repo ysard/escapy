@@ -72,10 +72,10 @@ def test_set_unit(format_databytes: bytes, expected_unit: float):
         # 3 characters wide
         (b"\x1bl\x03" + cancel_bold, 3 / 10),
         # left margin can't be equal to right margin => ignored
-        (b"\x1bQ\x03\x1bl\x03" + cancel_bold, 0),
+        (b"\x1bQ\x03" + b"\x1bl\x03" + cancel_bold, 0),
         # Test the carriage return: the text before increases the cursor_x;
         # set_left_margin should reset it.
-        (b"aaa\x1bl\x03" + cancel_bold, 3 / 10),
+        (b"aaa" + b"\x1bl\x03" + cancel_bold, 3 / 10),
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
@@ -138,7 +138,7 @@ def test_set_right_margin(format_databytes: bytes, expected_offset: float):
         # 78 lines: 13inch: outside the current page_length: reset to 0
         (b"\x1bN\x4e", False, 0),
         # Observe the linespacing unit changed with ESC 1 (for example) (only 9 pins)
-        (b"\x1b1\x1bN\x06", False, 6 * 7 / 72),
+        (b"\x1b1" + b"\x1bN\x06", False, 6 * 7 / 72),
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
@@ -167,7 +167,7 @@ def test_set_bottom_margin(format_databytes, single_sheet, expected_bottom_margi
         (b"\x1b(c\x04\x00\x08\x02\x78\x0f", A4, (10.24846894138233, 0.692913385826774)),
         # Prepend ESC ( U to set defined unit to 2 / 360
         # hex(11*360/2): 0x7bc
-        (b"\x1b(U\x01\x00\x14\x1b(c\x04\x00\x08\x02\xbc\x07", A4, (8.804024496937885, 0.692913385826774)),
+        (b"\x1b(U\x01\x00\x14" + b"\x1b(c\x04\x00\x08\x02\xbc\x07", A4, (8.804024496937885, 0.692913385826774)),
         # top margin >= bottom margin: error, fixed with printable area values
         (b"\x1b(c\x04\x00\x00\x02\x00\x01", A4, (11.442913385826774, 0.25)),
         (b"\x1b(c\x04\x00\x08\x02\x08\x02", A4, (11.442913385826774, 0.25)),
@@ -230,14 +230,14 @@ def test_set_page_format(format_databytes, page_size, expected_margins):
         (b"\x1b(C\x02\x00\x78\x0f", 11),
         # Prepend ESC ( U to set defined unit to 2 / 360
         # hex(11*360/2): 0x7bc
-        (b"\x1b(U\x01\x00\x14\x1b(C\x02\x00\xbc\x07", 11),
+        (b"\x1b(U\x01\x00\x14" + b"\x1b(C\x02\x00\xbc\x07", 11),
         # hex(23*360): 0x2058
         # Send a 23inch page length: > 22 inch
         # This value is outside the accepted area, the value will be set to 22.
         (b"\x1b(C\x02\x00\x58\x20", 22),
         # Test the reset of top/bottom margins, see test_set_page_format
         # for the explanations about the value.
-        (b"\x1b(c\x04\x00\x08\x02\x78\x0f\x1b(C\x02\x00\x78\x0f", 11),
+        (b"\x1b(c\x04\x00\x08\x02\x78\x0f" + b"\x1b(C\x02\x00\x78\x0f", 11),
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
@@ -275,10 +275,10 @@ def test_set_page_length_defined_unit(format_databytes, expected):
         # Set the linespacing before to 1inch (60/60) with ESC A.
         # Send a 23inch page length: > 22 inch
         # This value is outside the accepted area, the value will be set to 22.
-        (b"\x1bA\x3c\x1bC\x17", 22),
+        (b"\x1bA\x3c" + b"\x1bC\x17", 22),
         # Test the reset of top/bottom margins, see test_set_page_format
         # for the explanations about the value.
-        (b"\x1b(c\x04\x00\x08\x02\x78\x0f\x1bC\x42", 11),
+        (b"\x1b(c\x04\x00\x08\x02\x78\x0f" + b"\x1bC\x42", 11),
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
