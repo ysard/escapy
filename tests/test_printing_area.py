@@ -1,5 +1,6 @@
 # Standard imports
 import os
+from struct import pack
 from pathlib import Path
 import pytest
 from unittest.mock import patch
@@ -322,3 +323,93 @@ def test_set_page_length_inches(format_databytes, expected):
     top_margin, bottom_margin = escparser.printable_area[0:2]
     assert escparser.top_margin == top_margin
     assert escparser.bottom_margin == bottom_margin
+
+
+@pytest.mark.parametrize(
+    "format_databytes, pins, x_offset, y_offset",
+    [
+        # Absolute horizontal position - ESC $
+        # 1 inch (60/60) for default unit: 1/60
+        (b"\x1b$\x3c\x00", None, 1, 0),
+        (b"\x1b$\x3c\x00", 9, 1, 0),
+        # Prepend ESC ( U to set defined unit to 2/360
+        # hex(1*360//2): 0xb4 = 180
+        (b"\x1b(U\x01\x00\x14" + b"\x1b$\xb4\x00", None, 1, 0),
+        # Prepend ESC ( U to set defined unit to 2/360
+        # Outside right margin hex(60*360//2) 60.25inch: ignored
+        (b"\x1b(U\x01\x00\x14" + b"\x1b$\x30\x2a", None, 0, 0),
+        # defined unit is ignored on 9 pins printers:
+        # => same value as it is with a 1/6 unit
+        (b"\x1b(U\x01\x00\x14" + b"\x1b$\x3c\x00", 9, 1, 0),
+        #
+        # Relative horizontal position - ESC \
+        # +2inch absolute, then -1inch relative (-180/180) = 1inch
+        # default unit: 1/180
+        (b"\x1b$\x78\x00" + b'\x1b\\' + pack("<h", -180), None, 1, 0),
+        # 9 pins default unit: 1/120
+        # +2inch absolute, then -120/120
+        (b"\x1b$\x78\x00" + b'\x1b\\' + pack("<h", -120), 9, 1, 0),
+        # Prepend ESC ( U to set defined unit to 2/360
+        # +2inch absolute, then -180/180
+        (b"\x1b$\x78\x00" + b"\x1b(U\x01\x00\x14" + b'\x1b\\' + pack("<h", -180), None, 1, 0),
+        # Outside right margin -400/180inch ~ 2.22: ignored
+        # +2inch absolute, then -2.22inch
+        (b"\x1b$\x78\x00" + b'\x1b\\' + pack("<h", -400), None, 2, 0),
+        #
+        # Absolute vertical position - ESC ( V
+        # 1 inch below top margin 360 (360/360) for default unit: 1/360
+        (b"\x1b(V\x02\x00" + pack("<H", 360), None, 0, -1),
+        # Prepend ESC ( U to set defined unit to 2/360
+        # 1 inch below top margin 180 (180/180)
+        (b"\x1b(U\x01\x00\x14" + b"\x1b(V\x02\x00" + pack("<H", 180), None, 0, -1),
+        # 12 inch below top margin: next page
+        (b"\x1b(V\x02\x00" + pack("<H", 12*360), None, 0, 0),
+        # 1 inch below top margin, then 1/360 inch below top margin:
+        # movement amplitude too large (359/360 inch): ignored
+        (b"\x1b(V\x02\x00" + pack("<H", 360) + b"\x1b(V\x02\x00" + pack("<H", 1), None, 0, -1),
+        #
+        # Relative vertical position - ESC ( v
+        # 1 inch down (360/360) for default unit: 1/360
+        (b"\x1b(v\x02\x00" + pack("<h", 360), None, 0, -1),
+        # 179/360 inch up: outside top margin: ignored
+        (b"\x1b(v\x02\x00" + pack("<h", -179), None, 0, 0),
+        # 12 inch down: outside bottom margin: next page
+        (b"\x1b(v\x02\x00" + pack("<h", 12*360), None, 0, 0),
+        # 1 inch up (>179/360): movement amplitude too large: ignored
+        (b"\x1b(v\x02\x00" + pack("<h", -360), None, 0, 0),
+        # Prepend ESC ( U to set defined unit to 2/360
+        # 1 inch down
+        (b"\x1b(U\x01\x00\x14" + b"\x1b(v\x02\x00" + pack("<h", 180), None, 0, -1),
+    ],
+    # First param goes in the 'request' param of the fixture format_databytes
+    indirect=["format_databytes"],
+    ids=[
+        # Absolute horizontal position - ESC $
+        "AH_1inch",
+        "AH_1inch_9pins",
+        "AH_1inch+defined_unit",
+        "AH_60inch_ignored+defined_unit",
+        "AH_not_ignored_9pins+defined_unit",
+        # Relative horizontal position - ESC \
+        "RH_-1inch",
+        "RH_-1inch_9pins",
+        "RH_-1inch+defined_unit",
+        "RH_-60inch_ignored+defined_unit",
+        # Absolute vertical position - ESC ( V
+        "AV_1inch",
+        "AV_1inch+defined_unit",
+        "AV_12inch",
+        "AV_amplitude_too_large",
+        # Relative vertical position - ESC ( v
+        "RV_1inch",
+        "RV_-179/360_outside_top_margin",
+        "RV_12inch_outside_bottom_margin",
+        "RV_-1inch_amplitude_too_large",
+        "RV_1inch+defined_unit",
+    ],
+)
+def test_set_print_position(format_databytes, pins, x_offset, y_offset):
+
+    escparser = ESCParser(format_databytes, pins=pins, pdf=False)
+    assert escparser.cursor_x == escparser.left_margin + x_offset
+    assert escparser.cursor_y == escparser.top_margin + y_offset
