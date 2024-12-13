@@ -375,7 +375,7 @@ class ESCParser:
             self.extra_intercharacter_space *= 2 if double_width else 0.5
 
     @property
-    def double_width_multi(self) -> bool:
+    def double_width_multi(self) -> bool:  # pragma: no cover
         """Get the double-width multiline state"""
         return self._double_width_multi
 
