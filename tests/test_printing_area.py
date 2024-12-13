@@ -122,6 +122,37 @@ def test_set_right_margin(format_databytes: bytes, expected_offset: float):
 
 
 @pytest.mark.parametrize(
+    "format_databytes, single_sheet, expected_bottom_margin",
+    [
+        # Default value for single-sheets
+        (b"\x1bN\x06", True, None),
+        # 6 lines: 1inch
+        (b"\x1bN\x06", False, 6 / 6),
+        # 78 lines: 13inch: outside the current page_length: reset to 0
+        (b"\x1bN\x4e", False, 0),
+        # Observe the linespacing unit changed with ESC 1 (for example) (only 9 pins)
+        (b"\x1b1\x1bN\x06", False, 6 * 7 / 72),
+    ],
+    # First param goes in the 'request' param of the fixture format_databytes
+    indirect=["format_databytes"],
+    ids=["single-sheets", "default", "outside_page_length", "7/72_linespacing"]
+)
+def test_set_bottom_margin(format_databytes, single_sheet, expected_bottom_margin):
+    """Test ESC N
+
+    Set the bottom margin on continuous paper to n lines (in the current line spacing)
+    from the top-of-form position on the NEXT page.
+    """
+    escparser = ESCParser(format_databytes, single_sheets=single_sheet, pdf=False)
+    if single_sheet:
+        # Command is ignored
+        assert escparser.bottom_margin == escparser.printable_area[1]
+    else:
+        # Continuous paper
+        assert escparser.bottom_margin == expected_bottom_margin
+
+
+@pytest.mark.parametrize(
     "format_databytes, page_size, expected_margins",
     [
         # hex(11*360): 0xf78
