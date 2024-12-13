@@ -859,7 +859,8 @@ class ESCParser:
 
         .. seealso:: :meth:`end_page_paper_handling` for implementation checks
         """
-        self.cursor_y += args[1].value[0] / (216 if self.pins == 9 else 180)
+        # sign inverted due to bottom-up
+        self.cursor_y -= args[1].value[0] / (216 if self.pins == 9 else 180)
         self.end_page_paper_handling()
 
     def set_unit(self, *args):
