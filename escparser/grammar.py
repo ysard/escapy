@@ -67,7 +67,7 @@ esc_grammar = r"""
         # Page format
         | ESC "(C\x02\x00" /.{2}/ -> set_page_length_defined_unit
         | ESC "(c\x04\x00" /.{4}/ -> set_page_format
-        | ESC "C" ARG           -> set_page_length_lines
+        | ESC "C" HALF_BYTE_ARG -> set_page_length_lines
         | ESC "C" NUL ARG       -> set_page_length_inches
         | ESC "N" HALF_BYTE_ARG -> set_bottom_margin
         | ESC "O"               -> cancel_top_bottom_margins
