@@ -503,13 +503,19 @@ class ESCParser:
         mL, mH = args[1].value
         value = (mH << 8) + mL
         unit = self.defined_unit if self.defined_unit else 1 / 360
-        self.page_length = value * unit
-        LOGGER.debug("page length: %s", self.page_length)
+        page_length = value * unit
+        LOGGER.debug("page length: %s", page_length)
 
-        assert (
-            0 < self.page_length <= 22
-        ), f"({value} × (current line spacing)) must be less than 22 inches ({self.page_length})"
+        if not 0 < page_length <= 22:
+            LOGGER.error(
+                "(%s × (current unit: %s)) must be less than or equal to 22 inches (%s)",
+                value,
+                self.defined_unit,
+                page_length,
+            )
+            page_length = 22
 
+        self.page_length = page_length
         self.cancel_top_bottom_margins()
 
     def set_page_length_lines(self, *args):
@@ -523,15 +529,19 @@ class ESCParser:
             becomes the top-of-form position.
         """
         page_length_lines = args[1].value[0]
+        page_length = page_length_lines * self.current_line_spacing
+        LOGGER.debug("page length: %s", page_length)
 
-        assert 1 <= page_length_lines <= 127, page_length_lines
-        self.page_length = page_length_lines * self.current_line_spacing
-        LOGGER.debug("page length: %s", self.page_length)
+        if not 0 < page_length <= 22:
+            LOGGER.error(
+                "(%s × (current line spacing: %s)) must be less than or equal to 22 inches (%s)",
+                page_length_lines,
+                self.current_line_spacing,
+                page_length,
+            )
+            page_length = 22
 
-        assert (
-            0 < self.page_length <= 22
-        ), f"(n × (current line spacing)) must be less than 22 inches ({self.page_length})"
-
+        self.page_length = page_length
         self.cancel_top_bottom_margins()
 
     def page_length_inches(self, *args):
