@@ -587,6 +587,23 @@ def test_linespacing(format_databytes, pins: int | None, expected: float):
     assert escparser.current_line_spacing == expected
 
 
+def test_backspace():
+    """Test backspace - ESC SP"""
+    # backspace when the cursor is already at the letfmost position is ignored
+    backspace = b"\x08"
+    code = esc_reset + backspace
+    escparser = ESCParser(code, pdf=False)
+    assert escparser.cursor_x == escparser.left_margin
+
+    # Move cursor_x by 1 inch ESC $ 60 (60/60)
+    absolute_h_pos = b"\x1b$\x3c\x00"
+    code = esc_reset + absolute_h_pos + backspace
+    escparser = ESCParser(code, pdf=False)
+    # (x pos from ESC $) - (offset from backspace)
+    expected = (1 + escparser.left_margin) - (escparser.character_pitch + escparser.extra_intercharacter_space)
+    assert escparser.cursor_x == expected
+
+
 @pytest.mark.parametrize(
     "pins, expected_filename",
     [
