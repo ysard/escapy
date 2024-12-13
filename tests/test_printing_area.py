@@ -159,7 +159,7 @@ def test_set_bottom_margin(format_databytes, single_sheet, expected_bottom_margi
     "format_databytes, page_size, expected_margins",
     [
         # hex(11*360): 0xf78
-        # Send bottom margin 11inch, so 11.69-11 = 0.69: Correct values
+        # Send bottom margin 11inch, so 11.69-11 = 0.69 in bottom-up system: Correct values
         (b"\x1b(c\x04\x00\x08\x02\x78\x0f", A4, (10.24846894138233, 0.692913385826774)),
         # Prepend ESC ( U to set defined unit to 2 / 360
         # hex(11*360/2): 0x7bc
