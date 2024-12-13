@@ -751,7 +751,6 @@ class ESCParser:
                 else (1 / 180 if self.mode == PrintMode.LQ else 1 / 120)
             )
         cursor_x = value * unit + self.cursor_x
-
         LOGGER.debug("set relative cursor_x: %s", cursor_x)
 
         if not self.left_margin <= cursor_x < self.right_margin:
@@ -792,15 +791,13 @@ class ESCParser:
         # sign inverted due to bottom-up
         cursor_y = -value * unit + self.top_margin
 
-        # Note: no test of exceeding the top-margin like in set_relative_vertical_print_position ?
-
         if cursor_y < self.bottom_margin:
             self.next_page()
             return
 
         movement_amplitude = self.cursor_y - cursor_y
         if movement_amplitude < 0 and -movement_amplitude > 179 / 360:
-            LOGGER.error("set absolute cursor_y movement upwards too big! => ignored")
+            LOGGER.error("set absolute cursor_y movement upwards too big (%s)! => ignored", movement_amplitude)
             return
 
         self.cursor_y = cursor_y
@@ -836,7 +833,7 @@ class ESCParser:
         movement_amplitude = value * unit
 
         if movement_amplitude < 0 and -movement_amplitude > 179 / 360:
-            LOGGER.error("set relative cursor_y movement upwards too big! => ignored")
+            LOGGER.error("set relative cursor_y movement upwards too big (%s)! => ignored", movement_amplitude)
             return
 
         # sign inverted due to bottom-up
