@@ -75,10 +75,11 @@ esc_grammar = r"""
         | ESC "Q" BYTE_ARG      -> set_right_margin
 
         # Print position motion
-        | ESC "$" ARG ARG                   -> set_absolute_horizontal_print_position
-        | ESC "\\" ARG ARG                  -> set_relative_horizontal_print_position
-        | ESC "(V\x02\x00" ARG ARG          -> set_absolute_vertical_print_position
-        | ESC "(v\x02\x00" ARG ARG          -> set_relative_vertical_print_position
+        | ESC "$" ARG HALF_BYTE_ARG             -> set_absolute_horizontal_print_position
+        | ESC "\\" ARG HALF_BYTE_ARG            -> set_relative_horizontal_print_position
+        # TODO: see extended standard with nl = 4
+        | ESC "(V\x02\x00" ARG HALF_BYTE_ARG    -> set_absolute_vertical_print_position
+        | ESC "(v\x02\x00" ARG HALF_BYTE_ARG    -> set_relative_vertical_print_position
         # Variable command but limited by a NUL char
         | ESC "D" /[\x01-\xff]{0,32}\x00/   -> set_horizontal_tabs
         # Variable command but limited by a NUL char

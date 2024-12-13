@@ -688,7 +688,7 @@ class ESCParser:
         # => this will not ignore data but just put the cursor at the correct pos
         self.reset_cursor_x()
 
-    def set_absolute_horizontal_print_position(self, *args):
+    def set_absolute_horizontal_print_position(self, _, nL, nH):
         """Move the horizontal print position to the position specified - ESC $
 
         default defined unit setting for this command is 1/60 inch
@@ -696,7 +696,7 @@ class ESCParser:
         ignore this command if the specified position is to the right of the
         right margin.
         """
-        nL, nH = args[1].value
+        nL, nH = nL.value[0], nH.value[0]
         value = (nH << 8) + nL
 
         # Should be 1/60 on non ESCP2 (not just 9 pins)
@@ -710,7 +710,7 @@ class ESCParser:
             return
         self.cursor_x = cursor_x
 
-    def set_relative_horizontal_print_position(self, *args):
+    def set_relative_horizontal_print_position(self, _, nL, nH):
         """Move the horizontal print position left or right from the current position - ESC \
 
         Use the defined unit set by ESC ( U command.
@@ -720,7 +720,7 @@ class ESCParser:
 
         ignore this command if it would move the print position outside the printing area.
         """
-        nL, nH = args[1].value
+        nL, nH = nL.value[0], nH.value[0]
         value = (nH << 8) + nL
 
         # Test bit sign
@@ -747,7 +747,7 @@ class ESCParser:
 
         self.cursor_x = cursor_x
 
-    def set_absolute_vertical_print_position(self, *args):
+    def set_absolute_vertical_print_position(self, _, mL, mH):
         """Moves the vertical print position to the position specified - ESC ( V
 
         .. note:: ESCP2 only
@@ -771,7 +771,7 @@ class ESCParser:
             Here we use a bottom-up configuration, thus the values must be
             changed in accordingly (origin is at the bottom => signs are inverted!).
         """
-        mL, mH = args[1].value
+        mL, mH = mL.value[0], mH.value[0]
         value = (mH << 8) + mL
 
         unit = self.defined_unit if self.defined_unit else 1 / 360
@@ -791,7 +791,7 @@ class ESCParser:
 
         self.cursor_y = cursor_y
 
-    def set_relative_vertical_print_position(self, *args):
+    def set_relative_vertical_print_position(self, _, mL, mH):
         """Moves the vertical print position up or down from the current position - ESC ( v
 
         .. note:: ESCP2 only
@@ -811,7 +811,7 @@ class ESCParser:
             changed in accordingly (origin is at the bottom => signs are inverted!).
             From the original doc: positive = down movement, negative = up movement.
         """
-        mL, mH = args[1].value
+        mL, mH = mL.value[0], mH.value[0]
         value = (mH << 8) + mL
         # Test bit sign
         if mH & 0x80:
