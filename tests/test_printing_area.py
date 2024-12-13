@@ -23,12 +23,15 @@ from escparser.parser import ESCParser
         b"\x1b(U\x01\x00\x46" + cancel_bold,
         # Set page length in the current line spacing exceeding 0x7f - ESC C
         b"\x1bC\x80",
+        # page length in the current line spacing, exceeding 22inch - ESC C NUL
+        b"\x1bC\x00\x20",
     ],
     # First param goes in the 'databytes' param of the fixture format_databytes
     indirect=["format_databytes"],
     ids=[
         "unit_70/3600",
         "page_length_lines",
+        "page_length_inches",
     ],
 )
 def test_wrong_commands(format_databytes: bytes):
@@ -289,6 +292,30 @@ def test_set_page_length_lines(format_databytes, expected):
 
     .. note:: default linespacing is 1 / 6.
     """
+    escparser = ESCParser(format_databytes, pdf=False)
+    assert escparser.page_length == expected
+    top_margin, bottom_margin = escparser.printable_area[0:2]
+    assert escparser.top_margin == top_margin
+    assert escparser.bottom_margin == bottom_margin
+
+
+@pytest.mark.parametrize(
+    "format_databytes, expected",
+    [
+        # 1inch
+        (b"\x1bC\x00\x01", 1),
+        # 22inch
+        (b"\x1bC\x00\x16", 22),
+    ],
+    # First param goes in the 'request' param of the fixture format_databytes
+    indirect=["format_databytes"],
+    ids=[
+        "1inch",
+        "22inch",
+    ],
+)
+def test_set_page_length_inches(format_databytes, expected):
+    """Set page length in the current line spacing - ESC C NUL"""
     escparser = ESCParser(format_databytes, pdf=False)
     assert escparser.page_length == expected
     top_margin, bottom_margin = escparser.printable_area[0:2]
