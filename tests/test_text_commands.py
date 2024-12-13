@@ -541,6 +541,52 @@ def test_set_intercharacter_space(tmp_path: Path):
 
 
 @pytest.mark.parametrize(
+    "format_databytes, pins, expected",
+    [
+        (b"", None, 1 / 6),
+        (b"\x1b0", None, 1 / 8),
+        (b"\x1b0", 9, 1 / 8),
+        (b"\x1b1", 9, 7 / 72),
+        # ESC 0 then ESC 2
+        (b"\x1b0\x1b2", 9, 1 / 6),
+        (b"\x1b3\x02", None, 2 / 180),
+        (b"\x1b3\x02", 9, 2 / 216),
+        (b"\x1b+\x02", None, 2 / 360),
+        (b"\x1bA\x02", None, 2 / 60),
+        (b"\x1bA\x02", 9, 2 / 72),
+    ],
+    # First param goes in the 'request' param of the fixture format_databytes
+    indirect=["format_databytes"],
+    ids=[
+        "default",
+        "set_18_line_spacing",
+        "set_18_line_spacing_9pins",
+        "set_772_line_spacing_9pins",
+        "unset_18_line_spacing",
+        "set_n180_line_spacing",
+        "set_n180_line_spacing_9pins",
+        "set_n360_line_spacing",
+        "set_n60_line_spacing",
+        "set_n60_line_spacing_9pins",
+    ],
+)
+def test_linespacing(format_databytes, pins: int | None, expected: float):
+    """Test various linespacing commands
+
+    Cover:
+
+        - set_18_line_spacing, ESC 0
+        - unset_18_line_spacing, ESC 2
+        - set_n180_line_spacing, ESC 3
+        - set_n360_line_spacing, ESC +
+        - set_n60_line_spacing, ESC A
+        - set_772_line_spacing, ESC 1
+    """
+    escparser = ESCParser(format_databytes, pins=pins, pdf=False)
+    assert escparser.current_line_spacing == expected
+
+
+@pytest.mark.parametrize(
     "pins, expected_filename",
     [
         (None, "test_double_width_height_escp2.pdf"),
