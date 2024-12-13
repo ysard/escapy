@@ -544,7 +544,7 @@ class ESCParser:
         self.page_length = page_length
         self.cancel_top_bottom_margins()
 
-    def page_length_inches(self, *args):
+    def set_page_length_inches(self, *args):
         """Sets the page length to n inches - ESC C NUL
 
         cancels the top and bottom margin settings
@@ -554,13 +554,17 @@ class ESCParser:
             is at the top-of-form position. Otherwise, the current print position
             becomes the top-of-form position.
         """
-        self.page_length = args[1].value[0]
-        LOGGER.debug("page length: %s", self.page_length)
+        page_length = args[2].value[0]
+        LOGGER.debug("page length: %s", page_length)
 
-        assert (
-            1 <= self.page_length <= 22
-        ), f"(page_length) must be less than 22 inches ({self.page_length})"
+        if not 0 < page_length <= 22:  # pragma: no cover
+            LOGGER.error(
+                "page_length must be less than 22 inches (%s)",
+                page_length,
+            )
+            page_length = 22
 
+        self.page_length = page_length
         self.cancel_top_bottom_margins()
 
     def set_bottom_margin(self, *args):

@@ -65,14 +65,15 @@ esc_grammar = r"""
         | ESC "f" BIN_ARG HALF_BYTE_ARG -> h_v_skip
 
         # Page format
-        | ESC "(C\x02\x00" /.{2}/ -> set_page_length_defined_unit
-        | ESC "(c\x04\x00" /.{4}/ -> set_page_format
-        | ESC "C" HALF_BYTE_ARG -> set_page_length_lines
-        | ESC "C" NUL ARG       -> set_page_length_inches
-        | ESC "N" HALF_BYTE_ARG -> set_bottom_margin
-        | ESC "O"               -> cancel_top_bottom_margins
-        | ESC "l" BYTE_ARG      -> set_left_margin
-        | ESC "Q" BYTE_ARG      -> set_right_margin
+        # TODO: see extended standard with nl = 4
+        | ESC "(C\x02\x00" /.{2}/   -> set_page_length_defined_unit
+        | ESC "(c\x04\x00" /.{4}/   -> set_page_format
+        | ESC "C" HALF_BYTE_ARG     -> set_page_length_lines
+        | ESC "C" NUL /[\x01-\x16]/ -> set_page_length_inches
+        | ESC "N" HALF_BYTE_ARG     -> set_bottom_margin
+        | ESC "O"                   -> cancel_top_bottom_margins
+        | ESC "l" BYTE_ARG          -> set_left_margin
+        | ESC "Q" BYTE_ARG          -> set_right_margin
 
         # Print position motion
         | ESC "$" ARG HALF_BYTE_ARG             -> set_absolute_horizontal_print_position
