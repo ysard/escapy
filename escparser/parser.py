@@ -588,16 +588,21 @@ class ESCParser:
         value = args[1].value[0] * self.current_line_spacing
         self.bottom_margin = value
 
-        LOGGER.debug("bottom margin: %s", self.bottom_margin)
+        LOGGER.debug("bottom margin: %s; page_length: %s", self.bottom_margin, self.page_length)
 
         # In continuous paper, physical page length = logical page length (page_length attribute)
-        calculated_page_length = self.page_height - self.bottom_margin
-        if calculated_page_length >= self.page_length:
+        # In bottom-up system, we do not want that the bottom_margin goes
+        # above the top of the current page...
+        if self.bottom_margin >= self.page_length:
             LOGGER.error(
                 "bottom margin is outside the current page_length (measures: %s vs %s)",
-                calculated_page_length,
+                self.bottom_margin,
                 self.page_length
             )
+            # The distance from the top edge of the page to the bottom-margin
+            # position must be less than the page length; otherwise, the end of
+            # the page length becomes the bottom-margin position.
+            self.bottom_margin = 0
 
     def cancel_top_bottom_margins(self, *_):
         """Cancel the top and bottom margin settings
