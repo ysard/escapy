@@ -875,13 +875,13 @@ class ESCParser:
         self.defined_unit = value / 3600
 
     def set_18_line_spacing(self, *_):
-        """Set the line spacing to 1/8 inch
+        """Set the line spacing to 1/8 inch - ESC 0
         default: 1/6
         """
         self.current_line_spacing = 1 / 8
 
     def unset_18_line_spacing(self, *_):
-        """Set the line spacing to 1/6 inch
+        """Set the line spacing to 1/6 inch - ESC 2
         default: 1/6
         """
         self.current_line_spacing = 1 / 6
