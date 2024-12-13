@@ -258,13 +258,14 @@ def test_set_page_length_defined_unit(format_databytes, expected):
     assert escparser.top_margin == top_margin
     assert escparser.bottom_margin == bottom_margin
 
+
 @pytest.mark.parametrize(
     "format_databytes, expected",
     [
         # hex(11*360): 0xf78
         # Send bottom margin 11inch, so 11.69-11 = 0.69: Correct values
         (b"\x1bC\x42", 11),
-        # Prepend ESC ( U to set defined unit to 2 / 360
+        # Prepend ESC 1 to set the linespacing to 7 /72
         # hex(11*72/7): ~113 = 0x71
         (b"\x1b1C\x71", 11.192913385826774),
         # hex(23): 0x17
