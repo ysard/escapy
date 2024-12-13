@@ -355,7 +355,7 @@ def test_international_charset_tables(tmp_path: Path):
     table_1 = b"\x1bt\x01"  # ESC t 1 cp437 (default table)
     table_3 = b"\x1bt\x03"  # ESC t 3 cp437
     cpi_8 = b"\x1bX\x00\x10\x00"  # ESC X
-    left_margin = b"\x1bl\x03"  # ESC l
+    # left_margin = b"\x1bl\x03"  # ESC l
     cancel_left_margin = b"\x1bl\x00"  # ESC l
 
     lines = [
@@ -490,7 +490,7 @@ def test_select_font_by_pitch_and_point(tmp_path: Path):
         cpi_8 + b"Font size 24",
         b"\x1bX\x00\x30\x00" + alphabet,  # 24
         cpi_8 + b"Font size 26",
-        b"\x1bX\x00\x34\x00" + alphabet,  # 26
+        b"\x1bX\x004\x00" + alphabet,  # 26
         cpi_8 + b"Font size 30",
         b"\x1bX\x00\x3c\x00" + alphabet,  # 30
         cpi_8 + b"Font size 40",
@@ -518,6 +518,7 @@ def test_set_intercharacter_space(tmp_path: Path):
     cpi_8 = b"\x1bX\x00\x10\x00"  # ESC X: 0x10 => 16 / 2 = 8 cpi
     alphabet = b"abcdefghijklmnopqrstuvwxz"
     lines = [
+        esc_reset,
         cpi_8 + b"Intercharacter space from 0 to 128 (steps 20)"
         + reset_intercharacter_space
     ]
@@ -621,6 +622,7 @@ def test_double_width_height(tmp_path: Path, pins: int, expected_filename: str):
     pangram = b"The quick brown fox jumps over the lazy dog"
 
     lines = [
+        esc_reset,
         cpi_8 + b"Normal width (10.5 cpi)" + reset_intercharacter_space,
         pangram,
         cpi_8 + b"Double point-size (21 cpi)" + reset_intercharacter_space,
@@ -687,6 +689,7 @@ def test_select_character_style(tmp_path: Path):
     esc_q3 = b"\x1bq\x03"
 
     lines = [
+        esc_reset,
         cpi_8 + b'Character style - outline - ESC q 1' + reset_intercharacter_space,
         esc_q1 + pangram + esc_q0,
         cpi_8 + b'Character style - shadow - ESC q 2' + reset_intercharacter_space,
