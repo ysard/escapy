@@ -3064,7 +3064,7 @@ class ESCParser:
         expected_bytes = (nH << 8) + nL
         cmd_code = cmd_code.value
         data = data.value
-        if len(data) != expected_bytes:
+        if len(data) != expected_bytes:  # pragma: no cover
             LOGGER.error(
                 "expected_bytes not available !!! expect: %s, found: %s",
                 expected_bytes, len(data)
@@ -3103,7 +3103,7 @@ class ESCParser:
         expected_bytes = (nH << 8) + nL
 
         data = args[2].value
-        if len(data) != expected_bytes:
+        if len(data) != expected_bytes:  # pragma: no cover
             LOGGER.error(
                 "expected_bytes not available !!! expect: %s, found: %s",
                 expected_bytes, len(data)
@@ -3190,7 +3190,7 @@ class ESCParser:
         expected_bytes = (nH << 8) + nL - 6
 
         data = data.value
-        if len(data) != expected_bytes:
+        if len(data) != expected_bytes:  # pragma: no cover
             LOGGER.error(
                 "expected_bytes not available !!! expect: %s, found: %s",
                 expected_bytes, len(data)
