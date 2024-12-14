@@ -346,6 +346,23 @@ def test_print_raster_graphics(format_databytes: bytes, tmp_path: Path):
     pdf_comparison(processed_file)
 
 
+def test_switch_microweave_mode():
+    """Test MicroWeave print mode - ESC ( i"""
+    dataset = [
+        (b"\x1b(i\x01\x00\x00", False),
+        (b"\x1b(i\x01\x00\x30", False),
+        (b"\x1b(i\x01\x00\x01", True),
+        (b"\x1b(i\x01\x00\x31", True),
+        # Default
+        (b"", False),
+        # Canceled by ESC @
+        (b"\x1b(i\x01\x00\x31" + b"\x1b@", False),
+    ]
+    for code, expected in dataset:
+        escparser = ESCParser(esc_reset + code, pdf=False)
+        assert escparser.microweave_mode == expected
+
+
 def test_print_tiff_raster_graphics(tmp_path: Path):
     """Test TIFF raster graphics (mainly <XFER>)
 
