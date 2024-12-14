@@ -26,6 +26,7 @@ from logging import DEBUG
 from lark import Token
 from PIL import ImageFont
 from reportlab.lib import colors
+from reportlab.lib.colors import PCMYKColorSep
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase import pdfmetrics
@@ -117,10 +118,19 @@ class ESCParser:
             "#000000",  # Black
             "#ff00ff",  # Magenta
             "#00ffff",  # Cyan
-            "#aa00ff",  # Violet
+            "#8F00FF",  # Violet
             "#ffff00",  # Yellow
             "#ff0000",  # Red
             "#00ff00",  # Green
+        ]
+        self.CMYK_colors = [
+            PCMYKColorSep(0, 0, 0, 100),  # Black
+            PCMYKColorSep(0, 100, 0, 0),  # Magenta
+            PCMYKColorSep(100, 0, 0, 0),  # Cyan
+            PCMYKColorSep(44, 100, 0, 0, spotName="VIOLET"),
+            PCMYKColorSep(0, 0, 100, 0),  # Yellow
+            PCMYKColorSep(0, 100, 100, 0, spotName="RED"),
+            PCMYKColorSep(100, 0, 100, 0, spotName="GREEN"),
         ]
 
         # Font rendering #######################################################
@@ -144,6 +154,7 @@ class ESCParser:
             # Init PDF render
             self.current_pdf = Canvas(output_file, pagesize=page_size, pageCompression=1)
             self.current_pdf.setLineWidth(0.3)
+            self.current_pdf.setFillOverprint(True)
 
         # Page configuration ###################################################
         self.page_width = page_size[0] / 72
@@ -339,7 +350,8 @@ class ESCParser:
 
         if self.current_pdf:
             # Update PDF setting
-            self.current_pdf.setFillColor(colors.HexColor(self.RGB_colors[color]))
+            # self.current_pdf.setFillColor(colors.HexColor(self.RGB_colors[color]))
+            self.current_pdf.setFillColor(self.CMYK_colors[color])
 
     @property
     def point_size(self) -> int:
