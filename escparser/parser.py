@@ -1404,7 +1404,7 @@ class ESCParser:
         # Cancel previous tabs
         self.vertical_tabulations = [0] * 16
 
-        if not line_ids:
+        if not line_ids[0]:
             # No data: Just cancel all tabs
             return
 
