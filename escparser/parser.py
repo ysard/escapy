@@ -935,7 +935,7 @@ class ESCParser:
         self.current_line_spacing = 7 / 72
 
     def h_v_skip(self, *args):
-        """Move the print position depending on the value of m
+        """Move the print position depending on the value of m - ESC f
 
         m = 0: horizontally
         m = 1: vertically
@@ -950,7 +950,7 @@ class ESCParser:
 
             cancel double-width printing selected with the SO or ESC SO command.
         """
-        m, n = args[1].value
+        m, n = args[1].value[0], args[2].value[0]
 
         if m == 0:
             # horizontally
@@ -961,8 +961,6 @@ class ESCParser:
             _ = [self.line_feed() for _ in range(n)]
             self.carriage_return()
             self.double_width = False
-        else:
-            raise ValueError
 
     def backspace(self, *_):
         """Move the print position to the left a distance equal to one character
