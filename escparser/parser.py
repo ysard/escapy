@@ -1230,7 +1230,7 @@ class ESCParser:
         if self.pins == 9 and self.single_sheet_paper:
             if self.cursor_y < printable_bottom_margin:
                 # ejects the paper
-                print("outside printable area")
+                LOGGER.info("outside printable area => NEXT PAGE required!")
                 self.next_page()
                 # TODO: if loaded manually: report the remaining distance on the new page
                 return
