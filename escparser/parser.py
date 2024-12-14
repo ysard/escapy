@@ -1252,8 +1252,8 @@ class ESCParser:
         .. note:: Complete each page with a FF command. Also send a FF command
             at the end of each print job.
 
-        TODO: Ejects single-sheet paper
-        Moves the horizontal print position to the left-margin position
+        - Ejects single-sheet paper
+        - Moves the horizontal print position to the left-margin position
         TODO: Prints all data in the buffer
         """
         self.double_width = False
@@ -1261,7 +1261,12 @@ class ESCParser:
 
         if self.pins == 9 and not self.single_sheet_paper:
             # Move to top-of-form
+            # Note: In any case on old printers, top_margin is not configurable...
             self.top_margin = self.printable_area[0]
+            # Update the cursor according to the new top_margin
+            # self.reset_cursor_y()
+            # shorter, all routines are already made in previous next_page() call
+            self.cursor_y = self.top_margin
 
     def next_page(self):
         """Initiate a new page and reset cursors"""
