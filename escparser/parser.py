@@ -1681,7 +1681,7 @@ class ESCParser:
         else:
             self.typeface = value
 
-        LOGGER.debug("Select typeface %s", self.typeface_names[value])
+        LOGGER.debug("Select typeface %s", self.typeface_names[self.typeface])
 
         self.set_font()
 

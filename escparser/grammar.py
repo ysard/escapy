@@ -101,8 +101,8 @@ esc_grammar = r"""
 
 
         # Font selection
-        # 0-9 10 11 30 31
-        | ESC "k" /[\x00-\x0b\x1e\x1f]/     -> select_typeface
+        # 0-9 10 11 30 31; add 12 (0x0c) for tests purpose
+        | ESC "k" /[\x00-\x0c\x1e\x1f]/     -> select_typeface
         | ESC "X" /[\x00\x01\x05-\x7f].{2}/ -> select_font_by_pitch_and_point
         # TODO: group these 3 commands
         | ESC "P"                           -> select_10cpi
