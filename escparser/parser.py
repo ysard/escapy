@@ -1530,6 +1530,11 @@ class ESCParser:
         # d1 should be in [0, 1, 2, 3] for ESCP2/ESCP
         # d1 should be in [0, 1] for 9 pins
         selected_table = character_table_mapping[d2, d3]
+
+        # Remap d1 if character code ("0", "1", ...) is used instead of an integer
+        if d1 >= 0x30:
+            d1 -= 0x30
+
         # Replace the old table
         self.character_tables[d1] = selected_table
 
