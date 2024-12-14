@@ -380,9 +380,16 @@ def test_set_page_length_inches(format_databytes, expected):
         # Prepend ESC ( U to set defined unit to 2/360
         # 1 inch down
         (b"\x1b(U\x01\x00\x14" + b"\x1b(v\x02\x00" + pack("<h", 180), None, 0, -1),
+        #
         # Advance the vertical print position n/180 inch - ESC J
         # down (255/180)
         (b"\x1bJ" + pack("<B", 255), None, 0, -1.4166666666666667),
+        # Idem: but below bottom_margin and bottom_printable area: eject
+        # See the tear down end_page_paper_handling()
+        # Here we set the cursor_y just enough to trigger a next page event
+        # from the ESC J command (66*1.66 = 11 inch).
+        # 255/216 ~ 1.18 inch down: 11 + 1.18 > 11.69 inch of A4 page
+        (b"\n" * 66 + b"\x1bJ" + pack("<B", 255), 9, 0, 0),
         # 1 inch down (180/180)
         (b"\x1bJ" + pack("<B", 180), None, 0, -1),
         # 1 inch down (216/216)
@@ -415,6 +422,7 @@ def test_set_page_length_inches(format_databytes, expected):
         "RV_1inch+defined_unit",
         # Advance the vertical print position n/180 inch - ESC J
         "AdV_maxoffset",
+        "AdV_maxoffset_9pins",
         "AdV_1inch",
         "AdV_1inch_9pins",
     ],
@@ -429,6 +437,9 @@ def test_set_print_position(format_databytes, pins: int, x_offset: int | float, 
         - Absolute vertical position - ESC ( V
         - Relative vertical position - ESC ( v
         - Advance the vertical print position n/180 inch - ESC J
+
+    .. warning:: In theory ESC ( U, ESC ( v, ESC ( V are not available
+        on non ESCP2 printers.
 
     :param pins: Number of pins supported by the printer. None for ESCP2.
     :param x_offset: Expected offset from the top-margin.
