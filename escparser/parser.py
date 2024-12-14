@@ -1550,7 +1550,6 @@ class ESCParser:
             setting here.
         """
         value = args[1].value[0]
-        character_table = None
         match value:
             case 0 | 48:
                 character_table = 0
@@ -1574,9 +1573,9 @@ class ESCParser:
                 # qu'après un reset ESC @.
             case 3 | 51:
                 character_table = 3
-
-        if character_table is None:
-            return
+            case _:  # pragma: no cover
+                # Not reachable: filtered in the grammar
+                return
 
         encoding = self.character_tables[character_table]
         if not encoding:
