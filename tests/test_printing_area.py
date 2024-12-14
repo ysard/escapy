@@ -468,3 +468,26 @@ def test_h_v_skip():
     expected = round(escparser.printable_area[0] - escparser.current_line_spacing * 10, 5)
     found = round(escparser.cursor_y, 5)
     assert found == expected
+
+
+def test_form_feed():
+    """Test form feed - FF"""
+    double_width_cmd = b"\x0e"
+    formfeed_cmd = b"\x0c"
+    top_margin_cmd = b"\x1b(c\x04\x00\x08\x02\x78\x0f"
+    code = esc_reset + top_margin_cmd + double_width_cmd + formfeed_cmd
+
+    # In 9 pins mode + continuous paper, the top_margin is not used
+    # (and not configurable in 9 pins BTW...)
+    # so the printable area margin is used after the new_page event.
+    escparser = ESCParser(code, pins=9, single_sheets=False, pdf=False)
+    expected = escparser.printable_area[0]
+    assert escparser.cursor_y == expected
+    assert not escparser.double_width
+
+    # ESCP2 & 9 pins (single-sheets)
+    escparser = ESCParser(code, pdf=False)
+    expected = escparser.top_margin
+    assert escparser.top_margin != escparser.printable_area[0]
+    assert escparser.cursor_y == expected
+    assert not escparser.double_width
