@@ -156,7 +156,7 @@ def test_select_typeface():
     assert escparser.current_fontpath == "truetype/firacode/FiraCode-Regular.ttf"
 
     # wrong typeface ID => switch to default (0) which is FiraCode-Bold
-    format_databytes = b"\x1Bk\x0a"
+    format_databytes = b"\x1Bk\x0c"
     escparser = ESCParser(format_databytes)
     expected = 0
     assert escparser.typeface == expected, "Wrong typeface selected"
