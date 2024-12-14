@@ -448,3 +448,23 @@ def test_set_print_position(format_databytes, pins: int, x_offset: int | float, 
     escparser = ESCParser(format_databytes, pins=pins, pdf=False)
     assert escparser.cursor_x == escparser.left_margin + x_offset
     assert escparser.cursor_y == escparser.top_margin + y_offset
+
+
+def test_h_v_skip():
+    """Test horizontal/vertical skip - ESC f"""
+    # n = 10
+    horizontal_skip = b"\x1bf\x00\x0a"
+    vertical_skip = b"\x1bf\x01\x0a"
+
+    escparser = ESCParser(esc_reset + horizontal_skip, pins=9, pdf=False)
+    # default character pitch is 1/10
+    # Since the modern font don't use this setting, we expect at least 10 * 1/10
+    print(escparser.character_pitch * 10)
+    assert escparser.cursor_x >= 1
+
+    escparser = ESCParser(esc_reset + vertical_skip, pins=9, pdf=False)
+    print(escparser.current_line_spacing * 10) # 1/6 * 10
+    # We need to round the values... rounding errors seem to accumulate
+    expected = round(escparser.printable_area[0] - escparser.current_line_spacing * 10, 5)
+    found = round(escparser.cursor_y, 5)
+    assert found == expected
