@@ -354,9 +354,9 @@ class ESCParser:
             self.current_pdf.setFillColor(self.CMYK_colors[color])
 
     @property
-    def point_size(self) -> int:
+    def point_size(self) -> float:
         """Get the current font point size (in cpi)"""
-        return int(self._point_size)
+        return self._point_size
 
     @point_size.setter
     def point_size(self, point_size: float):
