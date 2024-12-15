@@ -1025,18 +1025,6 @@ class ESCParser:
         else:
             horizontal_scale_coef = 1
 
-        # Get the current fontpath in use
-        # /!\ If it's an internal font from reportlab (no filepath),
-        # fallback to a known installed font on the system
-        fontname = self.current_fontpath
-        if not self.current_fontpath:
-            LOGGER.warning(
-                "Font %s not found in usual font directories; Maybe an internal font of reportlab?"
-                " Switch back to 'DejaVuSansMono' to compute text width",
-                fontname
-            )
-            fontname = "DejaVuSansMono"
-
         # Decode the text according to the current character table
         encoding = self.character_tables[self.character_table]
         if encoding == "Italic":
@@ -1103,9 +1091,9 @@ class ESCParser:
             if point_size > 8:
                 self.point_size = round(self.point_size * 2 / 3)
 
-            graphical_text = ImageFont.truetype(fontname, self.point_size)
-
             if self.current_pdf:
+                text_width = self.current_pdf.stringWidth(text)
+
                 # Print text
                 textobject = self.current_pdf.beginText()
                 textobject.setTextOrigin(self.cursor_x * 72, cursor_y * 72)
@@ -1121,13 +1109,14 @@ class ESCParser:
                 textobject.setRise(0)
                 textobject.setHorizScale(100)
                 self.current_pdf.drawText(textobject)
+
             # Restore original point size
             self.point_size = point_size
 
         else:
-            graphical_text = ImageFont.truetype(fontname, self.point_size)
-
             if self.current_pdf:
+                text_width = self.current_pdf.stringWidth(text)
+
                 # Print text
                 if self.double_width or self.double_height or self.character_style is not None:
                     textobject = self.current_pdf.beginText()
@@ -1148,10 +1137,12 @@ class ESCParser:
                     self.current_pdf.drawString(self.cursor_x * 72, cursor_y * 72, text, charSpace=self.extra_intercharacter_space)
 
         # Actualize the x cursor with the apparent width of the written text
+        if not self.current_pdf:
+            # Fallback
+            text_width = len(text) / self.character_pitch
         # use inches: convert pixels to inch
-        text_width = graphical_text.getlength(text) / 72
+        text_width /= 72
         if self.double_width or self.double_height:
-            # TODO: Bad evaluation of double-height text width for non monospaced font
             text_width *= horizontal_scale_coef
         self.cursor_x += text_width
 
