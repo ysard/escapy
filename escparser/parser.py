@@ -100,6 +100,7 @@ class ESCParser:
         self.current_pdf = None
 
         # Character enhancements ###############################################
+        self.baseline_offset = 7 / 72 if self.pins == 9 else 20 / 180
         self.italic = False
         self.bold = False
         self._underline = False
@@ -311,7 +312,7 @@ class ESCParser:
     def underline(self, value: bool):
         """Set the attribute and draw an underline when underlining is just unset"""
         # Take care of the baseline offset
-        cursor_y = self.cursor_y - 20 / 180
+        cursor_y = self.cursor_y - self.baseline_offset
 
         if value != self._underline:
             if value:
@@ -1010,9 +1011,7 @@ class ESCParser:
             the same (i.e. double width font, etc.).
         """
         value = arg.value
-
-        baseline_offset = 7 / 72 if self.pins == 9 else 20 / 180
-        cursor_y = self.cursor_y - baseline_offset
+        cursor_y = self.cursor_y - self.baseline_offset
         if self.double_height and self.double_width:
             # The point size is already multiplied by 2
             # roughly equivalent to x2 point size: do not change horizontal scale
