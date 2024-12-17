@@ -1633,8 +1633,6 @@ class ESCParser:
         """Select the set of characters printed for specific character codes - ESC R
 
         Allow to change up to 12 of the characters in the current character table
-
-        TODO: implement char mapping code before printing them
         """
         value = args[1].value[0]
         self.international_charset = value
