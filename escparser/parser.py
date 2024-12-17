@@ -19,7 +19,8 @@
 from pathlib import Path
 from enum import Enum
 import itertools as it
-from functools import lru_cache
+import codecs
+from functools import lru_cache, partial
 from logging import DEBUG
 
 # Custom imports
@@ -35,6 +36,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 # Local imports
 from escparser.grammar import init_parser
 from escparser.commons import charset_mapping, international_charsets, character_table_mapping, left_to_right_languages
+from escparser.i18n_codecs import getregentry
 from escparser.commons import typefaces
 from escparser.commons import logger
 
@@ -214,8 +216,10 @@ class ESCParser:
             # Continuous paper ESCP2/ESCP
             self.page_length = self.page_height
 
+        print("construct page length", self.page_length)
+
         self.character_tables = [
-            "Italic",
+            "italic",
             "cp437", # "PC437"
             None, # "User-defined characters"
             "cp437", # "PC437"
@@ -987,6 +991,37 @@ class ESCParser:
             return
         self.cursor_x = cursor_x
 
+    @property
+    def encoding(self) -> str:
+        """Get the encoding in use according to the current character table and
+        international_charset loaded.
+
+        .. warning:: Italic is currently not supported.
+        """
+        # Decode the text according to the current character table
+        encoding = self.character_tables[self.character_table]
+        if encoding in (None, "italic"):
+            # Encoding not supported, fall back to cp437; See select_character_table()
+            return "cp437"
+
+        if self.international_charset == 0:
+            return encoding
+
+        # Build a new codec if the variant has never been encountered
+        encoding_variant = f"{encoding}_{charset_mapping[self.international_charset]}"
+        try:
+            codecs.lookup(encoding_variant)
+        except LookupError:
+            register_codec_func = partial(
+                getregentry,
+                effective_encoding=encoding_variant,
+                base_encoding=encoding,
+                intl_charset=international_charsets[self.international_charset]
+            )
+            codecs.register(register_codec_func)
+
+        return encoding_variant
+
     def binary_blob(self, arg):
         """Print text characters
 
@@ -1026,19 +1061,17 @@ class ESCParser:
 
         # Decode the text according to the current character table
         encoding = self.character_tables[self.character_table]
-        if encoding == "Italic":
+        if encoding == "italic":
             LOGGER.warning("Italic table is partially supported: map all italic chars to normal chars")
             # Remap the upper table part to the lower part
             value = bytearray(i if i < 0x80 else i - 0x80 for i in value)
-            encoding = "cp437"
-        elif encoding is None:
-            # Encoding not supported, fall back to cp437; See select_character_table()
-            encoding = "cp437"
 
-        text = value.decode(encoding)
+        encoding_variant = self.encoding
+        text = value.decode(encoding_variant)
         if encoding in left_to_right_languages:
             text = text[::-1]
-        print(value)
+
+        # print(value)
         print(text)
 
         def apply_character_style(text_object, text):
