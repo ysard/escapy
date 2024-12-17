@@ -335,8 +335,8 @@ def test_charset_tables(tmp_path: Path):
     greek_pangram_2 = "Ξεσκεπάζω την ψυχοφθόρα βδελυγμία.".encode("cp869")
     # 29, 7; τὴν not supported
     greek_pangram_3 = "Ξεσκεπάζω την ψυχοφθόρα βδελυγμία.".encode("iso8859_7")
-    # 25, 0
-    german_pangram = "Victor jagt zwölf Boxkämpfer quer über den großen Sylter Deich.".encode("iso8859_1")
+    # 29, 16
+    german_pangram = "Victor jagt zwölf Boxkämpfer quer über den großen Sylter Deich.".encode("latin_1")
     # 24, 0
     icelandic_pangram = "Kæmi ný öxi hér, ykist þjófum nú bæði víl og ádrepa.".encode("cp861")
     # 11, 0
@@ -385,8 +385,8 @@ def test_charset_tables(tmp_path: Path):
         table_1 + b"\x1b(t\x03\x00\x01\x0f\x00" + greek_pangram_2,
         table_3 + b"Greek, iso8859_7",
         table_1 + b"\x1b(t\x03\x00\x01\x1d\x07" + greek_pangram_3,
-        table_3 + b"German, iso8859_1",
-        table_1 + b"\x1b(t\x03\x00\x01\x19\x00" + german_pangram,
+        table_3 + b"German, latin_1",
+        table_1 + b"\x1b(t\x03\x00\x01\x1d\x10" + german_pangram,
         table_3 + b"Icelandic, cp861",
         table_1 + b"\x1b(t\x03\x00\x01\x18\x00" + icelandic_pangram,
         table_3 + b"Turkish, cp857",
