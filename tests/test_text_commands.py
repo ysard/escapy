@@ -308,7 +308,7 @@ def test_set_script_printing():
         assert escparser.scripting == expected
 
 
-def test_international_charset_tables(tmp_path: Path):
+def test_charset_tables(tmp_path: Path):
     """Print various pangrams in various languages using their own encoding
 
     Cover mainly:
@@ -349,6 +349,8 @@ def test_international_charset_tables(tmp_path: Path):
     thai_pangram = "นายสังฆภัณฑ์ เฮงพิทักษ์ฝั่ง ผู้เฒ่าซึ่งมีอาชีพเป็นฅนขายฃวด ถูกตำรวจปฏิบัติการจับฟ้องศาล ฐานลักนาฬิกาคุณหญิงฉัตรชฎา ฌานสมาธิ".encode("iso8859_11")
     # 12, 0
     hebrew_pangram = "איש עם זקן טס לצרפת ודג בחכה".encode("cp862")
+    # 25, 0
+    portuguese_pangram = "Ré só que vê galã sexy pôr kiwi talhado à força em baú põe juíza má em pânico. Œœ".encode("brascii")
 
     # ESC ( t d1 d2 d3
     table_0 = b"\x1bt\x00"  # ESC t 0 Italic
@@ -397,9 +399,37 @@ def test_international_charset_tables(tmp_path: Path):
         table_1 + b"\x1b(t\x03\x00\x01\x12\x00" + thai_pangram,
         table_3 + b"Hebrew, cp862",
         table_1 + b"\x1b(t\x03\x00\x01\x0c\x00" + hebrew_pangram,
+        table_3 + b"Portuguese, brascii",
+        table_1 + b"\x1b(t\x03\x00\x01\x19\x00" + portuguese_pangram ,
         table_3 + b"Greek - Not supported charset 4,0 (should not crash)",
         table_1 + b"\x1b(t\x03\x00\x01\x04\x00" + greek_pangram,
     ]
+
+    code = b"\r\n".join(lines)
+    processed_file = tmp_path / "test_charset_tables.pdf"
+    _ = ESCParser(code, output_file=str(processed_file))
+
+    pdf_comparison(processed_file)
+
+
+def test_international_charsets(tmp_path: Path):
+    """Test injection of 12 characters in the current character table - ESC R
+
+    Custom encoding/decoding codecs are tested here.
+    """
+    cpi_8 = b"\x1BX\x00\x10\x00" # 0x10 => 16 / 2 = 8
+    roman = b"\x1B\x6B\x00"
+    select_international_charset_prefix = b"\x1bR"
+    lines = [
+        esc_reset + cpi_8 + roman + "cp437 table with international mods".encode("cp437"),
+    ]
+    # Select intl
+    for intl_id, charset in cm.international_charsets.items():
+        print(intl_id)
+        lines.append((cm.charset_mapping[intl_id] + ":").encode("ascii"))
+        # Send the ESC command + the bytes to be encoded
+        lines.append(select_international_charset_prefix + intl_id.to_bytes() + bytes(bytearray(charset.keys())))
+        # lines.append(select_international_charset_prefix + b"\x00")
 
     code = b"\r\n".join(lines)
     processed_file = tmp_path / "test_international_charset_tables.pdf"
