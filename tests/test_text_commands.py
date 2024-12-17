@@ -420,8 +420,12 @@ def test_international_charsets(tmp_path: Path):
     cpi_8 = b"\x1BX\x00\x10\x00" # 0x10 => 16 / 2 = 8
     roman = b"\x1B\x6B\x00"
     select_international_charset_prefix = b"\x1bR"
+    # Force latin1 usage by simulating german encoding
+    # PS: Here we use latin1 (which is a C implementation) to test the switch to
+    # iso8859_1 which is a pure Python implementation.
+    latin1 = b"\x1b(t\x03\x00\x01\x1d\x10"
     lines = [
-        esc_reset + cpi_8 + roman + "cp437 table with international mods".encode("cp437"),
+        esc_reset + cpi_8 + roman + latin1 + "latin_1 table with international mods".encode("latin_1"),
     ]
     # Select intl
     for intl_id, charset in cm.international_charsets.items():
