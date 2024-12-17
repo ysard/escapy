@@ -97,7 +97,7 @@ character_tablenames_mapping = {
 
 # Codecs mapping
 character_table_mapping = {
-    (0, 0): "Italic",  # Not existing code page but special processing; see binary_blob()
+    (0, 0): "italic",  # Not existing code page but special processing; see binary_blob()
     (1, 0): "cp437",
     (1, 16): "cp737",
     (2, 0): "cp932",
@@ -126,7 +126,7 @@ character_table_mapping = {
     (22, 0): None, # "TIS13 (IBM STD. Thai)",
     (23, 0): None, # "TIS16 (SIC OLD Thai)",
     (24, 0): "cp861",
-    (25, 0): "iso8859_1", # https://en.wikipedia.org/wiki/BraSCII almost 8859-1 except 2 chars
+    (25, 0): "brascii", # https://en.wikipedia.org/wiki/BraSCII almost 8859-1 except 2 chars
     (26, 0): None, # "Abicomp",
     (27, 0): None, # "MAZOWIA (Poland)",
     (28, 0): None, # "Code MJK (CSFR)",
@@ -156,21 +156,21 @@ left_to_right_languages = ("cp720", "cp862")
 # set of up to 12 particular characters that corresponds to symbols used
 # in various countries
 charset_mapping = {
-    0 : "USA",
-    1 : "France",
-    2 : "Germany",
-    3 : "United Kingdom",
-    4 : "Denmark I",
-    5 : "Sweden",
-    6 : "Italy",
-    7 : "Spain I",
-    8 : "Japan (English)",
-    9 : "Norway",
-    10: "Denmark II",
-    11: "Spain II",
-    12: "Latin America",
-    13: "Korea",
-    64: "Legal",
+    0 : "us",  # "USA",
+    1 : "fr",  # "France",
+    2 : "de",  # "Germany",
+    3 : "uk",  # "United Kingdom",
+    4 : "dk1", # "Denmark I",
+    5 : "se",  # "Sweden",
+    6 : "it",  # "Italy",
+    7 : "es1", # "Spain I",
+    8 : "jp",  # "Japan (English)",
+    9 : "no",  # "Norway",
+    10: "dk2", # "Denmark II",
+    11: "es2", # "Spain II",
+    12: "sa",  # "Latin America",
+    13: "kr",  # "Korea",
+    64: "legal",  # "Legal",
 }
 
 international_charsets = {
@@ -273,7 +273,7 @@ international_charsets = {
         126: "ì",
     },
     7: {
-        35: "Pt",
+        35: "₧", #20a7 -> PESETA SIGN (Currency symbol)
         36: "$",
         64: "@",
         91: "¡",
@@ -361,7 +361,7 @@ international_charsets = {
         36:  "$",
         64:  "@",
         91:  "[",
-        92:  "₩",
+        92:  "₩",  # 20a9 -> WON SIGN (Currency symbol)
         93:  "]",
         94:  "^",
         96:  "`",
