@@ -438,6 +438,18 @@ def test_international_charsets(tmp_path: Path):
     pdf_comparison(processed_file)
 
 
+def test_custom_codec():
+    """Test custom encoding/decoding codecs behavior
+
+    Test brascii codec: https://en.wikipedia.org/wiki/BraSCII almost 8859-1 except 2 chars
+    """
+    expected_text = "BRASCII: Œ, œ"
+    binary = expected_text.encode("brascii")
+    found = binary.decode("brascii")
+
+    assert found == expected_text
+
+
 def test_fonts(tmp_path: Path):
     """Print english pangram to test font switching & support
 
