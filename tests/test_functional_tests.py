@@ -18,13 +18,15 @@ from .misc import DIR_DATA, pdf_comparison
         ("test2.KEYBCS2.prn", "test2.KEYBCS2.pdf", {"page_size": landscape(A4)}),
         ("Test2_badcommand.prn", "Test2_badcommand.pdf", {"pins": 9}),
         ("escp2_1.prn", "escp2_1.pdf", {}),
+        ("escp2_1.prn", "escp2_1_9pins.pdf", {"pins": 9}),
 
     ],
     ids=[
         "test_Graphics_invoice.CP850",
         "test2.KEYBCS2",
         "Test2_badcommand",
-        "escp2_1"
+        "escp2_1",
+        "escp2_1_9pins",
     ],
 )
 def test_full_file_conversion(tmp_path: Path, code_file: str, expected_pdf: str, args: dict):
