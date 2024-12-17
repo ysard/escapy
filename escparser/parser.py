@@ -1028,19 +1028,21 @@ class ESCParser:
         .. tip:: A point equals 1/72 of an inch, we need to convert this to pixels
              by multiplying by 72.
 
-        The baseline for printing characters on the first line
-        is 20/180 inch below the top-margin position.
-        On 9-pin printers, 7/72 inch below the print position.
+        .. note:: About the printing baseline:
+            The baseline for printing characters is 20/180 inch
+            (7/72 inch for 9-pin printers) below the vertical print position.
 
-        This offset is for characters only, not graphics !
+            This offset is for characters only, not graphics !
 
-        For graphics printing, the print position is the top printable
-        row of dots (see in concerned functions).
+            For graphics printing, the print position is the top printable
+            row of dots (see in concerned functions).
 
         .. warning:: The horizontal move should be according to the selected pitch
-            (or the width of each character for select proportional spacing).
-            Since we use modern fonts we must use an accurate width that is
-            not relying on fixed character spacing.
+            (or the width of each character if proportional spacing is selected).
+            Since we use modern fonts we must use an accurate width which is not
+            based on fixed character spacing, but on the point size and the
+            internal settings of monospaced/non-monospaced and
+            pitch fixed/not pitch fixed fonts.
 
             This will generate positionning errors when the old font is not strictly
             the same (i.e. double width font, etc.).
