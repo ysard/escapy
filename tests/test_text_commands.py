@@ -412,32 +412,50 @@ def test_charset_tables(tmp_path: Path):
     pdf_comparison(processed_file)
 
 
-def test_international_charsets(tmp_path: Path):
-    """Test injection of 12 characters in the current character table - ESC R
+@pytest.mark.parametrize(
+    "assign_table_cmd, encoding",
+    [
+        # table 1 is assigned
+        # Force latin1 usage by simulating german encoding
+        # PS: Here we use latin1 (which is a C implementation) to test the switch
+        # to iso8859_1 which is a pure Python implementation.
+        (b"\x1b(t\x03\x00\x01\x1d\x10", "latin_1"),
+        # This encoding is implemented in C without a pure Python alternative.
+        # Here, we test the fallback process that rebuilds the decoding table on the fly
+        (b"\x1b(t\x03\x00\x01\x02\x00", "cp932"),
+    ],
+    ids=[
+        "latin_1",
+        "cp932",
+    ],
+)
+def test_international_charsets(tmp_path: Path, assign_table_cmd, encoding):
+    """Test injection of 12 characters in the current character table (1 by default) - ESC R
 
     Custom encoding/decoding codecs are tested here.
     """
     cpi_8 = b"\x1BX\x00\x10\x00" # 0x10 => 16 / 2 = 8
     roman = b"\x1B\x6B\x00"
     select_international_charset_prefix = b"\x1bR"
-    # Force latin1 usage by simulating german encoding
-    # PS: Here we use latin1 (which is a C implementation) to test the switch to
-    # iso8859_1 which is a pure Python implementation.
-    latin1 = b"\x1b(t\x03\x00\x01\x1d\x10"
+
     lines = [
-        esc_reset + cpi_8 + roman + latin1 + "latin_1 table with international mods".encode("latin_1"),
+        esc_reset + cpi_8 + roman + assign_table_cmd + "table with international mods".encode(encoding),
     ]
     # Select intl
     for intl_id, charset in cm.international_charsets.items():
         print(intl_id)
-        lines.append((cm.charset_mapping[intl_id] + ":").encode("ascii"))
+        lines.append((cm.charset_mapping[intl_id] + ":").encode(encoding))
         # Send the ESC command + the bytes to be encoded
         lines.append(select_international_charset_prefix + intl_id.to_bytes() + bytes(bytearray(charset.keys())))
         # lines.append(select_international_charset_prefix + b"\x00")
 
     code = b"\r\n".join(lines)
     processed_file = tmp_path / "test_international_charset_tables.pdf"
-    _ = ESCParser(code, output_file=str(processed_file))
+    escparser = ESCParser(code, output_file=str(processed_file))
+
+    # Check that the base encoding is in use
+    found_encoding = escparser.character_tables[escparser.character_table]
+    assert found_encoding == encoding
 
     pdf_comparison(processed_file)
 
