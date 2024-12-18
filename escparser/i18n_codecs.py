@@ -75,20 +75,22 @@ class Codec(codecs.Codec):
 
 def getregentry(
     encoding: str,
-    effective_encoding: str | None = None,
-    base_encoding: str | None = None,
+    effective_encoding: str = "",
+    base_encoding: str = "",
     intl_charset: dict | None = None,
 ) -> None | codecs.CodecInfo:
     """Used to register a custom codec
 
     .. seealso:: :meth:`codecs.register`.
 
-    :param encoding: Encoding name that will be used to register the new
+    :param base_encoding: Encoding name passed by the lookup function.
+    :key effective_encoding: Encoding name that will be used to register the new
         codec.
-    :param base_encoding: Encoding used as a base for the new codec.
-    :param intl_charset: Mapping injected in the base codec.
+    :key base_encoding: Encoding used as a base for the new codec.
+    :key intl_charset: Mapping injected in the base codec.
         Numeric values as keys, letters as values.
-    :return: Callable that will be used by the codec search engine.
+    :return: Return the CodecInfo object if there is a match with the keyword
+        parameter base_encoding, None otherwise.
     """
     if encoding != effective_encoding:
         return
