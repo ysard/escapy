@@ -1068,8 +1068,11 @@ class ESCParser:
             # Remap the upper table part to the lower part
             value = bytearray(i if i < 0x80 else i - 0x80 for i in value)
 
+        # Get the encoding according to an enventually international charset set
         encoding_variant = self.encoding
-        text = value.decode(encoding_variant)
+        # Fallback if character is not in the code page
+        # Use any of: replace, backslashreplace, ignore
+        text = value.decode(encoding_variant, errors="replace")
         if encoding in left_to_right_languages:
             text = text[::-1]
 
