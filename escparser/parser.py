@@ -2426,17 +2426,46 @@ class ESCParser:
         """
         self.binary_blob(Token("DATA", args[2].value))
 
-    def set_upper_control_codes_printing(self, *args):
-        """Codes from 128 to 159 as printable characters instead of control codes - ESC 6
+    def set_upper_control_codes_printing(self, *_):
+        """Treat codes from 128 to 159 as printable characters instead of control codes - ESC 6
 
-        TODO:
-        has no effect when the italic character table is selected; no characters are
-        defined for these codes in the italic character table.
+        Has no effect when the italic character table is selected; no characters
+        are defined for these codes in the italic character table.
 
-        TODO:
-        remains in effect even if you change the character table
+        Interval: 0x80-0x9f
+
+        Remains in effect even if you change the character table
+        p159
         """
-        raise NotImplementedError
+        if self.character_tables[self.character_table] == "italic":
+            return
+
+    def unset_upper_control_codes_printing(self, *_):
+        """Treat codes from 128 to 159 as control codes instead of printable characters - ESC 7
+
+        Interval: 0x80-0x9f
+        """
+        pass
+
+    def switch_control_codes_printing(self, *args):
+        """Treat codes 0–6, 16, 17, 21–23, 25, 26, 28–31, and 128–159 as printable
+         characters according to the given setting - ESC I
+
+        - 0–6, 16: None of them are used alone in ESC commands
+        - 17 (DC1: 0x11): Select printer command
+        - 21-23 (NAK: 0x15, SYN: 0x16, ETB: 0x17): None of them are used alone in ESC commands
+        - 25, 26, 28-31: None of them are used alone in ESC commands
+
+        Has no effect when the italic character table is selected; no characters
+        are defined for these codes in the italic character table.
+
+        Remains in effect even if you change the character table
+
+        :param args: Value at index 1:
+            If 1: codes are processed as printable characters
+            If 0: codes are not processed as printable characters => discarded
+        """
+        value = args[1].value[0]
 
     def control_paper_loading_ejecting(self, *args):
         """Controls feeding of continuous and single-sheet paper - ESC EM
