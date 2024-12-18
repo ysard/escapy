@@ -13,7 +13,7 @@ LOGGER = logger()
 class Codec(codecs.Codec):
     """Custom code page encoding/decoding codec"""
 
-    def __init__(self, encoding, intl_charset):
+    def __init__(self, base_encoding, intl_charset):
         """
 
         .. warning:: Some encodings have an implementation that is not in pure
@@ -21,31 +21,31 @@ class Codec(codecs.Codec):
             used to build a new encoding here.
             For example, latin_1 is implemented in C but has a pure Python
             implementation: iso8859_1. This is not the case for cp932 (Japanese).
-            For this last one, injecting characters is not possible for now.
-            TODO: rebuild the decoding table by encoding a bytes range(0,256).
+            For this last one, we rebuild the decoding table with a bytes range
+            from 0 to 256. If characters are not in the original table, they will
+            be replaced with a symbol '?'. There could be a loss of information!!
 
-        :raise: ValueError if encoding is not compatible with decoding_table use.
-
-        :param encoding: Encoding used as a base for the new codec.
+        :param base_encoding: Encoding used as a base for the new codec.
         :param intl_charset: Mapping injected in the base codec.
             Numeric values as keys, letters as values.
         """
         super()
 
-        if encoding == "latin_1":
+        if base_encoding == "latin_1":
             # This codec is implemented in C for optimizations purposes
             # => switch to iso8859_1 to get the decoding table
-            encoding = "iso8859_1"
+            base_encoding = "iso8859_1"
 
-        module = importlib.import_module(f"encodings.{encoding}")
+        module = importlib.import_module(f"encodings.{base_encoding}")
         if "decoding_table" not in dir(module):
             LOGGER.warning(
                 "Encoding <%s> not compatible with international charset injection"
             )
-            raise ValueError
-
-        # Convert the decoding table (str) to a mutable type (list)
-        decoding_table = list(module.decoding_table)
+            # /!\ Errors will be masked with a '?' symbol !!
+            decoding_table = list(bytes(range(256)).decode(base_encoding, errors="replace"))
+        else:
+            # Convert the decoding table (str) to a mutable type (list)
+            decoding_table = list(module.decoding_table)
 
         # Replace the mappings of the given charset
         for position, letter in intl_charset.items():
