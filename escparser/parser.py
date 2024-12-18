@@ -2407,13 +2407,24 @@ class ESCParser:
         """Print data as characters - ESC ( ^
 
         - only ESCP2
-        TODO: ignores data if no character is assigned to that character code in
-            the currently selected character table.
-        """
-        nL, nH = args[1].value
-        expected_bytes = (nH << 8) + nL
 
-        raise NotImplementedError
+        .. warning:: Should ignore data if no character is assigned to that
+            character code in the currently selected character table.
+
+            Since we redirect the data content to :meth:`binary_blob`.
+            The data will be decoded there.
+            For now it use `replace` or `backslashreplace` not `ignore`.
+
+        .. todo:: Control codes meaning varies according the context (graphical
+            or not). Many(all?) tables should have graphics caracters but they not.
+            Ex: cp437 has no graphic character under in the interval 0x01-0x1f,
+            0x7f.
+            These characters should be injected after the decoding process.
+            See: `Stackoverflow question <https://stackoverflow.com/questions/46942721/is-cp437-decoding-broken-for-control-characters>`_
+
+        doc p157
+        """
+        self.binary_blob(Token("DATA", args[2].value))
 
     def set_upper_control_codes_printing(self, *args):
         """Codes from 128 to 159 as printable characters instead of control codes - ESC 6
