@@ -57,6 +57,24 @@ PrintMode = Enum("PrintMode", [("DRAFT", 0), ("LQ", 1)])
 PrintScripting = Enum("PrintScripting", [("SUP", 0), ("SUB", 1)])
 PrintCharacterStyle = Enum("PrintCharacterStyle", [("OUTLINE", 1), ("SHADOW", 2)])
 
+
+class PrintControlCodes:
+    UPPER = 0
+    SELECTED = 1
+
+
+CONTROL_CODES_MAPPING = {
+    PrintControlCodes.UPPER: frozenset(range(128, 160)),
+    PrintControlCodes.SELECTED: frozenset(
+        it.chain(
+            range(0, 7),
+            (16, 17, 21, 22, 23, 25, 26),
+            range(28, 32),
+            range(128, 160)
+        )
+    ),
+}
+
 LOGGER = logger()
 
 class ESCParser:
@@ -246,6 +264,11 @@ class ESCParser:
         self.typeface = self.default_typeface
         self.copied_font = {}
         self.user_defined_ram_characters = False
+        # Allow set operations on control codes
+        # This attr store the current character points that MUST NOT be printed
+        # Default: Control-code data treated as control codes: All codes are filtered.
+        # => set the largest set of codes
+        self.control_codes_filter = CONTROL_CODES_MAPPING[PrintControlCodes.SELECTED]
         # scalable fonts possibility
         self.multipoint_mode = False
 
@@ -1047,7 +1070,7 @@ class ESCParser:
             This will generate positionning errors when the old font is not strictly
             the same (i.e. double width font, etc.).
         """
-        value = arg.value
+        raw_text = arg.value
         cursor_y = self.cursor_y - self.baseline_offset
         if self.double_height and self.double_width:
             # The point size is already multiplied by 2
@@ -1066,18 +1089,26 @@ class ESCParser:
         if encoding == "italic":
             LOGGER.warning("Italic table is partially supported: map all italic chars to normal chars")
             # Remap the upper table part to the lower part
-            value = bytearray(i if i < 0x80 else i - 0x80 for i in value)
+            raw_text = bytearray(i if i < 0x80 else i - 0x80 for i in raw_text)
+        elif self.control_codes_filter:
+            # Handle control codes
+            # no effect when the italic character table is selected; no characters
+            # are defined for these codes in the italic character table.
+            raw_text = bytes(i for i in raw_text if i not in self.control_codes_filter)
 
         # Get the encoding according to an enventually international charset set
         encoding_variant = self.encoding
         # Fallback if character is not in the code page
         # Use any of: replace, backslashreplace, ignore
-        text = value.decode(encoding_variant, errors="replace")
+        text = raw_text.decode(encoding_variant, errors="replace")
+
         if encoding in left_to_right_languages:
             text = text[::-1]
 
-        # print(value)
+        print(raw_text)
         print(text)
+        if not text:
+            return
 
         def apply_character_style(text_object, text):
             """Add outline & shadow styles to the current textobject
@@ -2437,24 +2468,27 @@ class ESCParser:
         Remains in effect even if you change the character table
         p159
         """
-        if self.character_tables[self.character_table] == "italic":
-            return
+        # Remove the codes from the filter => they will be printed
+        self.control_codes_filter -= CONTROL_CODES_MAPPING[PrintControlCodes.UPPER]
 
     def unset_upper_control_codes_printing(self, *_):
         """Treat codes from 128 to 159 as control codes instead of printable characters - ESC 7
 
         Interval: 0x80-0x9f
         """
-        pass
+        self.control_codes_filter |= CONTROL_CODES_MAPPING[PrintControlCodes.UPPER]
 
     def switch_control_codes_printing(self, *args):
         """Treat codes 0–6, 16, 17, 21–23, 25, 26, 28–31, and 128–159 as printable
          characters according to the given setting - ESC I
 
-        - 0–6, 16: None of them are used alone in ESC commands
-        - 17 (DC1: 0x11): Select printer command
-        - 21-23 (NAK: 0x15, SYN: 0x16, ETB: 0x17): None of them are used alone in ESC commands
-        - 25, 26, 28-31: None of them are used alone in ESC commands
+        Intervals: shaded codes in table in manual (A-30).
+
+        - 0–6, 16: None of them are used alone in ESC commands;
+        - 17 (DC1: 0x11): Select printer command!! See :meth:`select_printer`;
+        - 21-23 (NAK: 0x15, SYN: 0x16, ETB: 0x17): None of them are used alone
+            in ESC commands;
+        - 25, 26, 28-31: None of them are used alone in ESC commands.
 
         Has no effect when the italic character table is selected; no characters
         are defined for these codes in the italic character table.
@@ -2466,6 +2500,25 @@ class ESCParser:
             If 0: codes are not processed as printable characters => discarded
         """
         value = args[1].value[0]
+
+        if value:
+            # Remove the codes from the filter => they will be printed
+            self.control_codes_filter -= CONTROL_CODES_MAPPING[PrintControlCodes.SELECTED]
+        else:
+            self.control_codes_filter |= CONTROL_CODES_MAPPING[PrintControlCodes.SELECTED]
+
+    def select_printer(self, *_):
+        """Select the printer after it has been deselected with the DC3 command - DC1
+
+        This is a nonrecommended command. The SLCT IN signal on the interface must
+        be high to use this command. This command is nearly always unnecessary.
+
+        .. warning:: This is the only command for which the code can be printable.
+            Its status is configured by :meth:`switch_control_codes_printing`.
+        """
+        if b"\x11" not in self.control_codes_filter:
+            # The command is not considered as a control code => print it!
+            self.binary_blob(Token("DATA", b"\x11"))
 
     def control_paper_loading_ejecting(self, *args):
         """Controls feeding of continuous and single-sheet paper - ESC EM
