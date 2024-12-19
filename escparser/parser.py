@@ -1603,6 +1603,12 @@ class ESCParser:
         self.character_tables[d1] = selected_table
 
         LOGGER.debug("Assign %s to table %d", selected_table, d1)
+        if not selected_table:
+            LOGGER.error(
+                "Character table %s is not supported (code page not available) "
+                "=> will use cp437, do not expect anything good !",
+                d1
+            )
 
     def select_character_table(self, *args):
         """Select the character table to be used for printing from among the four tables 0-3 - ESC t
@@ -1661,14 +1667,14 @@ class ESCParser:
         encoding = self.character_tables[character_table]
         if not encoding:
             LOGGER.error(
-                "Character table %d not supported (code page not available) "
+                "Character table %d is not supported (code page not available) "
                 "=> will use cp437, do not expect anything good !",
                 character_table
             )
 
         self.character_table = character_table
 
-        LOGGER.debug("Select character table %d (%s)", value, self.character_tables[self.character_table])
+        LOGGER.debug("Select character table %d (%s)", value, encoding)
 
     def select_international_charset(self, *args):
         """Select the set of characters printed for specific character codes - ESC R

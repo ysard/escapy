@@ -402,7 +402,8 @@ def test_charset_tables(tmp_path: Path):
         table_3 + b"Portuguese, brascii",
         table_1 + b"\x1b(t\x03\x00\x01\x19\x00" + portuguese_pangram ,
         table_3 + b"Greek - Not supported charset 4,0 (should not crash)",
-        table_1 + b"\x1b(t\x03\x00\x01\x04\x00" + greek_pangram,
+        # Double table selection to cover the two logger error outputs (assign + select)
+        table_1 + b"\x1b(t\x03\x00\x01\x04\x00" + table_1 + greek_pangram,
     ]
 
     code = b"\r\n".join(lines)
