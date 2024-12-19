@@ -266,9 +266,14 @@ class ESCParser:
         self.user_defined_ram_characters = False
         # Allow set operations on control codes
         # This attr store the current character points that MUST NOT be printed
-        # Default: Control-code data treated as control codes: All codes are filtered.
-        # => set the largest set of codes
-        self.control_codes_filter = CONTROL_CODES_MAPPING[PrintControlCodes.SELECTED]
+        # About default config:
+        #   ESCP2, ESCP: Codes are treated as printable characters
+        #   9pins: Codes are treated as control codes; All codes are filtered.
+        #       => init with the largest set of codes
+        if self.pins == 9:
+            self.control_codes_filter = CONTROL_CODES_MAPPING[PrintControlCodes.SELECTED]
+        else:
+            self.control_codes_filter = frozenset()
         # scalable fonts possibility
         self.multipoint_mode = False
 
@@ -2458,7 +2463,7 @@ class ESCParser:
         self.binary_blob(Token("DATA", args[2].value))
 
     def set_upper_control_codes_printing(self, *_):
-        """Treat codes from 128 to 159 as printable characters instead of control codes - ESC 6
+        """Treat codes from 128 to 159 as PRINTABLE CHARACTERS instead of control codes - ESC 6, ESC m
 
         Has no effect when the italic character table is selected; no characters
         are defined for these codes in the italic character table.
@@ -2466,15 +2471,22 @@ class ESCParser:
         Interval: 0x80-0x9f
 
         Remains in effect even if you change the character table
+
+        .. note:: About default config:
+            ESCP2, ESCP: Codes 128 to 159 are treated as printable characters
+            9pins: Codes 128 to 159 are treated as control codes
+
+        .. seealso:: :meth:`unset_upper_control_codes_printing`
+
         p159
         """
         # Remove the codes from the filter => they will be printed
         self.control_codes_filter -= CONTROL_CODES_MAPPING[PrintControlCodes.UPPER]
 
     def unset_upper_control_codes_printing(self, *_):
-        """Treat codes from 128 to 159 as control codes instead of printable characters - ESC 7
+        """Treat codes from 128 to 159 as CONTROL CODES instead of printable characters - ESC 7, ESC m
 
-        Interval: 0x80-0x9f
+        .. seealso:: :meth:`set_upper_control_codes_printing`
         """
         self.control_codes_filter |= CONTROL_CODES_MAPPING[PrintControlCodes.UPPER]
 
@@ -2494,6 +2506,9 @@ class ESCParser:
         are defined for these codes in the italic character table.
 
         Remains in effect even if you change the character table
+
+        .. note:: Function for 9pins only; About default config:
+            Codes are treated as control codes
 
         :param args: Value at index 1:
             If 1: codes are processed as printable characters
