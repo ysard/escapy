@@ -1166,6 +1166,7 @@ class ESCParser:
 
             if self.current_pdf:
                 text_width = self.current_pdf.stringWidth(text)
+                line_width_backup = self.current_pdf._lineWidth
 
                 # Print text
                 textobject = self.current_pdf.beginText()
@@ -1175,6 +1176,7 @@ class ESCParser:
                 textobject.setHorizScale(horizontal_scale_coef * 100)
 
                 if self.character_style is not None:
+                    self.current_pdf.setLineWidth(0.1)
                     apply_character_style(textobject, text)
                 else:
                     textobject.textOut(text)
@@ -1182,6 +1184,7 @@ class ESCParser:
                 textobject.setRise(0)
                 textobject.setHorizScale(100)
                 self.current_pdf.drawText(textobject)
+                self.current_pdf.setLineWidth(line_width_backup)
 
             # Restore original point size
             self.point_size = point_size
