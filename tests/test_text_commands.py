@@ -860,3 +860,60 @@ def test_print_data_as_characters(tmp_path: Path, control_codes, expected_filena
 
     pdf_comparison(processed_file)
 
+
+def test_control_codes_printing(tmp_path: Path):
+    """Test all commands that configure the printing of control codes
+
+    Cover: ESC ( ^, ESC 6, ESC 7, ESC m, ESC I commands.
+
+    Default: Control-code data treated as control codes
+
+    ESC ( ^: All given codes are printable.
+
+    ESC 6, ESC 7, ESC m 0, ESC m 4: 0x80-0x9f
+
+    ESC I:
+    - 0–6, 16: None of them are used alone in ESC commands
+    - 17 (DC1: 0x11): Select printer command!!
+    - 21-23 (NAK: 0x15, SYN: 0x16, ETB: 0x17): None of them are used alone in ESC commands
+    - 25, 26, 28-31: None of them are used alone in ESC commands
+    - Interval: 0x80-0x9f
+    """
+    cpi_8 = b"\x1BX\x00\x10\x00"  # 0x10 => 16 / 2 = 8
+    roman = b"\x1B\x6B\x00"
+
+    set_upper_print_cmd = b"\x1b6"
+    unset_upper_print_cmd = b"\x1b7"
+    set_upper_print_cmd2 = b"\x1bm\x00"
+    unset_upper_print_cmd2 = b"\x1bm\x04"
+    switch_control_printing = b"\x1bI"
+    enable_control_printing = switch_control_printing + b"\x01"
+    disable_control_printing = switch_control_printing + b"\x00"
+
+    filter_table = bytes(sorted(CONTROL_CODES_MAPPING[PrintControlCodes.SELECTED]))
+
+    lines = [
+        # Default => processed as control codes: not printed
+        cpi_8 + roman + b"default (No control codes)",
+        filter_table,
+        b"enable upper control codes [128-159]",
+        set_upper_print_cmd + filter_table,
+        b"disable upper table (No control codes)",
+        unset_upper_print_cmd + filter_table,
+        b"enable upper table [128-159]",
+        set_upper_print_cmd2 + filter_table,
+        b"disable upper table (No control codes)",
+        unset_upper_print_cmd2 + filter_table,
+        b"enable all intervals [0-6][16-17][21-23][25-26][28-31][128-159]",
+        enable_control_printing + filter_table,
+        b"disable all intervals (No control codes)",
+        disable_control_printing + filter_table,
+        b"only sub intervals [0-6][16-17][21-23][25-26][28-31]",
+        enable_control_printing + unset_upper_print_cmd + filter_table,
+    ]
+
+    code = b"\r\n".join(lines)
+    processed_file = tmp_path / "test_control_codes_printing.pdf"
+    _ = ESCParser(esc_reset + code, output_file=str(processed_file))
+
+    pdf_comparison(processed_file)
