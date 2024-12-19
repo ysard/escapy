@@ -234,7 +234,7 @@ class ESCParser:
             # Continuous paper ESCP2/ESCP
             self.page_length = self.page_height
 
-        print("construct page length", self.page_length)
+        LOGGER.debug("constructed page length: %s", self.page_length)
 
         self.character_tables = [
             "italic",
@@ -2542,7 +2542,7 @@ class ESCParser:
             self.binary_blob(Token("DATA", b"\x11"))
 
     def control_paper_loading_ejecting(self, *args):
-        """Controls feeding of continuous and single-sheet paper - ESC EM
+        """Control feeding of continuous and single-sheet paper - ESC EM
 
         0   Exits cut-sheet feeder mode; nonrecommended on escp2
         1   Selects loading from bin 1 of the cut-sheet feeder
