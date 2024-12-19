@@ -828,6 +828,9 @@ def test_print_data_as_characters(tmp_path: Path, control_codes, expected_filena
     """Test the printability of the full table from 0x00 to 0xFF
 
     Cover: Mainly ESC ( ^, then ESC I
+
+    .. warning:: The test is NOT in 9pins mode, control codes ARE printable by
+        default.
     """
     import struct, itertools as it
 
@@ -839,11 +842,12 @@ def test_print_data_as_characters(tmp_path: Path, control_codes, expected_filena
 
     data_as_chr_cmd = b"\x1b(^"
     switch_control_printing = b"\x1bI"
-    enable_control_printing = switch_control_printing + b"\x01"
+    disable_control_printing = switch_control_printing + b"\x00"
     # Generate all 8 bits bytes
     full_table = bytes(range(256))
 
-    lines = [] if not control_codes else [enable_control_printing]
+    # No disable = control codes printable
+    lines = [] if control_codes else [disable_control_printing]
     counter = 0
     # Chunk the table into lines of 16 characters
     for chunk in chunk_this(full_table, 16):
@@ -878,6 +882,9 @@ def test_control_codes_printing(tmp_path: Path):
     - 21-23 (NAK: 0x15, SYN: 0x16, ETB: 0x17): None of them are used alone in ESC commands
     - 25, 26, 28-31: None of them are used alone in ESC commands
     - Interval: 0x80-0x9f
+
+    .. warning:: The test is in 9pins mode: control codes are NOT printable by
+        default.
     """
     cpi_8 = b"\x1BX\x00\x10\x00"  # 0x10 => 16 / 2 = 8
     roman = b"\x1B\x6B\x00"
@@ -893,7 +900,7 @@ def test_control_codes_printing(tmp_path: Path):
     filter_table = bytes(sorted(CONTROL_CODES_MAPPING[PrintControlCodes.SELECTED]))
 
     lines = [
-        # Default => processed as control codes: not printed
+        # Default => processed as control codes: not printed (9pins mode)
         cpi_8 + roman + b"default (No control codes)",
         filter_table,
         b"enable upper control codes [128-159]",
@@ -914,6 +921,6 @@ def test_control_codes_printing(tmp_path: Path):
 
     code = b"\r\n".join(lines)
     processed_file = tmp_path / "test_control_codes_printing.pdf"
-    _ = ESCParser(esc_reset + code, output_file=str(processed_file))
+    _ = ESCParser(esc_reset + code, pins=9, output_file=str(processed_file))
 
     pdf_comparison(processed_file)
