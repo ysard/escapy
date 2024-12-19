@@ -2551,7 +2551,7 @@ class ESCParser:
             from the line buffer; this is not the equivalent of the FF command
             (which does print line-buffer data).
         """
-        # 3rd argument, see the terminal independant def in the grammar (SP is a control code)
+        # 3rd argument, see the terminal independent definitions in the grammar
         value = chr(args[2].value[0])
 
         if self.single_sheet_paper and value == "R":
