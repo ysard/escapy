@@ -763,6 +763,9 @@ def test_select_character_style(tmp_path: Path):
     # double-height
     double_height = b"\x1Bw\x01"
     reset_double_height = b"\x1Bw\x00"
+    # scripting
+    enable_upperscripting = b"\x1bS\x00"
+    disable_upperscripting = b"\x1bT"
 
     pangram = b"The quick brown fox jumps over the lazy dog"
     esc_q0 = b"\x1bq\x00"
@@ -781,6 +784,17 @@ def test_select_character_style(tmp_path: Path):
         cpi_8 + b'Character style - off - ESC q 0' + reset_intercharacter_space,
         esc_q0 + pangram + esc_q0,
         b"\r\n",
+
+        enable_upperscripting,
+        cpi_8 + b'Upperscripting + Character style - outline - ESC q 1' + reset_intercharacter_space,
+        esc_q1 + pangram + esc_q0,
+        cpi_8 + b'Upperscripting + Character style - shadow - ESC q 2' + reset_intercharacter_space,
+        esc_q2 + pangram + esc_q0,
+        cpi_8 + b'Upperscripting + Character style - outline + shadow - ESC q 3' + reset_intercharacter_space,
+        esc_q3 + pangram + esc_q0,
+        cpi_8 + b'Upperscripting + Character style - off - ESC q 0' + reset_intercharacter_space,
+        esc_q0 + pangram + esc_q0,
+        disable_upperscripting + b"\r\n",
 
         cpi_8 + b'Double-width + Character style - outline - ESC q 1' + reset_intercharacter_space,
         double_width + esc_q1 + pangram + esc_q0 + reset_double_width,
