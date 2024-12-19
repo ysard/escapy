@@ -11,7 +11,7 @@ import escparser.commons as cm
 from .misc import format_databytes, pdf_comparison
 from .misc import DIR_DATA, esc_reset, cancel_bold
 from .helpers.diff_pdf import is_similar_pdfs
-from escparser.parser import ESCParser, PrintMode, PrintScripting
+from escparser.parser import ESCParser, PrintMode, PrintScripting, PrintControlCodes, CONTROL_CODES_MAPPING
 
 
 @pytest.mark.parametrize(
@@ -808,3 +808,55 @@ def test_select_character_style(tmp_path: Path):
     _ = ESCParser(code, output_file=str(processed_file))
 
     pdf_comparison(processed_file)
+
+
+@pytest.mark.parametrize(
+    "control_codes, expected_filename",
+    [
+        (True, "test_print_data_as_characters.pdf"),
+        # Test the full table minus the control codes
+        # Can be redundant with test_control_codes_printing(), but it's another
+        # and more global presentation of the data
+        (False, "test_print_data_as_characters_without_control_codes.pdf"),
+    ],
+    ids=[
+        "full_table",
+        "without_ccodes",
+    ],
+)
+def test_print_data_as_characters(tmp_path: Path, control_codes, expected_filename):
+    """Test the printability of the full table from 0x00 to 0xFF
+
+    Cover: Mainly ESC ( ^, then ESC I
+    """
+    import struct, itertools as it
+
+    def chunk_this(iterable, length):
+        """Split iterable in chunks of equal sizes"""
+        iterator = iter(iterable)
+        for _ in range(0, len(iterable), length):
+            yield bytes(it.islice(iterator, length))
+
+    data_as_chr_cmd = b"\x1b(^"
+    switch_control_printing = b"\x1bI"
+    enable_control_printing = switch_control_printing + b"\x01"
+    # Generate all 8 bits bytes
+    full_table = bytes(range(256))
+
+    lines = [] if not control_codes else [enable_control_printing]
+    counter = 0
+    # Chunk the table into lines of 16 characters
+    for chunk in chunk_this(full_table, 16):
+        data_length = struct.pack("<h", 16)
+        lines.append(
+            # Prepend the hex index
+            format(counter, '#04x').encode("cp437") + b"  " + data_as_chr_cmd + data_length + chunk
+        )
+        counter += 16
+
+    code = b"\r\n".join(lines)
+    processed_file = tmp_path / expected_filename
+    _ = ESCParser(esc_reset + code, output_file=str(processed_file))
+
+    pdf_comparison(processed_file)
+
