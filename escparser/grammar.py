@@ -170,7 +170,6 @@ esc_grammar = r"""
         # | ESC ":" NUL HALF_BYTE_ARG NUL   -> copy_rom_to_ram
         | ESC "%" BIN_ARG_EX                -> select_user_defined_set
         | ESC "(^" PRINT_DATA_AS_CHARACTERS_HEADER DATA+ -> print_data_as_characters
-        # Not implemented
         | ESC "6"                           -> set_upper_control_codes_printing
         | ESC "7"                           -> unset_upper_control_codes_printing
         | ESC "I" BIN_ARG                   -> switch_control_codes_printing
