@@ -491,3 +491,20 @@ def test_form_feed():
     assert escparser.top_margin != escparser.printable_area[0]
     assert escparser.cursor_y == expected
     assert not escparser.double_width
+
+
+def test_control_paper_loading_ejecting(tmp_path: Path):
+    """ESC EM R: next page
+
+    Test the creation of a new page.
+
+    .. warning:: For now, DO NOT test buffer shenanigans. See the
+        :meth:`control_paper_loading_ejecting` docstring.
+    """
+    eject_paper_cmd = b"\x1b\x19R"
+    code = esc_reset + eject_paper_cmd
+    processed_file = tmp_path / "test_2pages.pdf"
+    escparser = ESCParser(code, output_file=str(processed_file))
+
+    # Yeah... 3... but there are 2 pages...
+    assert escparser.current_pdf.getPageNumber() == 3
