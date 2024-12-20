@@ -316,8 +316,18 @@ def get_raster_data_code(rle_compressed=False):
     return b"".join(code)
 
 
-def get_raster_data_3bytes():
-    """Generate decompressed raster data in graphics mode mapped on 24 dots vertical size"""
+def get_raster_data_3bytes(microweave: bool = False):
+    """Generate decompressed raster data in graphics mode mapped on 24 dots vertical size
+
+    ESC ( G + ESC . 0
+
+    :key microweave: If True, add the Microweave enable command after entering
+        in graphics mode.
+        In this case, the program should log a warning: the vertical resolution
+        should be 1, not 8 or 24. But we assume that the data is formatted for
+        the given resolution, and since Microweave technology has no impact on
+        operation, we let the printing process take its course.
+    """
     raster_graphics = b"\x1b.\x00"
     v_res_h_res = b"\x14\x14"  # 180 dpi
     v_dot_count_m = (24).to_bytes()  # height of the band: 24 dots (24 lines)
@@ -329,13 +339,43 @@ def get_raster_data_3bytes():
     assert len(decompressed_data) == v_dot_count_m[0] * 9
     h_dot_count = struct.pack("<h", 9*8)
 
+    enable_microweave_cmd = b"\x1b(i\x01\x001"
+
     code = [
         graphics_mode,
+        enable_microweave_cmd if microweave else b"",
         raster_graphics,
         v_res_h_res + v_dot_count_m + h_dot_count,
         decompressed_data,
     ]
     return b"".join(code)
+
+
+def get_raster_data_1dot():
+    """Generate decompressed raster data in graphics mode mapped on 1 dot vertical size
+
+    Send 8 lines with a vertical dot count of 1 dot; So, 8 lines of 9 bytes.
+    But with separated commands, and a line feed between them.
+    Note that the linespacing must be adjusted according to the choosen resolution.
+
+    ESC ( G + ESC . 0
+    """
+    raster_graphics = b"\x1b.\x00"
+    v_res_h_res = b"\x14\x14"  # 180 dpi
+    v_dot_count_m = b"\x01"  # height of the band: 1 dot (1 line)
+    # nL, hH: Horizontal resolution: 9 bytes of 8 dots = 72 dots
+    # PS: length of decompressed data: vertical * horizontal = 9 bytes * 8 lines
+    #   72 bytes
+    h_dot_count = b"\x48\x00"
+
+    line_spacing_180dpi = b"\x1b3\x01"
+
+    code = line_spacing_180dpi + graphics_mode
+
+    for idx in range(0, 9*8, 9):
+        chunk = DECOMPRESSED_DATA[idx:idx+9]
+        code += raster_graphics + v_res_h_res + v_dot_count_m + h_dot_count + chunk + b"\n"
+    return code
 
 
 @pytest.mark.parametrize(
@@ -350,10 +390,15 @@ def get_raster_data_3bytes():
         graphics_mode + b"\x1br\x05" + get_raster_data_code(),
         # No RLE, height band of 24 dots (24 lines)
         get_raster_data_3bytes(),
+        # No RLE, height band of 1 dot (8 separated commands)
+        get_raster_data_1dot(),
+        # No RLE microweave enabled for a height band of 24
+        # => see the docstring for more info
+        get_raster_data_3bytes(microweave=True),
     ],
     # First param goes in the 'databytes' param of the fixture format_databytes
     indirect=["format_databytes"],
-    ids=["no_rle", "rle", "no_rle_not_allowed_color_change", "24dots_v_band"],
+    ids=["no_rle", "rle", "no_rle_not_allowed_color_change", "24dots_v_band", "1dot_v_band", "24dots_v_band_microweave"],
 )
 def test_print_raster_graphics(format_databytes: bytes, tmp_path: Path):
     """Test raster graphics 0 and 1 modes (no compress, RLE compress modes)
