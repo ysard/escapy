@@ -2619,7 +2619,7 @@ class ESCParser:
         self.character_tables[2] = None
 
     def switch_microweave_mode(self, *args):
-        """Turn MicroWeave print mode off and on
+        """Turn MicroWeave print mode off and on - ESC ( i
 
         .. note:: MicroWeave increases printing time, but it completely eliminates
             banding and yields sharp, near photographic-quality color images.
@@ -2657,13 +2657,15 @@ class ESCParser:
         """
         # v_dot_count_m (number of rows of dots): 1, 8, or 24
         graphics_mode, v_res, h_res, v_dot_count_m, nL, nH = args[1].value
-        if (self.microweave_mode or graphics_mode == 2) and v_dot_count_m != 1:
+        if self.microweave_mode and v_dot_count_m != 1:
             # In these settings, one raster line printed at a time
+            # However we assume that the data is formatted for the given
+            # resolution, and since Microweave technology has no impact on
+            # peration, we let the printing process take its course.
             LOGGER.warning(
                 "To use MicroWeave, the band height (m) in the ESC . command "
-                "must be set to 1 (one line) => value corrected"
+                "must be set to 1 (one line) => value NOT corrected"
             )
-            v_dot_count_m = 1
 
         # Convert dpi to inches: 1/180, 1/360 or 1/720 inches, (180, 360 or 720 dpi)
         self.vertical_resolution = v_res / 3600
