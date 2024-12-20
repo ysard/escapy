@@ -3435,23 +3435,8 @@ class ESCParser:
         if self.current_pdf:
             self.current_pdf.save()
 
+def main():  # pragma: no cover
+    pass
 
-def main():
-    # Debian file start
-    # TODO: ESC 3 : 1B 33 18 0D: 0D bizarre... voulu ?
-    raw_data = """
-        1B 40 1B 50  12 1B 78 30   1B 55 30 1B  6C 00 1B 51
-        53 1B 32 1B  43 46 1B 4E   00 1B 4F 1B  33 18 0D 1B
-        2A 01 A4 03  00 00 7F 00   40 00 40 00  40 00 40 00
-        40 00 40 00  40 00 40 00   40 00 40 00  40 00 40 00
-        40 00 40 00  40 00 40 00   40 00 40 00  40 00 40 00"""
-
-
-    code = bytes(bytearray.fromhex(raw_data))
-
-    # print(code)
-    escparser = ESCParser(code)
-
-
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()
