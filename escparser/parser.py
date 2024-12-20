@@ -1773,38 +1773,39 @@ class ESCParser:
 
         self.set_font()
 
-    def define_user_defined_ram_characters(self, *args):
-        """Sets the parameters for user-defined characters and then sends the data for those characters - ESC &
+    def define_user_defined_ram_characters(self, _, header, data):
+        """Receive user-defined characters - ESC &
 
-        To copy user-defined characters (that have been created with the ESC & or ESC :
-        commands) to the upper half of the character table, send the ESC % 0 command,
-        followed by the ESC t 2 command. However, you cannot copy user-defined characters
-        using ESC t 2 if you have previously assigned another character table to table 2 using
-        the ESC ( t command.
+        Printer memories:
+
+            - ROM: Built-in character sets
+            - RAM: Characters copied from ROM or user-defined characters
+
+        Usage:
+
+        To copy user-defined characters (that have been created with the
+        ESC & or ESC : commands) to the upper half of the character table,
+        send the ESC % 0 command, followed by the ESC t 2 command.
+        However, you cannot copy user-defined characters  using ESC t 2 if you
+        have previously assigned another character table to table 2 using the
+        ESC ( t command.
 
         Send the ESC % 1 command to switch to user-defined characters.
         Use the ESC ( ^ command to print characters between 0 and 32.
 
-        TODO ?
-        Defining characters when the following attributes are set results in the user-defined
-        characters having those attributes: superscript, subscript, proportional spacing, draft
-        mode, and LQ mode.
-        !!!! => pour évaluer la taille du paquet il faut garder le statut normal vs super/subscript accessible !!!
+        Description:
 
+        Defining characters when the following attributes are set results in the
+        user-defined characters having those attributes: superscript, subscript,
+        proportional spacing, draft mode, and LQ mode.
 
-        TODO:
-        You can only print user-defined characters as 10.5-point characters (or 21-point
-        characters when double-height printing is selected). Even if you select a different
-        point size with the ESC X command, characters in RAM can only be printed as
-        10.5 or 21-point characters.
+        User-defined characters with differing attributes cannot exist at the same
+        time. For example, if normal-size user-defined characters have already
+        been defined, and you use this command to define subscript characters,
+        the previous normal-size characters are lost.
 
-        ???:
-        Do not define continuous horizontal dots on the same row; the printer ignores the
-        second of two continuous dots.
-
-        TODO: 9 pins
-            NLQ: structure similaire, sauf que a0 et a2 sont NULL, seul a1 est utilisé
-            Draft: structure différente !!! a0 et a2 n'existent plus !!!
+        Characters in RAM can only be printed as 10.5 or 21-point characters,
+        even if you select a different point size with the ESC X command.
 
         Amount of data depends on:
             − The number of dots in the print head (9 or 24/48)
@@ -1812,21 +1813,15 @@ class ESCParser:
             − Character spacing (10 cpi, 12 cpi, 15 cpi, or proportional)
             − The size of your characters (normal or super/subscript)
             − The print quality of your characters (draft, LQ, or NLQ mode)
+
+        :param header: Header of the command, stores the first & the last
+            character codes. Allows to calculate the number of characters set.
         """
-        print(args)
-        first_char_code_n, last_char_code_m = args[1].value
-        proportional_left_space_a0, width_a1, proportional_right_space_a2 = args[
-            2
-        ].value
-        data = args[3].value
+        first_char_code_n, last_char_code_m = header.value
 
-        # For each character in data
-        # Normal chars TODO
-        expected_bytes = 3 * width_a1
-        # Super/subscript chars TODO
-        expected_bytes = 2 * width_a1
+        expected_char_nb = last_char_code_m - first_char_code_n + 1
+        LOGGER.debug("Expected char nb %d", expected_char_nb)
 
-        raise NotImplementedError
 
     def copy_rom_to_ram(self, *args):
         """Copies the data for the characters between 0 and 126 of the n typeface from ROM to RAM - ESC :
