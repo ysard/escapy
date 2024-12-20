@@ -34,6 +34,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
 # Local imports
+from escparser import __version__
 from escparser.grammar import init_parser
 from escparser.commons import charset_mapping, international_charsets, character_table_mapping, left_to_right_languages
 from escparser.i18n_codecs import getregentry
@@ -176,6 +177,10 @@ class ESCParser:
             self.current_pdf = Canvas(output_file, pagesize=page_size, pageCompression=1)
             self.current_pdf.setLineWidth(0.3)
             self.current_pdf.setFillOverprint(True)
+            self.current_pdf.setProducer(
+                f"ESCParser {__version__} - https://github.com/ysard/escparser,"
+                " with ReportLab PDF Library - www.reportlab.com"
+            )
 
         # Page configuration ###################################################
         self.page_width = page_size[0] / 72
