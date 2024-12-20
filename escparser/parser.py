@@ -1873,44 +1873,37 @@ class ESCParser:
         )
         print(text)
 
-    def select_10cpi(self, *_):
-        """Selects 10.5-point, 10-cpi character printing - ESC P
+    def select_cpi(self, _, cmd_letter: Token):
+        """Selects 10.5-point, *-cpi character printing - ESC P, ESC M, ESC g
+
+        Used by ESC/P-level printers, as well as ESC/P 2 printers that are not in
+        multipoint mode, to adjust the character pitch.
 
         cancels the HMI set with the ESC c command.
         cancels multipoint mode.
-        TODO: If you change the pitch with this command during proportional mode (selected with
-        the ESC p command), the change takes effect when the printer exits proportional mode.
-        => attr previous character pitch à mettre en places
 
-        TODO: 9 pins: 10-cpi characters only (pas notion point)
+        TODO: If you change the pitch with this command during proportional mode
+            (selected with the ESC p command), the change takes effect when the
+            printer exits proportional mode.
+            => attr previous character pitch à mettre en places
+
+        TODO: 9 pins: character pitch only, no modification of the point size
+
+        :param _: ESC byte command
+        :param cmd_letter: ESC letter in ESC P, ESC M, ESC g commands,
+            respectively for 10, 12, 15 cpi character printing.
         """
-        self.character_pitch = 1 / 10
-        self.cancel_multipoint_mode()
+        match cmd_letter.value:
+            case b"P":
+                # 10-cpi character printing
+                self.character_pitch = 1 / 10
+            case b"M":
+                # 12-cpi character printing
+                self.character_pitch = 1 / 12
+            case b"g":
+                # 15-cpi character printing
+                self.character_pitch = 1 / 15
 
-    def select_12cpi(self, *_):
-        """Selects 10.5-point, 12-cpi character printing - ESC M
-
-        cancels the HMI set with the ESC c command.
-        cancels multipoint mode.
-        TODO: If you change the pitch with this command during proportional mode (selected with
-        the ESC p command), the change takes effect when the printer exits proportional mode.
-
-        TODO: 9 pins: Selects 12-cpi character pitch only (pas notion point)
-        """
-        self.character_pitch = 1 / 12
-        self.cancel_multipoint_mode()
-
-    def select_15cpi(self, *_):
-        """Selects 10.5-point, 15-cpi character printing - ESC g
-
-        cancels the HMI set with the ESC c command.
-        cancels multipoint mode.
-        TODO: If you change the pitch with this command during proportional mode (selected with
-        the ESC p command), the change takes effect when the printer exits proportional mode.
-
-        TODO: 9 pins: Selects 15-cpi character printing only (pas notion point)
-        """
-        self.character_pitch = 1 / 15
         self.cancel_multipoint_mode()
 
     def select_font_by_pitch_and_point(self, *args):

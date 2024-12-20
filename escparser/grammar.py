@@ -105,10 +105,8 @@ esc_grammar = r"""
         # 0-9 10 11 30 31; add 12 (0x0c) for tests purpose
         | ESC "k" /[\x00-\x0c\x1e\x1f]/     -> select_typeface
         | ESC "X" /[\x00\x01\x05-\x7f].{2}/ -> select_font_by_pitch_and_point
-        # TODO: group these 3 commands
-        | ESC "P"                           -> select_10cpi
-        | ESC "M"                           -> select_12cpi
-        | ESC "g"                           -> select_15cpi
+        # P: 10cpi, M: 12cpi, g: 15cpi
+        | ESC /[PMg]/                       -> select_cpi
         | ESC "p" BIN_ARG_EX                -> switch_proportional_mode
         | ESC "x" BIN_ARG_EX                -> select_letter_quality_or_draft
         | ESC "c" /.[\x00-\x04]/            -> set_horizontal_motion_index
@@ -189,7 +187,6 @@ esc_grammar = r"""
         | ESC "." PRINT_RASTER_GRAPHICS_HEADER DATA+ -> print_raster_graphics
         # Variable
         | ESC SELECT_XDPI_GRAPHICS_CMD SELECT_XDPI_GRAPHICS_HEADER DATA -> select_xdpi_graphics
-
         # Variable
         # Similar to ESC * 0
         # | ESC "K" SELECT_XDPI_GRAPHICS_HEADER DATA+ -> select_60dpi_graphics
