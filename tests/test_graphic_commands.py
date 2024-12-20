@@ -301,14 +301,39 @@ def get_raster_data_code(rle_compressed=False):
     raster_graphics = b"\x1b.\x00"
     raster_graphics_rle = b"\x1b.\x01"
     v_res_h_res = b"\x14\x14"  # 180 dpi
-    v_dot_count_m = b"\x08"  # nL, hH: height of the band: 8 dots
-    bytes_count = b"\x48\x00"  # length of decompressed data: 72 bytes (vs 59 compressed)
+    v_dot_count_m = b"\x08"  # height of the band: 8 dots (8 lines)
+    # nL, hH: Horizontal resolution: 9 bytes of 8 dots = 72 dots
+    # PS: length of decompressed data: vertical * horizontal = 9 bytes * 8 lines
+    #   72 bytes (vs 59 compressed)
+    h_dot_count = b"\x48\x00"
 
     code = [
         graphics_mode,
         raster_graphics_rle if rle_compressed else raster_graphics,
-        v_res_h_res + v_dot_count_m + bytes_count,
+        v_res_h_res + v_dot_count_m + h_dot_count,
         COMPRESSED_DATA if rle_compressed else DECOMPRESSED_DATA,
+    ]
+    return b"".join(code)
+
+
+def get_raster_data_3bytes():
+    """Generate decompressed raster data in graphics mode mapped on 24 dots vertical size"""
+    raster_graphics = b"\x1b.\x00"
+    v_res_h_res = b"\x14\x14"  # 180 dpi
+    v_dot_count_m = (24).to_bytes()  # height of the band: 24 dots (24 lines)
+    # Triple the data (Add blank lines at the end of the original data)
+    # nL, hH: Horizontal resolution: 9 bytes of 8 dots = 72 dots
+    # PS: length of decompressed data: vertical * horizontal = 9 bytes * 24 lines
+    #   216 bytes
+    decompressed_data = DECOMPRESSED_DATA + bytes(2*len(DECOMPRESSED_DATA))
+    assert len(decompressed_data) == v_dot_count_m[0] * 9
+    h_dot_count = struct.pack("<h", 9*8)
+
+    code = [
+        graphics_mode,
+        raster_graphics,
+        v_res_h_res + v_dot_count_m + h_dot_count,
+        decompressed_data,
     ]
     return b"".join(code)
 
@@ -323,10 +348,12 @@ def get_raster_data_code(rle_compressed=False):
         # Try to use color other than CMYK inside graphics mode
         # => The color should not be used
         graphics_mode + b"\x1br\x05" + get_raster_data_code(),
+        # No RLE, height band of 24 dots (24 lines)
+        get_raster_data_3bytes(),
     ],
     # First param goes in the 'databytes' param of the fixture format_databytes
     indirect=["format_databytes"],
-    ids=["no_rle", "rle", "no_rle_not_allowed_color_change"],
+    ids=["no_rle", "rle", "no_rle_not_allowed_color_change", "24dots_v_band"],
 )
 def test_print_raster_graphics(format_databytes: bytes, tmp_path: Path):
     """Test raster graphics 0 and 1 modes (no compress, RLE compress modes)
