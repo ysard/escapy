@@ -44,6 +44,7 @@ esc_grammar = r"""
         | ESC "9"               -> enable_paperout_detector
         | ESC "8"               -> disable_paperout_detector
         | ESC "s" BIN_ARG_EX    -> switch_low_speed_mode
+        # Implemented nethertheless (it's a control code that can be printable)
         | DC1                   -> select_printer
         | DC3                   -> deselect_printer
 
@@ -69,7 +70,7 @@ esc_grammar = r"""
         | ESC "(C\x02\x00" /.{2}/   -> set_page_length_defined_unit
         | ESC "(c\x04\x00" /.{4}/   -> set_page_format
         | ESC "C" HALF_BYTE_ARG     -> set_page_length_lines
-        | ESC "C" NUL /[\x01-\x16]/ -> set_page_length_inches
+        | ESC "C\x00" /[\x01-\x16]/ -> set_page_length_inches
         | ESC "N" HALF_BYTE_ARG     -> set_bottom_margin
         | ESC "O"                   -> cancel_top_bottom_margins
         | ESC "l" BYTE_ARG          -> set_left_margin
@@ -162,13 +163,11 @@ esc_grammar = r"""
         | ESC "t" /[0-3\x00-\x03]/          -> select_character_table
         # 0-13, 64
         | ESC "R" /[\x00-\x0d\x40]/         -> select_international_charset
-        # not implemented: TODO/ERROR: data can be any bytes including ESC !!!
-        # NOTE: Variable size
-        # les nb de bytes fixes sont a coder en .{x} mais les tailles dynamiques
-        | ESC "&" NUL /[\x00-\x7f]{2}/ /[^\x1b]{3}/ /[^\x1b]+/ -> define_user_defined_ram_characters
-        # TODO/ERROR: parsing ???
-        # | ESC ":" NUL HALF_BYTE_ARG NUL   -> copy_rom_to_ram
+        # Variable
+        | ESC "&\x00" USER_CHARACTERS_HEADER DATA+ -> define_user_defined_ram_characters
+        | ESC ":\x00" HALF_BYTE_ARG NUL     -> copy_rom_to_ram
         | ESC "%" BIN_ARG_EX                -> select_user_defined_set
+        # Variable
         | ESC "(^" PRINT_DATA_AS_CHARACTERS_HEADER DATA+ -> print_data_as_characters
         | ESC "6"                           -> set_upper_control_codes_printing
         | ESC "7"                           -> unset_upper_control_codes_printing
@@ -178,20 +177,20 @@ esc_grammar = r"""
 
 
         # Graphics
-        # NOTE: Variable size
-        # /[^\x1b]{1,49146}
+        # Variable
         | ESC "*" SELECT_BIT_IMAGE_HEADER DATA+       -> select_bit_image
+        # Variable
         | ESC "^" SELECT_BIT_IMAGE_9PINS_HEADER DATA+ -> select_bit_image_9pins
-        # 75, 76, 89, 90 = KLYZ
-        # 2nd byte can be more precise
-        | ESC "?" /[KLYZ]./                         -> reassign_bit_image_mode
-        | ESC "(G\x01\x00" /[1\x01]/                -> set_graphics_mode
-        | ESC "(i\x01\x00" BIN_ARG_EX               -> switch_microweave_mode
+        # 2nd byte can be: m = 0, 1, 2, 3, 4, 6, 32, 33, 38, 39, 40, 71, 72, 73 ; 0, 1, 2, 3, 4, 5, 6, 7
+        | ESC "?" /[KLYZ][\x00\x01\x02\x03\x04\x06\x07\x20\x21\x26\x27\x28\x47\x48\x49]/ -> reassign_bit_image_mode
+        | ESC "(G\x01\x00" /[1\x01]/                 -> set_graphics_mode
+        | ESC "(i\x01\x00" BIN_ARG_EX                -> switch_microweave_mode
         # Variable
         | ESC "." PRINT_RASTER_GRAPHICS_HEADER DATA+ -> print_raster_graphics
         # Variable
-        | ESC SELECT_XDPI_GRAPHICS_CMD SELECT_XDPI_GRAPHICS_HEADER DATA+ -> select_xdpi_graphics
+        | ESC SELECT_XDPI_GRAPHICS_CMD SELECT_XDPI_GRAPHICS_HEADER DATA -> select_xdpi_graphics
 
+        # Variable
         # Similar to ESC * 0
         # | ESC "K" SELECT_XDPI_GRAPHICS_HEADER DATA+ -> select_60dpi_graphics
         # Similar to ESC * 1
@@ -202,22 +201,21 @@ esc_grammar = r"""
         # | ESC "Z" SELECT_XDPI_GRAPHICS_HEADER DATA+ -> select_240dpi_graphics
 
         # Barcode
-        | ESC "(B" BARCODE_HEADER DATA+ -> barcode
+        | ESC "(B" BARCODE_HEADER DATA+               -> barcode
 
     tiff_compressed_rule.2: tiff_enter tiff_instruction* exit_ex
-
     # Not variable
     tiff_enter: ESC "." PRINT_TIFF_RASTER_GRAPHICS_HEADER -> print_tiff_raster_graphics
-    exit_ex.2: EXIT_EX -> exit_tiff_raster_graphics
+    exit_ex.2: EXIT_EX      -> exit_tiff_raster_graphics
     tiff_instruction.2: XFER_HEADER DATA+ -> transfer_raster_graphics_data
-        | COLR_EX -> set_printing_color_ex
-        | CR_EX -> carriage_return
+        | COLR_EX           -> set_printing_color_ex
+        | CR_EX             -> carriage_return
         # Not implemented
-        | CLR_EX -> clear_ex
-        | MOVXBYTE_EX -> set_movx_unit_8dots
-        | MOVXDOT_EX -> set_movx_unit_1dot
-        # DATA can be 0,1 or 2 bytes but lark doesn't accept
-        # empty (0) terminal, thus we build the DATA token in the grammar between the lexer and the parser
+        | CLR_EX            -> clear_ex
+        | MOVXBYTE_EX       -> set_movx_unit_8dots
+        | MOVXDOT_EX        -> set_movx_unit_1dot
+        # DATA can be 0,1 or 2 bytes but lark doesn't accept empty (0) terminal,
+        # thus we build the DATA token in the grammar between the lexer and the parser
         | MOVX_HEADER DATA+ -> set_relative_horizontal_position
         | MOVY_HEADER DATA+ -> set_relative_vertical_position
 
@@ -267,7 +265,7 @@ esc_grammar = r"""
     SELECT_XDPI_GRAPHICS_CMD: /[KLYZ]/
 
     # 0 1 2 3 4 5 6 7 32 33 38 39 40 71 72 73 + 64 65 70
-    SELECT_BIT_IMAGE_HEADER: /[\x00\x01\x02\x03\x04\x05\x06\x07\x20\x21\x26\x27\x28\x40\x41\x46\x47\x48\x49].[\x00-\x1f]/
+    SELECT_BIT_IMAGE_HEADER: /[\x00\x01\x02\x03\x04\x05\x06\x07\x20\x21\x26\x27\x28\x40\x41\x46\x47\x48\x49][\x00-\xff][\x00-\x1f]/
     SELECT_BIT_IMAGE_9PINS_HEADER: /[\x00\x01].[\x00-\x1f]/
     PRINT_DATA_AS_CHARACTERS_HEADER: /.[\x00-\x7f]/
     PRINT_RASTER_GRAPHICS_HEADER: /[\x00\x01][\x05\x0A\x14]{2}[\x01\x08\x18].[\x00-\x1f]/
@@ -275,11 +273,10 @@ esc_grammar = r"""
     SELECT_XDPI_GRAPHICS_HEADER: /.[\x00-\x1f]/
     BARCODE_HEADER: /.[\x00-\x1f][\x00-\x07][\x02-\x05]..[\x00-\x1f]./
 
+    USER_CHARACTERS_HEADER: /[\x00-\x7f]{2}/
 
     #0b00100000-0b00101111
     #0b00110001,0b00110010
-    # [\x00-\xff] used to allow \n character ???
-    # use [\x00-\xff]/ instead of /./
     XFER_HEADER: /([\x20-\x2f]|[\x31\x32])/
     MOVY_HEADER: /([\x60-\x6f]|[\x71\x72])/
     MOVX_HEADER: /([\x40-\x4f]|[\x51\x52])/
@@ -297,7 +294,7 @@ esc_grammar = r"""
     BIN_ARG_EX: /[01\x00\x01]/
     HALF_BYTE_ARG: /[\x00-\x7f]/
     BYTE_ARG: /[\x00-\xff]/
-    # TODO: test: use [\x00-\xff] instead .
+    # use [\x00-\xff] instead .
     DATA: /[\x00-\xff]/
 
 
