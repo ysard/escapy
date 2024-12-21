@@ -616,7 +616,7 @@ class ESCParser:
             is at the top-of-form position. Otherwise, the current print position
             becomes the top-of-form position.
         """
-        page_length = args[2].value[0]
+        page_length = args[1].value[0]
         LOGGER.debug("page length: %s", page_length)
 
         if not 0 < page_length <= 22:  # pragma: no cover
