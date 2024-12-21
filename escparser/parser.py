@@ -452,11 +452,12 @@ class ESCParser:
         .. seealso:: :meth:`set_intercharacter_space`,
             :meth:`select_double_width_printing`, :meth:`switch_double_width_printing`
         """
-        current = self.double_width
+        old = self.double_width
         self._double_width_multi = double_width
 
-        if current != self.double_width:
+        if old != self.double_width:
             self.extra_intercharacter_space *= 2 if double_width else 0.5
+            self.character_pitch *= 2 if double_width else 0.5
 
     def reset_cursor_y(self):
         """Move the Y cursor on top of the printing area
