@@ -430,12 +430,7 @@ class ESCParser:
         .. seealso:: :meth:`set_intercharacter_space`,
             :meth:`select_double_width_printing`, :meth:`switch_double_width_printing`
         """
-        old = self.double_width
-        self._double_width = double_width
-
-        if old != self.double_width:
-            self.extra_intercharacter_space *= 2 if double_width else 0.5
-            self.character_pitch *= 2 if double_width else 0.5
+        self.double_width_centralized_setter(double_width)
 
     @property
     def double_width_multi(self) -> bool:  # pragma: no cover
@@ -452,8 +447,20 @@ class ESCParser:
         .. seealso:: :meth:`set_intercharacter_space`,
             :meth:`select_double_width_printing`, :meth:`switch_double_width_printing`
         """
+        self.double_width_centralized_setter(double_width, multiline=True)
+
+    def double_width_centralized_setter(self, double_width: bool, multiline: bool = False):
+        """Centralized setter for :meth:`double_width_multi` & :meth:`double_width`
+
+        :param double_width: Value that goes into `_double_width` (ESC SO) or
+            `_double_width_multi` (ESC W) according to the multiline keyword argument.
+        :key multiline: Flag used to modulate the attribute modified.
+        """
         old = self.double_width
-        self._double_width_multi = double_width
+        if multiline:
+            self._double_width_multi = double_width
+        else:
+            self._double_width = double_width
 
         if old != self.double_width:
             self.extra_intercharacter_space *= 2 if double_width else 0.5
