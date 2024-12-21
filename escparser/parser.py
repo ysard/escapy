@@ -1197,7 +1197,7 @@ class ESCParser:
                 rise *= -1
             # Modify point size only if it's greater than 8
             if point_size > 8:
-                self.point_size = round(self.point_size * 2 / 3)
+                self.point_size = round(point_size * 2 / 3)
 
             if self.current_pdf:
                 text_width = self.current_pdf.stringWidth(text)
