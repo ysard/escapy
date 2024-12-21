@@ -1951,7 +1951,7 @@ class ESCParser:
         TODO:
             Selecting a combination of 15 cpi and 10 or 20-point characters results in 15-cpi ROM
             characters being chosen; the height of these characters is about 2/3 that of normal
-            characters. Select the pitch with the ESC C command to obtain normal height 10 or 20-
+            characters. Select the pitch with the ESC c command to obtain normal height 10 or 20-
             point characters at 15 cpi.
 
         During multipoint mode the printer ignores the ESC W, ESC w, ESC SP,
@@ -1959,7 +1959,7 @@ class ESCParser:
         ESC k is ignored if typeface is not available in scalable/multipoint mode.
         See the decorator :meth:`multipoint_mode_ignore`.
 
-        .. seealso:: A second method to change the pitch can be :meth:`set_horizontal_motion_index`.
+        .. seealso:: A second method to change the pitch can be :meth:`set_horizontal_motion_index` (ESC c).
         """
         m, nL, nH = args[1].value
 
@@ -2073,6 +2073,8 @@ class ESCParser:
 
         Add a fixed amount of space to the right of every character.
         This additional space is added to both fixed-pitch and proportional characters.
+
+        TL;DR: new character width = (previous character width) + (extra space)
 
         - cancels the HMI (horizontal motion unit) set with the ESC c command.
         - The extra space set with this command doubles during double-width mode.
