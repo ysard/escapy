@@ -405,7 +405,7 @@ class ESCParser:
 
     @property
     def point_size(self) -> float:
-        """Get the current font point size (in cpi)"""
+        """Get the current font point size (in 1/72 inch)"""
         return self._point_size
 
     @point_size.setter
@@ -1776,7 +1776,7 @@ class ESCParser:
             the new LQ typeface will be selected when the printer returns to LQ printing.
         - The Roman typeface is selected if the selected typeface is not available.
         - Ignored if typeface is not available in scalable/multipoint mode.
-            => For now this IS NOT honored.
+            => For now this IS NOT honored (we use scalable fonts everywhere).
 
         .. note:: At the time, the ESC/P 2 command language implements four
             scalable multipoint fonts:
@@ -2436,12 +2436,12 @@ class ESCParser:
 
     @multipoint_mode_ignore
     def switch_double_height_printing(self, *args):
-        """Turns on/off double-width printing of all characters, spaces, and intercharacter spacing
-        (set with the ESC SP command) - ESC w
+        """Turns on/off double-height printing of all characters - ESC w
 
         doc p278
 
-        On Non-ESC/P 2 and typefaces not available in multipoint mode:
+        On Non-ESC/P 2 AND in ESCP2 typefaces not available in multipoint mode,
+        ESC w is the only way to modify the point size:
 
             - ESC w 1: Selects double-height (21-point) characters
             - ESC w 0: Selects normal (10.5-point) characters
