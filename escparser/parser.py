@@ -1030,8 +1030,25 @@ class ESCParser:
         in the current character pitch plus any additional intercharacter space - BS
 
         ignored if it would move the print position to the left of the left margin.
+
+        .. warning:: The original implementation doesn't care about text scripting
+            since it doesn't modify the character width.
+            Since we use point size on modern fonts, it now must be considered.
+
+            Idem about the double-height option, we must apply a factor of 0.5
+            since it is obtained by doubling the point size.
+
         """
-        cursor_x = self.cursor_x - (self.character_pitch + self.extra_intercharacter_space)
+        # Original implementation
+        # cursor_x = self.cursor_x - (self.character_pitch + self.extra_intercharacter_space)
+
+        # Custom implementation: approximatation
+        # Compute coef only if double-height is enabled
+        # We USE character_pitch here, witch is updated via the standard implementation
+        # (like the intercharacter space).
+        horizontal_scale_coef = 1 if not self.double_height else 0.5
+        scripting_coef = 2/3 if self.scripting else 1
+        cursor_x = self.cursor_x - (self.character_pitch * scripting_coef * horizontal_scale_coef + self.extra_intercharacter_space)
 
         if cursor_x < self.left_margin:
             return
