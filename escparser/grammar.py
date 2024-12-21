@@ -180,7 +180,7 @@ esc_grammar = r"""
         # Variable
         | ESC "^" SELECT_BIT_IMAGE_9PINS_HEADER DATA+ -> select_bit_image_9pins
         # 2nd byte can be: m = 0, 1, 2, 3, 4, 6, 32, 33, 38, 39, 40, 71, 72, 73 ; 0, 1, 2, 3, 4, 5, 6, 7
-        | ESC "?" /[KLYZ][\x00\x01\x02\x03\x04\x06\x07\x20\x21\x26\x27\x28\x47\x48\x49]/ -> reassign_bit_image_mode
+        | ESC "?" SELECT_XDPI_GRAPHICS_CMD /[\x00\x01\x02\x03\x04\x06\x07\x20\x21\x26\x27\x28\x47\x48\x49]/ -> reassign_bit_image_mode
         | ESC "(G\x01\x00" /[1\x01]/                 -> set_graphics_mode
         | ESC "(i\x01\x00" BIN_ARG_EX                -> switch_microweave_mode
         # Variable

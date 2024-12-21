@@ -3167,7 +3167,7 @@ class ESCParser:
         # Get speed (adjacent dot printing not enabled for the following densities)
         self.double_speed = dot_density_m in (2, 3, 40, 72)
 
-    def reassign_bit_image_mode(self, *args):
+    def reassign_bit_image_mode(self, _, cmd_letter: Token, dot_density_m: Token):
         """Assign the dot density used during the ESC K, L, Y, Z commands to the
         density specified by the same parameter m of the ESC * command - ESC ?
 
@@ -3180,22 +3180,27 @@ class ESCParser:
 
         doc p188
 
-        .. note:: nonrecommended command; use the ESC * command
-        """
-        cmd_letter = chr(args[1].value[0])
-        dot_density_m = args[1].value[1]
+        .. note:: non-recommended command; use the ESC * command
 
-        match cmd_letter:
-            case "K":
+        :param _: ESC byte command
+        :param cmd_letter: ESC letter in K,L,Y,Z.
+        :param dot_density_m:
+            - ESCP2: 0, 1, 2, 3, 4, 6, 32, 33, 38, 39, 40, 71, 72, 73 ;
+            - 9 pins: 0, 1, 2, 3, 4, 5, 6, 7.
+        """
+        dot_density_m = dot_density_m.value[0]
+
+        match cmd_letter.value:
+            case b"K":
                 # Similar to ESC * 0
                 self.klyz_densities[0] = dot_density_m
-            case "L":
+            case b"L":
                 # Similar to ESC * 1
                 self.klyz_densities[1] = dot_density_m
-            case "Y":
+            case b"Y":
                 # Similar to ESC * 2
                 self.klyz_densities[2] = dot_density_m
-            case "Z":
+            case b"Z":
                 # Similar to ESC * 3
                 self.klyz_densities[3] = dot_density_m
 
