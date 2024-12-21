@@ -356,14 +356,14 @@ def test_charset_tables(tmp_path: Path):
     table_0 = b"\x1bt\x00"  # ESC t 0 Italic
     table_1 = b"\x1bt\x01"  # ESC t 1 cp437 (default table)
     table_3 = b"\x1bt\x03"  # ESC t 3 cp437
-    cpi_8 = b"\x1bX\x00\x10\x00"  # ESC X
+    point_8 = b"\x1bX\x00\x10\x00"  # ESC X
     # left_margin = b"\x1bl\x03"  # ESC l
     cancel_left_margin = b"\x1bl\x00"  # ESC l
 
     lines = [
         esc_reset,
         cancel_left_margin,
-        cpi_8,
+        point_8,
         # b"\x1bk\x00", # Roman (default)
         # b"\x1bk\x02", # Courier
         b"\x1bk\x01",  # Sans Serif
@@ -435,12 +435,12 @@ def test_international_charsets(tmp_path: Path, assign_table_cmd, encoding):
 
     Custom encoding/decoding codecs are tested here.
     """
-    cpi_8 = b"\x1BX\x00\x10\x00" # 0x10 => 16 / 2 = 8
+    point_8 = b"\x1BX\x00\x10\x00" # 0x10 => 16 / 2 = 8
     roman = b"\x1B\x6B\x00"
     select_international_charset_prefix = b"\x1bR"
 
     lines = [
-        esc_reset + cpi_8 + roman + assign_table_cmd + "table with international mods".encode(encoding),
+        esc_reset + point_8 + roman + assign_table_cmd + "table with international mods".encode(encoding),
     ]
     # Select intl
     for intl_id, charset in cm.international_charsets.items():
@@ -484,11 +484,11 @@ def test_fonts(tmp_path: Path):
     """
     test_phrase = b"The quick brown fox jumps over the lazy dog; THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG; 1234567890"
     cancel_left_margin = b"\x1bl\x00"  # ESC l
-    cpi_8 = b"\x1BX\x00\x10\x00"  # ESC X: 0x10 => 16 / 2 = 8 cpi
+    point_8 = b"\x1BX\x00\x10\x00"  # ESC X: 0x10 => 16 / 2 = 8 points
     roman = b"\x1Bk\x00"  # ESC k
     # Test typefaces
     lines = [
-        esc_reset + cancel_left_margin + cpi_8,
+        esc_reset + cancel_left_margin + point_8,
         b"Default font (Roman):",
         test_phrase,
         b"Roman:",
@@ -529,36 +529,36 @@ def test_select_font_by_pitch_and_point(tmp_path: Path):
     # ESC X: 8 cpi (m, nL, nH)
     # The nL value is divided by 2 later
     cancel_left_margin = b"\x1bl\x00"  # ESC l
-    cpi_8 = b"\x1bX\x00\x10\x00"  # ESC X: 0x10 => 16 / 2 = 8 cpi
+    point_8 = b"\x1bX\x00\x10\x00"  # ESC X: 0x10 => 16 / 2 = 8 points
     alphabet = b"abcdefghijklmnopqrstuvwxz"
     sans_serif = b"\x1bk\x01"
     lines = [
-        esc_reset + cancel_left_margin + cpi_8,
+        esc_reset + cancel_left_margin + point_8,
         # Use Sans Serif
         sans_serif,
-        cpi_8 + b"Font size 8",
+        point_8 + b"Font size 8",
         b"\x1bX\x00\x10\x00" + alphabet,  # 8
-        cpi_8 + b"Font size 10 (10.5)",
+        point_8 + b"Font size 10 (10.5)",
         b"\x1bX\x00\x15\x00" + alphabet,  # 10 (10.5)
-        cpi_8 + b"Font size 12",
+        point_8 + b"Font size 12",
         b"\x1bX\x00\x18\x00" + alphabet,  # 12
-        cpi_8 + b"Font size 14",
+        point_8 + b"Font size 14",
         b"\x1bX\x00\x1c\x00" + alphabet,  # 14
-        cpi_8 + b"Font size 16",
+        point_8 + b"Font size 16",
         b"\x1bX\x00\x20\x00" + alphabet,  # 16
-        cpi_8 + b"Font size 18",
+        point_8 + b"Font size 18",
         b"\x1bX\x00\x24\x00" + alphabet,  # 18
-        cpi_8 + b"Font size 20 (21)",
+        point_8 + b"Font size 20 (21)",
         b"\x1bX\x00\x28\x00" + alphabet,  # 20 (21)
-        cpi_8 + b"Font size 22",
+        point_8 + b"Font size 22",
         b"\x1bX\x00\x2c\x00" + alphabet,  # 22
-        cpi_8 + b"Font size 24",
+        point_8 + b"Font size 24",
         b"\x1bX\x00\x30\x00" + alphabet,  # 24
-        cpi_8 + b"Font size 26",
+        point_8 + b"Font size 26",
         b"\x1bX\x004\x00" + alphabet,  # 26
-        cpi_8 + b"Font size 30",
+        point_8 + b"Font size 30",
         b"\x1bX\x00\x3c\x00" + alphabet,  # 30
-        cpi_8 + b"Font size 40",
+        point_8 + b"Font size 40",
         b"\x1bX\x00\x40\x00" + alphabet,  # 40
     ]
 
@@ -575,16 +575,16 @@ def test_set_intercharacter_space(tmp_path: Path):
     Also tests text scripting which should support the setting.
     """
     intercharacter_space_prefix = b"\x1b\x20"
-    # Disable multipoint mode used by cpi_8 because it ignores the
+    # Disable multipoint mode used by point_8 because it ignores the
     # intercharacter_space command => ESC p 0
     reset_intercharacter_space = b"\x1bp\x00"
     enable_upperscripting = b"\x1bS\x00"
     disable_upperscripting = b"\x1bT"
-    cpi_8 = b"\x1bX\x00\x10\x00"  # ESC X: 0x10 => 16 / 2 = 8 cpi
+    point_8 = b"\x1bX\x00\x10\x00"  # ESC X: 0x10 => 16 / 2 = 8 points
     alphabet = b"abcdefghijklmnopqrstuvwxz"
     lines = [
         esc_reset,
-        cpi_8 + b"Intercharacter space from 0 to 128 (steps 20)"
+        point_8 + b"Intercharacter space from 0 to 128 (steps 20)"
         + reset_intercharacter_space
     ]
     for i in range(0, 128, 20):
@@ -592,7 +592,7 @@ def test_set_intercharacter_space(tmp_path: Path):
 
     # Same thing but with upper scripting text
     lines.append(
-        cpi_8 + b"Intercharacter space from 0 to 128 (steps 20) for scripting text"
+        point_8 + b"Intercharacter space from 0 to 128 (steps 20) for scripting text"
         + reset_intercharacter_space + enable_upperscripting
     )
     for i in range(0, 128, 20):
@@ -690,10 +690,10 @@ def test_double_width_height(tmp_path: Path, pins: int, expected_filename: str):
     :param pins: Configure the number of pins of the printer.
     :param expected_filename: Test pdf used as a reference.
     """
-    # Disable multipoint mode due to cpi_8 => ESC p 0
+    # Disable multipoint mode due to point_8 => ESC p 0
     reset_intercharacter_space = b"\x1bp\x00"
-    cpi_8 = b"\x1bX\x00\x10\x00"  # ESC X: 0x10 => 16 / 2 = 8 cpi
-    cpi_21 = b"\x1BX\x00\x2a\x00"  # ESC X: 0x2a => 42 / 2 = 21 cpi
+    point_8 = b"\x1bX\x00\x10\x00"  # ESC X: 0x10 => 16 / 2 = 8 points
+    point_21 = b"\x1BX\x00\x2a\x00"  # ESC X: 0x2a => 42 / 2 = 21 points
     # double-width
     double_width = b"\x1BW\x01"
     reset_double_width = b"\x1BW\x00"
@@ -705,18 +705,18 @@ def test_double_width_height(tmp_path: Path, pins: int, expected_filename: str):
 
     lines = [
         esc_reset,
-        cpi_8 + b"Normal width (10.5 cpi)" + reset_intercharacter_space,
+        point_8 + b"Normal width (10.5 cpi)" + reset_intercharacter_space,
         pangram,
-        cpi_8 + b"Double point-size (21 cpi)" + reset_intercharacter_space,
-        cpi_21 + pangram,
-        cpi_8 + b"Double width (ESC W) (horizontal scale * 2)" + reset_intercharacter_space,
+        point_8 + b"Double point-size (21 cpi)" + reset_intercharacter_space,
+        point_21 + pangram,
+        point_8 + b"Double width (ESC W) (horizontal scale * 2)" + reset_intercharacter_space,
         double_width + pangram + reset_double_width,
-        cpi_8 + b"Double height (ESC w) (point-size * 2 + horizontal scale / 2)" + reset_intercharacter_space,
+        point_8 + b"Double height (ESC w) (point-size * 2 + horizontal scale / 2)" + reset_intercharacter_space,
         double_height + pangram + reset_double_height,
         # Should more or less correspond to 2 x 10.5 cpi
-        cpi_8 + b"Double height + width (point-size * 2 + horizontal scale * 2)" + reset_intercharacter_space,
+        point_8 + b"Double height + width (point-size * 2 + horizontal scale * 2)" + reset_intercharacter_space,
         double_width + double_height + pangram + reset_double_height + reset_double_width,
-        cpi_8 + b"Back to normal width (10.5 cpi)" + reset_intercharacter_space,
+        point_8 + b"Back to normal width (10.5 cpi)" + reset_intercharacter_space,
         pangram,
         b"\r\n"
     ]
@@ -725,22 +725,22 @@ def test_double_width_height(tmp_path: Path, pins: int, expected_filename: str):
     enable_upperscripting = b"\x1bS\x00"
     disable_upperscripting = b"\x1bT"
     lines += [
-        cpi_8 + b"NOTE: In 9 pins mode, double-height should temporarily stop " +
+        point_8 + b"NOTE: In 9 pins mode, double-height should temporarily stop " +
         b"upper/subscripting, condensed font and Draft printing.",
-        cpi_8 + b"upperscripting enabled for ref" + reset_intercharacter_space,
+        point_8 + b"upperscripting enabled for ref" + reset_intercharacter_space,
         enable_upperscripting + pangram + disable_upperscripting,
-        cpi_8 + b"double-height enabled for ref" + reset_intercharacter_space,
+        point_8 + b"double-height enabled for ref" + reset_intercharacter_space,
         double_height + pangram + reset_double_height,
-        cpi_8 + b"upperscripting should have no effect in 9pins mode" + reset_intercharacter_space,
+        point_8 + b"upperscripting should have no effect in 9pins mode" + reset_intercharacter_space,
         enable_upperscripting + double_height + pangram + reset_double_height + disable_upperscripting,
         # Handle the risk to reactivate scripting while it was disabled by a legit
         # command before exiting double-height
-        cpi_8 + b"in 9pins mode make sure scripting is enabled, then disabled by double-height, then disabled,",
+        point_8 + b"in 9pins mode make sure scripting is enabled, then disabled by double-height, then disabled,",
         b"then not set anymore when exiting double-height" + reset_intercharacter_space,
         enable_upperscripting + b"The quick " + double_height + b"brown fox jumps " + disable_upperscripting + reset_double_height + b"over the lazy dog",
-        cpi_8 + b"upperscripting should have no effect in 9pins mode" + reset_intercharacter_space,
+        point_8 + b"upperscripting should have no effect in 9pins mode" + reset_intercharacter_space,
         double_height + enable_upperscripting + pangram + reset_double_height + disable_upperscripting,
-        cpi_8 + b"upperscripting should have no effect on the first part in 9pins mode" + reset_intercharacter_space,
+        point_8 + b"upperscripting should have no effect on the first part in 9pins mode" + reset_intercharacter_space,
         double_height + enable_upperscripting + pangram + reset_double_height + pangram + disable_upperscripting,
         # TODO: same for condensed
     ]
@@ -754,8 +754,8 @@ def test_double_width_height(tmp_path: Path, pins: int, expected_filename: str):
 
 def test_select_character_style(tmp_path: Path):
     """Test character styles: outline + shadow - ESC q"""
-    cpi_8 = b"\x1BX\x00\x10\x00"
-    # Disable multipoint mode due to cpi_8 => ESC p 0
+    point_8 = b"\x1BX\x00\x10\x00"
+    # Disable multipoint mode due to point_8 => ESC p 0
     reset_intercharacter_space = b"\x1Bp\x00"
     # double-width
     double_width = b"\x1BW\x01"
@@ -775,44 +775,44 @@ def test_select_character_style(tmp_path: Path):
 
     lines = [
         esc_reset,
-        cpi_8 + b'Character style - outline - ESC q 1' + reset_intercharacter_space,
+        point_8 + b'Character style - outline - ESC q 1' + reset_intercharacter_space,
         esc_q1 + pangram + esc_q0,
-        cpi_8 + b'Character style - shadow - ESC q 2' + reset_intercharacter_space,
+        point_8 + b'Character style - shadow - ESC q 2' + reset_intercharacter_space,
         esc_q2 + pangram + esc_q0,
-        cpi_8 + b'Character style - outline + shadow - ESC q 3' + reset_intercharacter_space,
+        point_8 + b'Character style - outline + shadow - ESC q 3' + reset_intercharacter_space,
         esc_q3 + pangram + esc_q0,
-        cpi_8 + b'Character style - off - ESC q 0' + reset_intercharacter_space,
+        point_8 + b'Character style - off - ESC q 0' + reset_intercharacter_space,
         esc_q0 + pangram + esc_q0,
         b"\r\n",
 
         enable_upperscripting,
-        cpi_8 + b'Upperscripting + Character style - outline - ESC q 1' + reset_intercharacter_space,
+        point_8 + b'Upperscripting + Character style - outline - ESC q 1' + reset_intercharacter_space,
         esc_q1 + pangram + esc_q0,
-        cpi_8 + b'Upperscripting + Character style - shadow - ESC q 2' + reset_intercharacter_space,
+        point_8 + b'Upperscripting + Character style - shadow - ESC q 2' + reset_intercharacter_space,
         esc_q2 + pangram + esc_q0,
-        cpi_8 + b'Upperscripting + Character style - outline + shadow - ESC q 3' + reset_intercharacter_space,
+        point_8 + b'Upperscripting + Character style - outline + shadow - ESC q 3' + reset_intercharacter_space,
         esc_q3 + pangram + esc_q0,
-        cpi_8 + b'Upperscripting + Character style - off - ESC q 0' + reset_intercharacter_space,
+        point_8 + b'Upperscripting + Character style - off - ESC q 0' + reset_intercharacter_space,
         esc_q0 + pangram + esc_q0,
         disable_upperscripting + b"\r\n",
 
-        cpi_8 + b'Double-width + Character style - outline - ESC q 1' + reset_intercharacter_space,
+        point_8 + b'Double-width + Character style - outline - ESC q 1' + reset_intercharacter_space,
         double_width + esc_q1 + pangram + esc_q0 + reset_double_width,
-        cpi_8 + b'Double-width + Character style - shadow - ESC q 2' + reset_intercharacter_space,
+        point_8 + b'Double-width + Character style - shadow - ESC q 2' + reset_intercharacter_space,
         double_width + esc_q2 + pangram + esc_q0 + reset_double_width,
-        cpi_8 + b'Double-width + Character style - outline + shadow - ESC q 3' + reset_intercharacter_space,
+        point_8 + b'Double-width + Character style - outline + shadow - ESC q 3' + reset_intercharacter_space,
         double_width + esc_q3 + pangram + esc_q0 + reset_double_width,
-        cpi_8 + b'Double-width + Character style - off - ESC q 0' + reset_intercharacter_space,
+        point_8 + b'Double-width + Character style - off - ESC q 0' + reset_intercharacter_space,
         double_width + esc_q0 + pangram + esc_q0 + reset_double_width,
         b"\r\n",
 
-        cpi_8 + b'Double-height + Character style - outline - ESC q 1' + reset_intercharacter_space,
+        point_8 + b'Double-height + Character style - outline - ESC q 1' + reset_intercharacter_space,
         double_height + esc_q1 + pangram + esc_q0 + reset_double_height,
-        cpi_8 + b'Double-height + Character style - shadow - ESC q 2' + reset_intercharacter_space,
+        point_8 + b'Double-height + Character style - shadow - ESC q 2' + reset_intercharacter_space,
         double_height + esc_q2 + pangram + esc_q0 + reset_double_height,
-        cpi_8 + b'Double-height + Character style - outline + shadow - ESC q 3' + reset_intercharacter_space,
+        point_8 + b'Double-height + Character style - outline + shadow - ESC q 3' + reset_intercharacter_space,
         double_height + esc_q3 + pangram + esc_q0 + reset_double_height,
-        cpi_8 + b'Double-height + Character style - off - ESC q 0' + reset_intercharacter_space,
+        point_8 + b'Double-height + Character style - off - ESC q 0' + reset_intercharacter_space,
         double_height + esc_q0 + pangram + esc_q0 + reset_double_height,
         b"\r\n",
 
@@ -901,7 +901,7 @@ def test_control_codes_printing(tmp_path: Path):
     .. warning:: The test is in 9pins mode: control codes are NOT printable by
         default.
     """
-    cpi_8 = b"\x1BX\x00\x10\x00"  # 0x10 => 16 / 2 = 8
+    point_8 = b"\x1BX\x00\x10\x00"  # 0x10 => 16 / 2 = 8
     roman = b"\x1B\x6B\x00"
 
     set_upper_print_cmd = b"\x1b6"
@@ -916,7 +916,7 @@ def test_control_codes_printing(tmp_path: Path):
 
     lines = [
         # Default => processed as control codes: not printed (9pins mode)
-        cpi_8 + roman + b"default (No control codes)",
+        point_8 + roman + b"default (No control codes)",
         filter_table,
         b"enable upper control codes [128-159]",
         set_upper_print_cmd + filter_table,
