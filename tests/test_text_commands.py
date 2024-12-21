@@ -11,7 +11,7 @@ import escparser.commons as cm
 from .misc import format_databytes, pdf_comparison
 from .misc import DIR_DATA, esc_reset, cancel_bold
 from .helpers.diff_pdf import is_similar_pdfs
-from escparser.parser import ESCParser, PrintMode, PrintScripting, PrintControlCodes, CONTROL_CODES_MAPPING
+from escparser.parser import ESCParser, PrintMode, PrintScripting, PrintControlCodes
 
 
 @pytest.mark.parametrize(
@@ -912,7 +912,7 @@ def test_control_codes_printing(tmp_path: Path):
     enable_control_printing = switch_control_printing + b"\x01"
     disable_control_printing = switch_control_printing + b"\x00"
 
-    filter_table = bytes(sorted(CONTROL_CODES_MAPPING[PrintControlCodes.SELECTED]))
+    filter_table = bytes(sorted(PrintControlCodes.SELECTED.value))
 
     lines = [
         # Default => processed as control codes: not printed (9pins mode)

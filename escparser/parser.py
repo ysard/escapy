@@ -54,27 +54,40 @@ config.trace_filter = GlobbingFilter(include=[
 ])
 
 
-PrintMode = Enum("PrintMode", [("DRAFT", 0), ("LQ", 1)])
-PrintScripting = Enum("PrintScripting", [("SUP", 0), ("SUB", 1)])
-PrintCharacterStyle = Enum("PrintCharacterStyle", [("OUTLINE", 1), ("SHADOW", 2)])
+class PrintMode(Enum):
+    """Printing modes enumeration
+    .. note:: NLQ mode for 9 pin printers is considered equivalent to the LQ mode
+        of 24/48 pins printers.
+    """
+    DRAFT = 0
+    LQ = 1
 
 
-class PrintControlCodes:
-    UPPER = 0
-    SELECTED = 1
+class PrintCharacterStyle(Enum):
+    """Character style enumeration in reportlab text render values"""
+    FILL = 0
+    OUTLINE = 1
+    SHADOW = 2
 
 
-CONTROL_CODES_MAPPING = {
-    PrintControlCodes.UPPER: frozenset(range(128, 160)),
-    PrintControlCodes.SELECTED: frozenset(
+class PrintScripting(Enum):
+    """Text scripting enumeration"""
+    SUP = 0
+    SUB = 1
+
+
+class PrintControlCodes(Enum):
+    """Sections of control codes enumeration & definitions as values"""
+    UPPER = frozenset(range(128, 160))
+    SELECTED = frozenset(
         it.chain(
             range(0, 7),
             (16, 17, 21, 22, 23, 25, 26),
             range(28, 32),
             range(128, 160)
         )
-    ),
-}
+    )
+
 
 LOGGER = logger()
 
@@ -114,7 +127,7 @@ class ESCParser:
         # Prepare for methods search in run_esc_instruction()
         self.dir = frozenset(dir(self))
 
-        self.mode = PrintMode.LQ
+        self.mode: PrintMode = PrintMode.LQ
         self.previous_mode = self.mode
         # Note: There are non-ESCP2 printers that have 24, 48 pins !
         self.pins = pins
@@ -125,9 +138,8 @@ class ESCParser:
         self.italic = False
         self.bold = False
         self._underline = False
-        self.scripting = None  # cf PrintScripting
-        self.previous_scripting = None
-        self.character_style = None  # cf PrintCharacterStyle
+        self.scripting: None | PrintScripting = None
+        self.character_style: None | PrintCharacterStyle = None
         self._condensed = False
         self.previous_condensed = False
         self.double_strike = False
@@ -276,7 +288,7 @@ class ESCParser:
         #   9pins: Codes are treated as control codes; All codes are filtered.
         #       => init with the largest set of codes
         if self.pins == 9:
-            self.control_codes_filter = CONTROL_CODES_MAPPING[PrintControlCodes.SELECTED]
+            self.control_codes_filter = PrintControlCodes.SELECTED.value
         else:
             self.control_codes_filter = frozenset()
         # scalable fonts possibility
@@ -1138,9 +1150,9 @@ class ESCParser:
             match self.character_style:
                 # Fill only, Shadow only
                 # Fill then stroke, Outline and shadow
-                case 0 | 2:
+                case PrintCharacterStyle.FILL | PrintCharacterStyle.SHADOW:
                     text_object.textOut(text)
-                    text_object.setTextRenderMode(self.character_style)
+                    text_object.setTextRenderMode(self.character_style.value)
                     text_object.setFillColorRGB(1, 1, 1)  # Fill with white
                     # Empirical offset value (~1 to 1.2 at 10.5 point size)
                     offset = horizontal_scale_coef * self.point_size * 0.5/ 10
@@ -1150,8 +1162,8 @@ class ESCParser:
                     text_object.textOut(text)
                     text_object.setFillColorRGB(0, 0, 0)
                 # Stroke only, Outline only
-                case 1:
-                    text_object.setTextRenderMode(self.character_style)
+                case PrintCharacterStyle.OUTLINE:
+                    text_object.setTextRenderMode(self.character_style.value)
                     text_object.textOut(text)
 
             text_object.setTextRenderMode(0)
@@ -2234,11 +2246,11 @@ class ESCParser:
         # Map character style ids with reportlab text render modes
         character_style_mapping = {
             0: None,
-            1: 1,
-            2: 0,
-            3: 2,
+            1: PrintCharacterStyle.OUTLINE,
+            2: PrintCharacterStyle.FILL,
+            3: PrintCharacterStyle.SHADOW,
         }
-        # We use text render modes in this attribute! Not the ESC style id!
+        # We use reportlab text render modes in this attribute! Not the ESC style id!
         self.character_style = character_style_mapping.get(value)
 
         if LOGGER.level != DEBUG:
@@ -2483,14 +2495,14 @@ class ESCParser:
         p159
         """
         # Remove the codes from the filter => they will be printed
-        self.control_codes_filter -= CONTROL_CODES_MAPPING[PrintControlCodes.UPPER]
+        self.control_codes_filter -= PrintControlCodes.UPPER.value
 
     def unset_upper_control_codes_printing(self, *_):
         """Treat codes from 128 to 159 as CONTROL CODES instead of printable characters - ESC 7, ESC m
 
         .. seealso:: :meth:`set_upper_control_codes_printing`
         """
-        self.control_codes_filter |= CONTROL_CODES_MAPPING[PrintControlCodes.UPPER]
+        self.control_codes_filter |= PrintControlCodes.UPPER.value
 
     def switch_control_codes_printing(self, *args):
         """Treat codes 0–6, 16, 17, 21–23, 25, 26, 28–31, and 128–159 as printable
@@ -2520,9 +2532,9 @@ class ESCParser:
 
         if value:
             # Remove the codes from the filter => they will be printed
-            self.control_codes_filter -= CONTROL_CODES_MAPPING[PrintControlCodes.SELECTED]
+            self.control_codes_filter -= PrintControlCodes.SELECTED.value
         else:
-            self.control_codes_filter |= CONTROL_CODES_MAPPING[PrintControlCodes.SELECTED]
+            self.control_codes_filter |= PrintControlCodes.SELECTED.value
 
     def select_printer(self, *_):
         """Select the printer after it has been deselected with the DC3 command - DC1
