@@ -1269,7 +1269,12 @@ class ESCParser:
         """Move the print position to the left-margin position
 
         TODO: non-ESC/P 2 printers: The printer prints all data in the line buffer
+        TODO: When automatic line-feed is selected (through DIP-switch or panel setting),
+             the CR command is accompanied by a LF command.
         """
+        if self.pins == 9:
+            self.double_width = False
+
         # Workaround to temporary interrupt underline see also line_feed()
         if self._underline:
             self.underline = False
@@ -1447,16 +1452,20 @@ class ESCParser:
     def v_tab(self, *_):
         """Move the vertical print position to the next vertical tab below the current print position - VT
 
-        Add a vertical tabulation
+        - TODO: Add a vertical tabulation
+        - Move the horizontal print position to the left-margin position
 
-        Move the horizontal print position to the left-margin position
+        doc p52
 
-        TODO: Not implemented: see doc p52
+        TODO:
+            ESCP2:
+            NOT cancel double-width when VT functions the same as a CR command.
+            non-ESC/P 2 printers:
+            cancel double-width when VT functions the same as a CR command.
         """
         self.double_width = False
 
         self.carriage_return()
-        raise NotImplementedError
 
     def reset_horizontal_tabulations(self):
         """Set tabulation widths in character pitch
@@ -2385,7 +2394,7 @@ class ESCParser:
 
         .. seealso:: :meth:`unset_double_width_printing`, :meth:`switch_double_width_printing`
 
-        TODO: not canceled by the VT command when it functions the same as a CR command.
+        TODO: ESCP2 : not canceled by the VT command when it functions the same as a CR command.
         TODO: non-ESC/P 2 printers:
             also canceled when the printer receives the following commands:
             CR and VT (when it functions the same as a CR command).
