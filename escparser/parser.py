@@ -1888,7 +1888,7 @@ class ESCParser:
         }
 
     def select_user_defined_set(self, *args):
-        """Switches between normal and user-defined characters
+        """Switch between normal and user-defined characters - ESC %
 
         NOTE/TODO: cf model spec:
             Draft user-defined characters are converted to LQ characters during LQ mode.
@@ -1896,12 +1896,7 @@ class ESCParser:
         value = args[1].value[0]
         self.user_defined_ram_characters = value in (1, 49)
 
-        text = (
-            "=> User-defined (RAM) characters"
-            if self.user_defined_ram_characters
-            else "=> Normal (ROM) characters"
-        )
-        print(text)
+        LOGGER.debug("User-defined (RAM) characters: %s", self.user_defined_ram_characters)
 
     def select_cpi(self, _, cmd_letter: Token):
         """Selects 10.5-point, *-cpi character printing - ESC P, ESC M, ESC g
