@@ -2276,7 +2276,13 @@ class ESCParser:
         Called by :meth:`select_condensed_printing`, :meth:`unset_condensed_printing`,
         :meth:`master_select` (SI, ESC SI, DC2, ESC ! commands).
         """
+        if self.character_pitch == 1 / 15 and self.pins != 9:
+            # Ignore due to ESC g action for ESCP2 only
+            return
+
         # Cancel HMI set_horizontal_motion_index() ESC c command
+        # Note: the position is OK: ESC c is only used on ESCP2 printers,
+        # thus, here the command can't be ignored.
         self.character_width = None
 
         if condensed == self._condensed:
@@ -2292,19 +2298,15 @@ class ESCParser:
         self._condensed = condensed
         LOGGER.debug("Set condensed printing: %s", condensed)
 
+        # Update character pitch
         if condensed:
-            # Update character pitch
             if self.proportional_spacing:
                 self.character_pitch *= 0.5
             elif self.character_pitch == 1 / 10:
                 self.character_pitch = 1 / 17.14
             elif self.character_pitch == 1 / 12:
                 self.character_pitch = 1 / 20
-            elif self.character_pitch == 1 / 15:
-                # Ignore due to ESC g action
-                return
         else:
-            # Update character pitch
             if self.proportional_spacing:
                 self.character_pitch *= 2
             elif self.character_pitch == 1 / 17.14:
@@ -2316,9 +2318,10 @@ class ESCParser:
 
     @multipoint_mode_ignore
     def select_condensed_printing(self, *_):
-        """Enters condensed mode, in which character width is reduced - SI, ESC SI
+        """Enter condensed mode, in which character width is reduced - SI, ESC SI
 
-        Ignored if 15-cpi printing has been selected with the ESC g command.
+        Ignored if 15-cpi printing has been selected with the ESC g command
+        (ignored for ESCP2 and not for 9pins).
 
         Change character pitch values according to the current pitch:
 
