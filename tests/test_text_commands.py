@@ -575,8 +575,8 @@ def test_set_intercharacter_space(tmp_path: Path):
     Also tests text scripting which should support the setting.
     """
     intercharacter_space_prefix = b"\x1b\x20"
-    # Disable multipoint mode used by point_8 because it ignores the
-    # intercharacter_space command => ESC p 0
+    # Disable multipoint mode used by point_8 because this mode ignores the
+    # ESC SP command => so use ESC p 0
     reset_intercharacter_space = b"\x1bp\x00"
     enable_upperscripting = b"\x1bS\x00"
     disable_upperscripting = b"\x1bT"
@@ -690,7 +690,8 @@ def test_double_width_height(tmp_path: Path, pins: int, expected_filename: str):
     :param pins: Configure the number of pins of the printer.
     :param expected_filename: Test pdf used as a reference.
     """
-    # Disable multipoint mode due to point_8 => ESC p 0
+    # Disable multipoint mode used by point_8 because this mode ignores the
+    # ESC SP command => so use ESC p 0
     reset_intercharacter_space = b"\x1bp\x00"
     point_8 = b"\x1bX\x00\x10\x00"  # ESC X: 0x10 => 16 / 2 = 8 points
     point_21 = b"\x1BX\x00\x2a\x00"  # ESC X: 0x2a => 42 / 2 = 21 points
@@ -763,7 +764,8 @@ def test_double_width_height(tmp_path: Path, pins: int, expected_filename: str):
 def test_select_character_style(tmp_path: Path):
     """Test character styles: outline + shadow - ESC q"""
     point_8 = b"\x1BX\x00\x10\x00"
-    # Disable multipoint mode due to point_8 => ESC p 0
+    # Disable multipoint mode used by point_8 because this mode ignores the
+    # ESC SP command => so use ESC p 0
     reset_intercharacter_space = b"\x1Bp\x00"
     # double-width
     double_width = b"\x1BW\x01"
