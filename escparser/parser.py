@@ -1927,9 +1927,9 @@ class ESCParser:
         TODO: If you change the pitch with this command during proportional mode
             (selected with the ESC p command), the change takes effect when the
             printer exits proportional mode.
-            => attr previous character pitch à mettre en places
 
-        TODO: 9 pins: character pitch only, no modification of the point size
+        9 pins: character pitch only, no modification of the point size;
+            see explanations at :meth:`cancel_multipoint_mode`.
 
         :param _: ESC byte command
         :param cmd_letter: ESC letter in ESC P, ESC M, ESC g commands,
@@ -2013,7 +2013,7 @@ class ESCParser:
         """Cancel multipoint mode & HMI
 
         Characters normally have a size of 10.5 points. You can also print 21-point
-        characters as shown below (p278)
+        characters as shown below (p278).
 
         ESC P, ESC M, ESC g, ESC p, ESC !, ESC @, and
         HMI :meth:`set_horizontal_motion_index` ESC c.
