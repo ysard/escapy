@@ -9,7 +9,7 @@ from lark.exceptions import UnexpectedToken
 # Local imports
 import escparser.commons as cm
 from .misc import format_databytes, pdf_comparison
-from .misc import DIR_DATA, esc_reset, cancel_bold
+from .misc import DIR_DATA, esc_reset, cancel_bold, select_10cpi, select_12cpi, select_15cpi, select_condensed_printing, unset_condensed_printing, double_width
 from .helpers.diff_pdf import is_similar_pdfs
 from escparser.parser import ESCParser, PrintMode, PrintScripting, PrintControlCodes
 
@@ -567,6 +567,90 @@ def test_select_font_by_pitch_and_point(tmp_path: Path):
     _ = ESCParser(code, output_file=str(processed_file))
 
     pdf_comparison(processed_file)
+
+
+@pytest.mark.parametrize(
+    "format_databytes, expected_cpi, pins",
+    [
+        ## Non-multipoint mode
+        (select_10cpi + double_width, 5, None),
+        (select_12cpi + double_width, 6, None),
+        (select_15cpi + double_width, 7.5, None),
+        (select_10cpi, 10, None),
+        (select_12cpi, 12, None),
+        (select_15cpi, 15, None),
+        (select_10cpi + select_condensed_printing, 17.14, None),
+        (select_12cpi + select_condensed_printing, 20, None),
+        # ESCP2: select_15cpi + condensed: condensed is ignored
+        (select_15cpi + select_condensed_printing, 15, None),
+        # 9 pins: select_15cpi + condensed: condensed is set
+        (select_15cpi + select_condensed_printing, 15, 9),
+        # Scalable fonts/multipoint then multipoint should be reset by ESC P
+        # ESC X: m = 0x10: 360/16 cpi
+        (b"\x1bX\x10\x00\x00" + select_10cpi, 10, None),
+        # Proportional + condensed = 2*character_pitch
+        # (Note: character_pitch should be dynamic in this case)
+        (b"\x1bp\x01" + select_condensed_printing, 20, None),
+        # Idem but exiting condensed forces to return to the original cpi
+        (b"\x1bp\x01" + select_condensed_printing + unset_condensed_printing, 10, None),
+        # Proportional + condensed but 9pins: condensed is ignored
+        (b"\x1bp\x01" + select_condensed_printing, 10, 9),
+    ],
+    # First param goes in the 'request' param of the fixture format_databytes
+    indirect=["format_databytes"],
+    ids=[
+        "select_10cpi+double_width_5cpi",
+        "select_12cpi+double_width_6cpi",
+        "select_15cpi+double_width_7.5cpi",
+        "select_10cpi_10cpi",
+        "select_12cpi_12cpi",
+        "select_15cpi_15cpi",
+        "select_10cpi+condensed_17.12cpi",
+        "select_12cpi+condensed_20cpi",
+        "select_15cpi+condensed_ignored_15cpi",
+        "select_15cpi+condensed_15cpi_9pins",
+        "select_10cpi_exit_multipoint",
+        "proportional+condensed_20cpi",
+        "proportional+condensed_set/unset_10cpi",
+        "proportional+condensed_9pins"
+    ],
+)
+def test_character_pitch_changes(format_databytes: bytes, expected_cpi: float, pins: int | None):
+    """Test character pitch in NON-multipoint mode
+
+    Cover: ESC P, ESC M, ESC g (select 10, 12, 15 cpi), double width, condensed, ESC X (pitch)
+    """
+    escparser = ESCParser(format_databytes, pdf=False, pins=pins)
+
+    assert 1 / escparser.character_pitch == expected_cpi
+    assert escparser.multipoint_mode == False
+
+
+@pytest.mark.parametrize(
+    "format_databytes, expected_cpi, pins",
+    [
+        ## Multipoint mode
+        # ESC X: m = 0x12: 360/18 = 20 cpi
+        (b"\x1bX\x12\x00\x00", 20, None),
+        (b"\x1bX\x12\x00\x00" + select_condensed_printing, 20, None)
+    ],
+    # First param goes in the 'request' param of the fixture format_databytes
+    indirect=["format_databytes"],
+    ids=[
+        "multipoint_20cpi",
+        "multipoint_condensed_ignored_20cpi",
+    ],
+)
+def test_character_pitch_changes_multipoint(format_databytes: bytes, expected_cpi: float, pins: int | None):
+    """Test character pitch in multipoint mode
+
+    Cover: ESC X (pitch)
+    """
+    escparser = ESCParser(format_databytes, pdf=False, pins=pins)
+
+    assert 1 / escparser.character_pitch == expected_cpi
+    assert escparser.multipoint_mode == True
+    assert escparser.condensed == False  # TODO: move to a separated test
 
 
 def test_set_intercharacter_space(tmp_path: Path):
