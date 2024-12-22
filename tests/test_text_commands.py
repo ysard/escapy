@@ -523,7 +523,7 @@ def test_fonts(tmp_path: Path):
 def test_select_font_by_pitch_and_point(tmp_path: Path):
     """Test the pitch and point attributes of the font - ESC X
 
-    .. todo:: test pitch
+    .. note:: pitch is tested in :meth:`test_character_pitch_changes`.
     """
     # Change point size
     # ESC X: 8 cpi (m, nL, nH)
