@@ -2312,14 +2312,25 @@ class ESCParser:
         return self._condensed
 
     @condensed.setter
+    @multipoint_mode_ignore
     def condensed(self, condensed: bool):
         """Switch condensed printing mode and update character pitch
+
+        9 pins only:
+            - Ignored ("not available" ?!) when proportional spacing is selected.
+
+        ESCP2 only:
+            - Reduces character width by about 50% when proportional spacing is selected;
+            - Ignored on multipoint (no multipoint mode on 9pins);
+            - Ignored if character pitch is selected by ESC g.
 
         Called by :meth:`select_condensed_printing`, :meth:`unset_condensed_printing`,
         :meth:`master_select` (SI, ESC SI, DC2, ESC ! commands).
         """
         if self.character_pitch == 1 / 15 and self.pins != 9:
             # Ignore due to ESC g action for ESCP2 only
+            return
+        if self.pins == 9 and self.proportional_spacing:
             return
 
         # Cancel HMI set_horizontal_motion_index() ESC c command
