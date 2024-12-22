@@ -650,7 +650,38 @@ def test_character_pitch_changes_multipoint(format_databytes: bytes, expected_cp
 
     assert 1 / escparser.character_pitch == expected_cpi
     assert escparser.multipoint_mode == True
-    assert escparser.condensed == False  # TODO: move to a separated test
+    assert escparser.condensed == False  # Same as in test_condensed_mode
+
+
+@pytest.mark.parametrize(
+    "format_databytes, expected, pins",
+    [
+        # ESCP2: select_15cpi: condensed is ignored
+        (select_15cpi + select_condensed_printing, False, None),
+        # 9 pins: select_15cpi: condensed is set
+        (select_15cpi + select_condensed_printing, True, 9),
+        # Multipoint mode: condensed is ignored
+        (b"\x1bX\x12\x00\x00" + select_condensed_printing, False, None),
+        # Proportional spacing + 9pins: condensed is ignored
+        (b"\x1bp\x01" + select_condensed_printing, False, 9),
+        # Proportional spacing: condensed is set
+        (b"\x1bp\x01" + select_condensed_printing, True, None)
+    ],
+    # First param goes in the 'request' param of the fixture format_databytes
+    indirect=["format_databytes"],
+    ids=[
+        "select_15cpi",
+        "select_15cpi_9pins",
+        "multipoint",
+        "proportional_9pins",
+        "proportional",
+    ],
+)
+def test_condensed_mode(format_databytes: bytes, expected: float, pins: int | None):
+    """Test condensed mode conditions, see :meth:`condensed`.
+    """
+    escparser = ESCParser(format_databytes, pdf=False, pins=pins)
+    assert escparser.condensed == expected
 
 
 def test_set_intercharacter_space(tmp_path: Path):
