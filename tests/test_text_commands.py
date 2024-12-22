@@ -725,22 +725,30 @@ def test_double_width_height(tmp_path: Path, pins: int, expected_filename: str):
     enable_upperscripting = b"\x1bS\x00"
     disable_upperscripting = b"\x1bT"
     lines += [
-        point_8 + b"NOTE: In 9 pins mode, double-height should temporarily stop " +
+        point_8 + b"NOTE: In " +
+        (b"9pins mode, double-height should temporarily stop " if pins else b"ESCP2, double-height can be used with ") +
         b"upper/subscripting, condensed font and Draft printing.",
         point_8 + b"upperscripting enabled for ref" + reset_intercharacter_space,
         enable_upperscripting + pangram + disable_upperscripting,
         point_8 + b"double-height enabled for ref" + reset_intercharacter_space,
         double_height + pangram + reset_double_height,
-        point_8 + b"upperscripting should have no effect in 9pins mode" + reset_intercharacter_space,
+        point_8 + b"upperscripting should have " +
+        (b"no effect in 9pins mode" if pins else b"effect in ESCP2") + reset_intercharacter_space,
         enable_upperscripting + double_height + pangram + reset_double_height + disable_upperscripting,
         # Handle the risk to reactivate scripting while it was disabled by a legit
         # command before exiting double-height
-        point_8 + b"in 9pins mode make sure scripting is enabled, then disabled by double-height, then disabled,",
-        b"then not set anymore when exiting double-height" + reset_intercharacter_space,
+        point_8 +
+        (b"in 9pins mode make sure scripting is enabled, then disabled by double-height,"
+        b" then disabled, then not set anymore when exiting double-height"
+        if pins else
+        b"in ESCP2 make sure scripting is not interrupted during double-height")
+        + reset_intercharacter_space,
         enable_upperscripting + b"The quick " + double_height + b"brown fox jumps " + disable_upperscripting + reset_double_height + b"over the lazy dog",
-        point_8 + b"upperscripting should have no effect in 9pins mode" + reset_intercharacter_space,
+        point_8 + b"upperscripting should have " +
+        (b"no effect in 9pins mode" if pins else b"effect in ESCP2") + reset_intercharacter_space,
         double_height + enable_upperscripting + pangram + reset_double_height + disable_upperscripting,
-        point_8 + b"upperscripting should have no effect on the first part in 9pins mode" + reset_intercharacter_space,
+        point_8 + b"upperscripting should have " +
+        (b"no effect on the first part in 9pins mode" if pins else b"effect in the first part in ESCP2") + reset_intercharacter_space,
         double_height + enable_upperscripting + pangram + reset_double_height + pangram + disable_upperscripting,
         # TODO: same for condensed
     ]
