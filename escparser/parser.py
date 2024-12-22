@@ -139,6 +139,7 @@ class ESCParser:
         self.bold = False
         self._underline = False
         self.scripting: None | PrintScripting = None
+        self.previous_scripting: None | PrintScripting = None
         self.character_style: None | PrintCharacterStyle = None
         self._condensed = False
         self.previous_condensed = False
