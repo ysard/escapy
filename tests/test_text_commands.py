@@ -665,7 +665,9 @@ def test_character_pitch_changes_multipoint(format_databytes: bytes, expected_cp
         # Proportional spacing + 9pins: condensed is ignored
         (b"\x1bp\x01" + select_condensed_printing, False, 9),
         # Proportional spacing: condensed is set
-        (b"\x1bp\x01" + select_condensed_printing, True, None)
+        (b"\x1bp\x01" + select_condensed_printing, True, None),
+        # ESC !, master cmd
+        (b"\x1b!\x04", True, None),
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
@@ -675,6 +677,7 @@ def test_character_pitch_changes_multipoint(format_databytes: bytes, expected_cp
         "multipoint",
         "proportional_9pins",
         "proportional",
+        "master_cmd",
     ],
 )
 def test_condensed_mode(format_databytes: bytes, expected: float, pins: int | None):
