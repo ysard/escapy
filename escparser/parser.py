@@ -1949,8 +1949,8 @@ class ESCParser:
         self.cancel_multipoint_mode()
 
     def select_font_by_pitch_and_point(self, *args):
-        """Puts the printer in multipoint (scalable font) mode, and selects the pitch and point
-        attributes of the font - ESC X
+        """Put the printer in multipoint (scalable font) mode, and select the
+        pitch and point attributes of the font - ESC X
 
         Pitch:
             m = 0 No change in pitch (allow to change only the point size)
@@ -1963,25 +1963,24 @@ class ESCParser:
             Only the following point sizes are available:
             8, 10 (10.5), 12, 14, 16, 18, 20 (21), 22, 24, 26, 28, 30, 32
 
-        Default
+        Default settings:
             Pitch = 10 cpi (m = 36)
             Point = 10.5 (nH = 0, nL = 21)
 
-        TODO: use multipoint_mode to select a scalable version of the selected font
-            Not all typefaces are available in multipoint mode; see the Command Table for
-            the typefaces available in multipoint mode on each printer.
-
+        TODO: Use multipoint_mode to select a scalable version of the selected font.
+            Not all typefaces are available in multipoint mode; see the Command Table
+            for the typefaces available in multipoint mode on each printer.
 
         The ESC/P 2 command language implements four scalable multipoint fonts:
         Roman, Sans Serif, Roman T, and Sans Serif H not available to ESC/P printers.
 
         - ESC/P 2 only
-        TODO: override self.character_pitch mais en scalable font non ?
         TODO:
-            Selecting a combination of 15 cpi and 10 or 20-point characters results in 15-cpi ROM
-            characters being chosen; the height of these characters is about 2/3 that of normal
-            characters. Select the pitch with the ESC c command to obtain normal height 10 or 20-
-            point characters at 15 cpi.
+            Selecting a combination of 15 cpi and 10 or 20-point characters results
+            in 15-cpi ROM characters being chosen; the height of these characters
+            is about 2/3 that of normal characters.
+            Select the pitch with the ESC c command to obtain normal height 10
+            or 20-point characters at 15 cpi.
 
         During multipoint mode the printer ignores the ESC W, ESC w, ESC SP,
         DC2, DC4, SI, ESC SI, SO, and ESC SO commands.
@@ -2077,19 +2076,22 @@ class ESCParser:
         self.extra_intercharacter_space = 0
 
     def switch_proportional_mode(self, *args):
-        """Selects either proportional or fixed character spacing - ESC p
+        """Select either proportional or fixed character spacing - ESC p
 
-        cancels the HMI set with the ESC c command
-        cancels multipoint mode
+        Proportional spacing:
 
-        If you select proportional spacing with the ESC p command during draft printing, the
-        printer prints an LQ font instead. When you cancel proportional spacing with the ESC p
-        command, the printer returns to draft printing.
-        TODO: quand le mode proportional_spacing est activé par ESC X ou ESC !, le passage au mode LQ est-il activé comme ici ?
-            => dans ce cas passer sur un attr property comme underline et bouger ce code
+            In this type of spacing, the character width varies by character.
+            => Almost "like" multipoint mode (scalable) but using tables to obtain
+            the spaces required by each character.
 
-        TODO: 9 pins:
-            Condensed mode is not available when proportional spacing is selected.
+
+        - cancel the HMI set with the ESC c command
+        - cancel multipoint mode
+
+        .. note:: TODO ESCP2/ESCP only: If you select proportional spacing with the ESC p
+            command during draft printing, the printer prints an LQ font instead.
+            When you cancel proportional spacing with the ESC p
+            command, the printer returns to draft printing.
         """
         self.cancel_multipoint_mode()
         value = args[1].value[0]
@@ -2131,14 +2133,11 @@ class ESCParser:
         self.character_width = None
 
     def master_select(self, *args):
-        """Selects any combination of several font attributes and enhancements by setting or clearing
-        the appropriate bit in the n parameter - ESC !
+        """Select any combination of several font attributes and enhancements - ESC !
 
-        cancels multipoint mode
-        cancels the HMI selected with the ESC c command
-        cancels any attributes or enhancements that are not selected
-
-        Also modify double-width multiline selected by ESC W (equivalent command).
+        - cancel multipoint mode
+        - cancel the HMI selected with the ESC c command
+        - cancel any attributes or enhancements that are not selected
 
         bitmasks :
             1,  # 12 cpi vs 10 cpi,  ESC M vs ESC P
@@ -2146,7 +2145,7 @@ class ESCParser:
             4,  # condensed DC2, SI
             8,  # bold ESC F, ESC E
             16,  # double-strike ESC H, ESC G
-            32,  # double-with ESC W
+            32,  # double-with multiline ESC W
             64,  # italics ESC 5, ESC 4
             128,  # underline ESC -
         """
@@ -2239,13 +2238,14 @@ class ESCParser:
         Superscript characters are printed in the upper two-thirds of the normal
         character space; subscript characters are printed in the lower two-thirds.
 
-        .. note:: At the time,
-            The width of super/subscript characters when using proportional spacing
+        .. note:: Script printing + proportional mode:
+            For ESCP2, at the time,
+            the width of super/subscript characters when using proportional spacing
             differs from that of normal characters; see the super/subscript
             character proportional width table in the Appendix.
 
-            (TODO) 9 pins + proportional spacing: width is the same as that of
-            normal characters
+            For 9 pins : the width is the same as that of normal characters
+            (TODO: Not implemented).
 
         When point sizes other than 10 (10.5) and 20 (21) are selected in
         multipoint mode, super/subscript characters are printed at the nearest
