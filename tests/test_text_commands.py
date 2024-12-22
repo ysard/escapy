@@ -1033,3 +1033,108 @@ def test_control_codes_printing(tmp_path: Path):
     _ = ESCParser(esc_reset + code, pins=9, output_file=str(processed_file))
 
     pdf_comparison(processed_file)
+
+
+def test_text_scripting(tmp_path: Path):
+    """Test condensed, double-width, double-height on script text
+
+    Cover:
+
+        - sub/superscript, ESC S
+        - condensed printing, ESC SI, SI
+        - double width printing, ESC SO, SO, ESC W
+        - double height printing, ESC w
+
+    .. todo:: Backspace 0x08 is used to put upper text on top of sub text.
+        0x08 backspace uses the current character pitch (not useful
+        in reportlab since it is not used for now)
+        So most of the time, the cursor_x is rewinded too much.
+    """
+    # Note: backspace 0x08 is used to put upper text on top of sub text
+    copper_and_sulfate = b"Cu\x1bS\x002+\x1bT + SO\x1bS\x014\x08\x1bT\x1bS\x002-\x1bT"
+    copper_sulfate = b"CuSO\x1bS\x014\x1bT"
+
+    lines = [
+        esc_reset,
+        b'sub/superscript examples - ESC S',
+        b'Default',
+        b'\x09' + copper_sulfate + b' => ' + copper_and_sulfate,
+        b'Try to reduce character_pitch to 1/15 in order to reduce the rewind by BS;',
+        b'select_15cpi (ESC g) + <text> + select_10cpi (ESC P)',
+        b'\x1bg' + b'\x09' + copper_sulfate + b' => ' + copper_and_sulfate + b'\x1bP',
+        b'condensed printing - ESC SI, SI',
+        b'\x09\x1b\x0f' + copper_sulfate + b' \x12 => \x0f ' + copper_and_sulfate + b' \x12',
+        b'',
+        b'double width printing - ESC SO, SO - ESC W',
+        b'\x09\x1b\x0e' + copper_sulfate + b' \x14 => \x0e ' + copper_and_sulfate + b' \x14',
+        # Test values 0 vs "0", 1 vs "1"
+        b'\x09\x1bW\x01' + copper_sulfate + b' \x1bW\x00 => \x1bW\x31 ' + copper_and_sulfate + b' \x1bW\x30',
+        b'',
+        b'double height printing - ESC w',
+        b'',
+        # Test values 0 vs "0", 1 vs "1"
+        b'\x09\x1bw\x01' + copper_sulfate + b' \x1bw\x00 => \x1bw\x31 ' + copper_and_sulfate + b' \x1bw\x30',
+        b'',
+        # TODO: add double height + double width,
+    ]
+
+    code = b"\r\n".join(lines)
+    processed_file = tmp_path / "test_text_scripting.pdf"
+    _ = ESCParser(code, output_file=str(processed_file))
+
+    pdf_comparison(processed_file)
+
+
+def test_text_enhancements(tmp_path: Path):
+    """Test font attributes and enhancements as available in master_select - ESC !
+
+    Cover bitmasks:
+
+        - 1: 12 cpi vs 10 cpi,  ESC M vs ESC P (TODO)
+        - 2: proportional ESC p (TODO)
+        - 4: condensed DC2, SI (TODO)
+        - 8: bold ESC F, ESC E
+        - 16: double-strike ESC H, ESC G (TODO)
+        - 32: double-with ESC W
+        - 64: italics ESC 5, ESC 4
+        - 128: underline ESC -
+    """
+    # Select courier because this font supports almost all properties
+    # except condensed & proportional
+    courier = b"\x1Bk\x02"
+
+    lines = [
+        esc_reset + courier,
+        b'Font enhancement - legacy ESC',
+        b'\x09Hanc regionem \x1b4praestitutis celebritati\x1b5 diebus',
+        b'invadere \x1bEparans\x1bF dux \x1b-\x01ante edictus\x1b-\x00 per solitudines',
+        b'Aboraeque \x1b\x47amnis herbidas ripas\x1b\x48, suorum indicio',
+        # Test all features on the same words
+        b'proditus, \x1b4\x1bE\x1b-\x01qui admissi flagitii metu exagitati\x1b5\x1bF\x1b-\x00 ad',
+        b'praesidia descivere Romana. absque ullo egressus',
+        b'effectu deinde tabescebat immobilis.',
+        b'',
+        b'Font enhancement - ESC ! (master)',
+        b'\x09Hanc regionem \x1b!\x40praestitutis celebritati\x1b!\x00 diebus',
+        b'invadere \x1b!\x08parans\x1b!\x00 dux \x1b!\x80ante edictus\x1b!\x00 per solitudines',
+        b'Aboraeque \x1b!\x08amnis herbidas ripas\x1b!\x00, suorum indicio',
+        # Test all features on the same words (bold + underline = 2 + 128)
+        b'proditus, \x1b!\x88qui admissi flagitii metu exagitati\x1b!\x00 ad',
+        b'praesidia descivere Romana. absque ullo egressus',
+        b'effectu deinde tabescebat immobilis.',
+        b'',
+        b'Font enhancement - multilines - ESC ! (master)',
+        b'\x09Hanc regionem praestitutis celebritati \x1b!\x40diebus',
+        b'invadere\x1b!\x00 parans dux ante edictus per \x1b!\x08solitudines',
+        b'Aboraeque\x1b!\x00 amnis herbidas ripas, suorum \x1b!\x80indicio',
+        b'proditus\x1b!\x00, qui admissi flagitii metu exagitati ad',
+        b'praesidia descivere Romana. absque ullo egressus',
+        b'effectu deinde tabescebat immobilis.',
+        b''
+    ]
+
+    code = b"\r\n".join(lines)
+    processed_file = tmp_path / "test_text_enhancements.pdf"
+    _ = ESCParser(code, output_file=str(processed_file))
+
+    pdf_comparison(processed_file)
