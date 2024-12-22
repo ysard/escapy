@@ -1063,19 +1063,17 @@ def test_text_scripting(tmp_path: Path):
         b'select_15cpi (ESC g) + <text> + select_10cpi (ESC P)',
         b'\x1bg' + b'\x09' + copper_sulfate + b' => ' + copper_and_sulfate + b'\x1bP',
         b'condensed printing - ESC SI, SI',
-        b'\x09\x1b\x0f' + copper_sulfate + b' \x12 => \x0f ' + copper_and_sulfate + b' \x12',
+        b'\x09\x1b\x0f' + copper_sulfate + b' \x12=>\x0f ' + copper_and_sulfate + b' \x12',
         b'',
         b'double width printing - ESC SO, SO - ESC W',
-        b'\x09\x1b\x0e' + copper_sulfate + b' \x14 => \x0e ' + copper_and_sulfate + b' \x14',
+        b'\x09\x1b\x0e' + copper_sulfate + b' \x14=>\x0e ' + copper_and_sulfate + b' \x14',
         # Test values 0 vs "0", 1 vs "1"
-        b'\x09\x1bW\x01' + copper_sulfate + b' \x1bW\x00 => \x1bW\x31 ' + copper_and_sulfate + b' \x1bW\x30',
+        b'\x09\x1bW\x01' + copper_sulfate + b' \x1bW\x00=>\x1bW\x31 ' + copper_and_sulfate + b' \x1bW\x30',
         b'',
         b'double height printing - ESC w',
         b'',
         # Test values 0 vs "0", 1 vs "1"
-        b'\x09\x1bw\x01' + copper_sulfate + b' \x1bw\x00 => \x1bw\x31 ' + copper_and_sulfate + b' \x1bw\x30',
-        b'',
-        # TODO: add double height + double width,
+        b'\x09\x1bw\x01' + copper_sulfate + b' \x1bw\x00=>\x1bw\x31 ' + copper_and_sulfate + b' \x1bw\x30',
     ]
 
     code = b"\r\n".join(lines)
