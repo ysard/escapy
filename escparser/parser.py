@@ -1946,16 +1946,6 @@ class ESCParser:
                 # 15-cpi character printing
                 self.character_pitch = 1 / 15
 
-        # Return to 10.5-point (in theory for ESCP2/ESCP printers only)
-        # PS: In fact on 9pins printers, point size can only
-        # be 10.5 or 21 (in double-height mode only) (so always 10.5).
-        # The implementation should not touch double-height, but my
-        # implementation of double-height multiplies the point size by 2;
-        # in this case it must be preserved, so overall it doesn't differ
-        # from 9pins implementation where nothing is changed...
-        # self.point_size = 10.5  # From the manual's implementation for ESCP2 only
-        self.point_size = 21 if self.double_height else 10.5
-
         self.cancel_multipoint_mode()
 
     def select_font_by_pitch_and_point(self, *args):
@@ -2022,6 +2012,9 @@ class ESCParser:
     def cancel_multipoint_mode(self):
         """Cancel multipoint mode & HMI
 
+        Characters normally have a size of 10.5 points. You can also print 21-point
+        characters as shown below (p278)
+
         ESC P, ESC M, ESC g, ESC p, ESC !, ESC @, and
         HMI :meth:`set_horizontal_motion_index` ESC c.
         """
@@ -2029,6 +2022,15 @@ class ESCParser:
         self.multipoint_mode = False
         # Cancel HMI set_horizontal_motion_index() ESC c command
         self.character_width = None
+        # Return to 10.5-point (in theory for ESCP2/ESCP printers only)
+        # PS: In fact on 9pins printers, point size can only
+        # be 10.5 or 21 (in double-height mode only) (so always 10.5).
+        # The implementation should not touch double-height, but my
+        # implementation of double-height multiplies the point size by 2;
+        # in this case it must be preserved, so overall it doesn't differ
+        # from 9pins implementation where nothing is changed...
+        # self.point_size = 10.5  # From the manual's implementation for ESCP2 only
+        self.point_size = 21 if self.double_height else 10.5
 
     @staticmethod
     def multipoint_mode_ignore(func):
