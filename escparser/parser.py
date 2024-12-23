@@ -174,7 +174,7 @@ class ESCParser:
         # TODO priorité sur le character_pitch de ESC X, see set_horizontal_motion_index()
         self.character_width = None  # HMI, horizontal motion index
         # Fixed character spacing
-        self.proportional_spacing = False
+        self._proportional_spacing = False
         # Extra space set by ESC SP
         self.extra_intercharacter_space = 0
         # Init tabulations
@@ -2076,6 +2076,37 @@ class ESCParser:
         # Cancel extra space set_intercharacter_space ESC SP command
         self.extra_intercharacter_space = 0
 
+    @property
+    def proportional_spacing(self) -> bool:
+        """Get the proportional spacing status"""
+        return self._proportional_spacing
+
+    @proportional_spacing.setter
+    def proportional_spacing(self, proportional_spacing: bool):
+        """Enable proportional spacing or fixed spacing
+
+        On ESCP2/ESCP printers, when multipoint mode is DISABLED,
+        if you select proportional spacing with the ESC p
+        command during draft printing, the printer prints an LQ font instead.
+        When you cancel proportional spacing with the ESC p command,
+        the printer returns to draft printing.
+
+        .. seealso:: :meth:`switch_proportional_mode`, :meth:`master_select`.
+        """
+        self._proportional_spacing = proportional_spacing in (1, 49)
+
+        if self.multipoint_mode or self.pins == 9:
+            # ESC X (multipoint mode), or 9pins printers
+            return
+        # Not multipoint mode and ESCP2
+        if proportional_spacing in (1, 49):
+            # Force LQ mode if in Draft mode
+            self.previous_mode = self.mode
+            self.mode = PrintMode.LQ
+        else:
+            # Restore previous mode (set Draft or keep LQ in other case)
+            self.mode = self.previous_mode
+
     def switch_proportional_mode(self, *args):
         """Select either proportional or fixed character spacing - ESC p
 
@@ -2085,30 +2116,20 @@ class ESCParser:
             => Almost "like" multipoint mode (scalable) but using tables to obtain
             the spaces required by each character.
 
-
         - cancel the HMI set with the ESC c command
         - cancel multipoint mode
 
-        .. note:: TODO ESCP2/ESCP only: If you select proportional spacing with the ESC p
+        .. note:: ESCP2/ESCP only: If you select proportional spacing with the ESC p
             command during draft printing, the printer prints an LQ font instead.
             When you cancel proportional spacing with the ESC p
             command, the printer returns to draft printing.
+
+            An equivalent command is ESC ! 2, note that although ESC X also
+            activates the proportional mode it's a different behavior with
+            respect to the PrintMode status (it behaves in multipoint mode).
         """
         self.cancel_multipoint_mode()
-        value = args[1].value[0]
-
-        if value in (1, 49):
-            # Selects proportional spacing
-            self.proportional_spacing = True
-
-            # Force LQ mode if in Draft mode
-            self.previous_mode = self.mode
-            self.mode = PrintMode.LQ
-        else:
-            # Returns to current fixed character pitch
-            self.proportional_spacing = False
-            # Restore previous mode (set Draft or keep LQ in other case)
-            self.mode = self.previous_mode
+        self.proportional_spacing = args[1].value[0]
 
     @multipoint_mode_ignore
     def set_intercharacter_space(self, *args):
@@ -2152,8 +2173,13 @@ class ESCParser:
         """
         value = args[1].value[0]
 
+        # NOTE: do not use if ESC P/M methods are called later when
+        # character_pitch is changed (these functions is already call it)
+        # For now, the implementation doesn't call select_cpi() method.
+        self.cancel_multipoint_mode()
+
         self.character_pitch = 1 / 12 if value & 1 else 1 / 10
-        # TODO check if self.mode must be used like in switch_proportional_mode()
+        # /!\ Use setter, make sure that multipoint mode is canceled before.
         self.proportional_spacing = bool(value & 2)
         self.condensed = bool(value & 4)
         self.bold = bool(value & 8)
@@ -2161,10 +2187,6 @@ class ESCParser:
         self.double_width_multi = bool(value & 32)
         self.italic = bool(value & 64)
         self.underline = bool(value & 128)
-
-        # NOTE: do not use if ESC P/M methods are called for character_pitch change
-        # (this function is already called by them)
-        self.cancel_multipoint_mode()
 
         self.set_font()
 
