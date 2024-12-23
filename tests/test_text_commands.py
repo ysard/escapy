@@ -15,9 +15,11 @@
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # Standard imports
+import itertools as it
 from pathlib import Path
 import pytest
 from unittest.mock import patch
+import struct
 
 # Custom imports
 from lark.exceptions import UnexpectedToken
@@ -644,7 +646,7 @@ def test_character_pitch_changes(format_databytes: bytes, expected_cpi: float, p
     escparser = ESCParser(format_databytes, pdf=False, pins=pins)
 
     assert 1 / escparser.character_pitch == expected_cpi
-    assert escparser.multipoint_mode == False
+    assert not escparser.multipoint_mode
 
 
 @pytest.mark.parametrize(
@@ -670,8 +672,8 @@ def test_character_pitch_changes_multipoint(format_databytes: bytes, expected_cp
     escparser = ESCParser(format_databytes, pdf=False, pins=pins)
 
     assert 1 / escparser.character_pitch == expected_cpi
-    assert escparser.multipoint_mode == True
-    assert escparser.condensed == False  # Same as in test_condensed_mode
+    assert escparser.multipoint_mode is True
+    assert not escparser.condensed  # Same as in test_condensed_mode
 
 
 @pytest.mark.parametrize(
@@ -1029,8 +1031,6 @@ def test_print_data_as_characters(tmp_path: Path, control_codes, expected_filena
     .. warning:: The test is NOT in 9pins mode, control codes ARE printable by
         default.
     """
-    import struct, itertools as it
-
     def chunk_this(iterable, length):
         """Split iterable in chunks of equal sizes"""
         iterator = iter(iterable)
