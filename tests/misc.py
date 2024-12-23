@@ -10,9 +10,16 @@ from .helpers.diff_pdf import is_similar_pdfs
 # Test data path depends on the current package name
 DIR_DATA = os.path.dirname(os.path.abspath(__file__)) + "/../test_data/"
 
-esc_reset = b"\x1B\x40" # ESC @
-cancel_bold = b"\x1BF" # ESC F
-graphics_mode = b"\x1B(G\x01\x00\x01" # ESC ( G
+esc_reset = b"\x1B\x40"  # ESC @
+cancel_bold = b"\x1BF"  # ESC F
+graphics_mode = b"\x1B(G\x01\x00\x01"  # ESC ( G
+select_10cpi = b"\x1bP"  # ESC P
+select_12cpi = b"\x1bM"  # ESC M
+select_15cpi = b"\x1bg"  # ESC g
+double_width = b"\x0e"  # SO
+select_condensed_printing = b"\x0f"  # SI
+unset_condensed_printing = b"\x12"  # DC2
+
 
 @pytest.fixture
 def format_databytes(request):
