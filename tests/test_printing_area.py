@@ -15,21 +15,17 @@
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # Standard imports
-import os
 from struct import pack
 from pathlib import Path
 import pytest
-from unittest.mock import patch
 
 # Custom imports
 from lark.exceptions import UnexpectedToken
 from reportlab.lib.pagesizes import A4
 
 # Local imports
-import escparser.commons as cm
 from .misc import format_databytes
 from .misc import esc_reset, cancel_bold
-from .helpers.diff_pdf import is_similar_pdfs
 from escparser.parser import ESCParser
 
 
