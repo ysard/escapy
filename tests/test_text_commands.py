@@ -285,6 +285,11 @@ def test_select_letter_quality_or_draft():
         (b"\x1bx\x30", PrintMode.DRAFT),
         (b"\x1bx\x01", PrintMode.LQ),
         (b"\x1bx\x31", PrintMode.LQ),
+        # LQ mode is forced on ESCP2 printers if proportional spacing is enabled
+        (b"\x1bx\x00" + b"\x1bp\x01", PrintMode.LQ),
+        # Mode is not touched on ESCP2 printers if proportional spacing
+        # and multipoint mode are enabled
+        (b"\x1bx\x00" + b"\x1bX\x01\x00\x00", PrintMode.DRAFT)
     ]
     for code, expected in dataset:
         escparser = ESCParser(esc_reset + code, pdf=False)
@@ -681,10 +686,43 @@ def test_character_pitch_changes_multipoint(format_databytes: bytes, expected_cp
     ],
 )
 def test_condensed_mode(format_databytes: bytes, expected: float, pins: int | None):
-    """Test condensed mode conditions, see :meth:`condensed`.
-    """
+    """Test condensed mode conditions, see :meth:`condensed` - SI, ESC SI, ESC !"""
     escparser = ESCParser(format_databytes, pdf=False, pins=pins)
     assert escparser.condensed == expected
+
+
+@pytest.mark.parametrize(
+    "format_databytes, expected",
+    [
+        # ESC X: multipoint mode
+        (b"\x1bX\x01\x00\x00", True),
+        (b"\x1bX\x00\x00\x00", False),
+        # ESC p
+        (b"\x1bp\x01", True),
+        (b"\x1bp\x00", False),
+        # ESC !
+(       b"\x1b!\x02", True),
+        (b"\x1b!\x00", False),
+    ],
+    # First param goes in the 'request' param of the fixture format_databytes
+    indirect=["format_databytes"],
+    ids=[
+        "ESC_X_enable",
+        "ESC_X_disable",
+        "ESC_p_enable",
+        "ESC_p_disable",
+        "ESC_!_enable",
+        "ESC_!_disable",
+    ],
+)
+def test_proportional_mode(format_databytes: bytes, expected: bool):
+    """Test proportional mode related commands - ESC X, ESC p, ESC !
+
+    .. seealso:: :meth:`test_select_letter_quality_or_draft` for proportional
+        spacing & print mode combinations.
+    """
+    escparser = ESCParser(format_databytes, pdf=False)
+    assert escparser.proportional_spacing == expected
 
 
 def test_set_intercharacter_space(tmp_path: Path):
