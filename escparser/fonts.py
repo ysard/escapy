@@ -58,7 +58,7 @@ WEIGHT_DICT = {
 
 def find_font(
     name, condensed, italic, bold, best=True, path=DIR_FONTS
-) -> list[Path] | Path:
+) -> list[Path] | Path | None:
     """Find the path to the font file most closely matching the given font properties
 
     Perform a nearest neighbor search inspired from:
@@ -69,8 +69,8 @@ def find_font(
     ... but improved for the stretch font attribute and with more complete lists
     of stretch and weight values.
 
-    :param name: Use the given name as a pattern to match the font family
-        metadata of the font files found in `path` kwarg.
+    :param name: Use the given name as a pattern to match the font filename
+        found in `path` kwarg.
     :param condensed: Search condensed font.
     :param italic: Search italic or oblique font.
     :param bold: Search bold font.
@@ -84,7 +84,11 @@ def find_font(
     :type path: str
     :return: A unique Path object or a list of Paths if best kwarg is False.
         In this last case, Paths are sorted by their score (best first).
+        Return None if no font has been found.
     """
+    # def clean_font_name(font_name: str):
+    #     return font_name.translate(str.maketrans({"_": "", "-": "", " ": ""}))
+
     searched_condensed = 300 if condensed else 500
     searched_italic = 500 if italic else 0
     searched_bold = 700 if bold else 400
@@ -95,7 +99,7 @@ def find_font(
     ):
         try:
             font = ImageFont.truetype(str(filepath))
-        except OSError:
+        except OSError:  # pragma: no cover
             LOGGER.error("Error while opening <%s>", filepath)
             continue
         font_family, styles = font.getname()
@@ -103,8 +107,8 @@ def find_font(
         # Filter unwanted font names
         # Assume that the searched name doesn't have spaces and is similar
         # to the font family name stored in the font metadata.
-        if font_family.replace(" ", "") != name:
-            continue
+        # if clean_font_name(font_family) != clean_font_name(name):
+        #     continue
 
         styles = frozenset(styles.lower().replace("-", "").split())
 
