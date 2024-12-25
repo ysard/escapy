@@ -20,7 +20,7 @@ from operator import itemgetter
 from pathlib import Path
 import configparser
 from collections import defaultdict
-from functools import partial
+from functools import partial, lru_cache
 
 # Custom imports
 from PIL import ImageFont
@@ -56,6 +56,7 @@ WEIGHT_DICT = {
     "black": 900,
 }
 
+@lru_cache
 def find_font(
     name, condensed, italic, bold, best=True, path=DIR_FONTS
 ) -> list[Path] | Path | None:
