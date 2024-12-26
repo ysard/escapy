@@ -209,7 +209,7 @@ def find_font(
 
     if not scored_paths:
         LOGGER.error("No font found!")
-        # TODO
+        return
     # Sort by scores, get rid of scores
     paths = list(zip(*sorted(scored_paths, key=itemgetter(1))))[0]
     if best:
