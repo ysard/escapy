@@ -87,6 +87,7 @@ def parse_config(config: configparser.ConfigParser):
         if not path:
             font_section["path"] = default_font_path
 
+        # Define default fallback fonts
         fixed_font = font_section.get("fixed")
         if not fixed_font:
             font_section["fixed"] = "Courier"
