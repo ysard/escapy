@@ -409,7 +409,7 @@ def logger(name=LOGGER_NAME):
 
 
 _logger = logging.getLogger(LOGGER_NAME)
-_logger.setLevel(LOG_LEVEL)
+
 
 # log file
 formatter = logging.Formatter(
@@ -425,7 +425,6 @@ file_handler = RotatingFileHandler(
     100_000_000,
     1,
 )
-file_handler.setLevel(LOG_LEVEL)
 file_handler.setFormatter(formatter)
 _logger.addHandler(file_handler)
 
@@ -433,7 +432,6 @@ _logger.addHandler(file_handler)
 # stream_handler = logging.StreamHandler()
 # formatter = logging.Formatter("%(levelname)s: %(message)s")
 # stream_handler.setFormatter(formatter)
-# stream_handler.setLevel(LOG_LEVEL)
 # _logger.addHandler(stream_handler)
 
 
@@ -451,9 +449,11 @@ def log_level(level):
     # Main logger
     _logger.setLevel(level)
     # Handlers
-    [
+    _ = [
         handler.setLevel(level)
         for handler in _logger.handlers
         if handler.__class__
         in (logging.StreamHandler, logging.handlers.RotatingFileHandler)
     ]
+
+log_level(LOG_LEVEL)
