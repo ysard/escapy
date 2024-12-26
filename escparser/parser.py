@@ -36,9 +36,9 @@ from reportlab.pdfbase.ttfonts import TTFont
 # Local imports
 from escparser import __version__
 from escparser.grammar import init_parser
-from escparser.commons import charset_mapping, international_charsets, character_table_mapping, left_to_right_languages
+from escparser.commons import typeface_names, charset_mapping, international_charsets, character_table_mapping, left_to_right_languages
 from escparser.i18n_codecs import getregentry
-from escparser.commons import typefaces
+from escparser.fonts import typefaces
 from escparser.commons import logger
 
 # Debug imports
@@ -100,7 +100,7 @@ class ESCParser:
 
     default_typeface = 0  # Roman
 
-    def __init__(self, code, pins=None, printable_area_margins_mm=None, page_size=A4, single_sheets=True, pdf=True, output_file="output.pdf"):
+    def __init__(self, code, available_fonts=typefaces, pins=None, printable_area_margins_mm=None, page_size=A4, single_sheets=True, pdf=True, output_file="output.pdf"):
         """
 
         :param code: Binary code to be parsed.
@@ -260,23 +260,9 @@ class ESCParser:
             None, # "User-defined characters"
             "cp437", # "PC437"
         ]
-        self.typeface_names = {
-                0: "Roman", # Times New Roman
-                1: "Sans serif", # /usr/share/fonts/truetype/freefont/FreeSans*
-                2: "Courier",
-                3: "Prestige", # https://en.wikipedia.org/wiki/Prestige_Elite
-            4: "Script",
-                5: "OCR-B",
-                6: "OCR-A",
-                7: "Orator",
-            8: "Orator-S",
-                9: "Script C",
-                10: "Roman T",
-            11: "Sans serif H",
-            30: "SV Busaba",
-            31: "SV Jittra",
-        }
-        self.current_fontpath = None  # Internal use, for pillow
+        self.typefaces = available_fonts
+        # Internal use for tests; used only for external/system fonts
+        self.current_fontpath: None | Path = None
         self.character_table = 1  # PC437 by default
         self.international_charset = 0
         self.typeface = self.default_typeface
@@ -1584,20 +1570,21 @@ class ESCParser:
 
     @staticmethod
     @lru_cache
-    def register_fonts(*fontnames: tuple[str], fontpath_formatter: None | str = None):
+    def register_fonts(*fontnames: str, fontpath: Path | str = None):
         """Register fonts available on the filesystem to the reportlab context (internal usage)
 
         The function is cached in order to avoid to register a font twice.
         """
         _ = [
-            pdfmetrics.registerFont(TTFont(fontname, fontpath_formatter.format(fontname)))
+            pdfmetrics.registerFont(TTFont(fontname, fontpath))
             for fontname in fontnames
         ]
 
     def set_font(self):
         """Configure the current font (internal usage)
 
-        Use bold, italic, condensed styles to choose the font.
+        Use bold, italic, condensed styles, and fixed or proportional spacing
+        to choose the font.
         The font is configured with the current point_size.
 
         Example of filenames for a font:
@@ -1609,30 +1596,41 @@ class ESCParser:
             "NotoSans-CondensedItalic",
             "NotoSans-Condensed",
             "NotoSans-Italic"
+
+        .. warning:: If a font is not available in the given spacing mode,
+            if the font is not found in the given system path, the current
+            font in use is NOT updated.
         """
+        font_type = "proportional" if self.proportional_spacing else "fixed"
+        try:
+            # Get typefaces definitions
+            func = self.typefaces[self.typeface][font_type]
+            font = func(self.condensed, self.italic, self.bold)
+            if font is None:
+                raise ValueError
+        except (KeyError, TypeError, ValueError):
+            # font_type not defined, callable not defined, or font not found
+            LOGGER.warning(
+                "System font <%s> is not available in <%s> mode; do nothing",
+                typeface_names[self.typeface],
+                font_type
+            )
+            return
+
         if not self.current_pdf:
             return
 
-        if self.typeface not in typefaces:
-            # Build default font
-            self.typeface = self.default_typeface
-
-        # Get typefaces definitions
-        fontname, fontpath = typefaces[self.typeface]
-        if callable(fontname):
-            # Execute the lambda to obtain the fontname
-            fontname = fontname(self.condensed, self.bold, self.italic)
-        if fontpath:
+        if isinstance(font, Path):
             # Not a font already available in reportlab
-            self.register_fonts(fontname, fontpath_formatter=fontpath)
-
-            # Retain filepath
-            # PIL will be able to load this font and calculate the text width with it
-            self.current_fontpath = fontpath.format(fontname)
+            fontname = font.name
+            self.register_fonts(fontname, fontpath=font)
+            self.current_fontpath = font
+            LOGGER.debug("Loaded & used system font: %s", fontname)
+        else:
+            fontname = font
+            LOGGER.debug("Loaded & used reportlab font: %s", fontname)
 
         self.current_pdf.setFont(fontname, self.point_size)
-
-        LOGGER.debug("Loaded & used font: %s", fontname)
 
     def assign_character_table(self, *args):
         """Assign a registered character table to a character table - ESC ( t
@@ -1816,13 +1814,13 @@ class ESCParser:
             1 Sans serif
         """
         value = args[1].value[0]
-        if value not in self.typeface_names:
+        if value not in typeface_names:
             LOGGER.error("Typeface selected doesn't exist. Switch to default.")
             self.typeface = self.default_typeface
         else:
             self.typeface = value
 
-        LOGGER.debug("Select typeface %s", self.typeface_names[self.typeface])
+        LOGGER.debug("Select printer typeface %s", typeface_names[self.typeface])
 
         self.set_font()
 

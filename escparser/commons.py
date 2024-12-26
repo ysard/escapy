@@ -20,25 +20,29 @@ from logging.handlers import RotatingFileHandler
 import logging
 import datetime as dt
 import tempfile
-import os
+
 
 # Paths
 DIR_LOGS = tempfile.gettempdir() + "/"
+CONFIG_FILE = "./escparser.conf"
+DIR_FONTS = "/usr/share/fonts/truetype/"
 
-typefaces = {
-    # 0: (lambda condensed, bold, italic: f"Times-{'Bold' if bold else ''}{'Italic' if italic else ''}" if bold or italic else "Times-Roman", None),
-    0: (lambda condensed, bold, italic: f"FiraCode-{'Bold' if bold else ''}" if bold else "FiraCode-Regular", "/usr/share/fonts/truetype/firacode/{}.ttf"),
-    # 0: ("FSEX302-alt", "./resources/{}.ttf"),
-    1: (lambda condensed, bold, italic: f"NotoSans-{'Condensed' if condensed else ''}{'Bold' if bold else ''}{'Italic' if italic else ''}" if any((bold, italic, condensed)) else "NotoSans-Regular", "/usr/share/fonts/truetype/noto/{}.ttf"),
-    2: (lambda condensed, bold, italic: f"Courier-{'Bold' if bold else ''}{'Oblique' if italic else ''}" if any((bold, italic)) else "Courier", None),
-    3: ("prestigenormal", "./resources/{}.ttf"),
-    5: ("ocr-b-regular", "./resources/{}.ttf"),
-    6: ("ocra", "./resources/{}.ttf"),
-    7: ("orator", "./resources/{}.ttf"),
-    9: ("scriptc", "./resources/{}.ttf"),
-    10: ("romant", "./resources/{}.ttf"),
+typeface_names = {
+    0: "Roman",  # Times New Roman
+    1: "Sans serif",  # /usr/share/fonts/truetype/freefont/FreeSans*
+    2: "Courier",
+    3: "Prestige",  # https://en.wikipedia.org/wiki/Prestige_Elite
+    4: "Script",
+    5: "OCR-B",
+    6: "OCR-A",
+    7: "Orator",
+    8: "Orator-S",
+    9: "Script C",
+    10: "Roman T",
+    11: "Sans serif H",
+    30: "SV Busaba",
+    31: "SV Jittra",
 }
-
 
 character_tablenames_mapping = {
     (0, 0): "Italic",
