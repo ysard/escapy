@@ -15,6 +15,7 @@
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Test config parser module"""
+
 # Standard imports
 import configparser
 
@@ -41,17 +42,6 @@ def default_config():
     return misc_section, roman_section
 
 
-# Data for test_default_settings()
-TEST_DATA = [
-    # Config with empty sections vs default expected config
-    (
-        """
-        [misc]
-        [Roman]
-        """,
-        default_config(),
-    ),
-]
 @pytest.fixture()
 def sample_config(request):
     """Fixture to parse config string and return initialised ConfigParser object
@@ -115,13 +105,13 @@ def test_default_file():
                 },
                 "Roman": {
                     "fixed": "FiraCode",
-                    "proportional": "Times",    # default font is set
+                    "proportional": "Times",  # default font is set
                 },
                 # Missing font sections must be added by default
                 "Sans serif": {
                     "fixed": "Courier",
                     "proportional": "Times",
-                }
+                },
             },
         ),
     ],
@@ -132,4 +122,6 @@ def test_specific_settings(sample_config, expected_settings):
     """Test user settings vs parsed ones"""
     for section, params in expected_settings.items():
         for param, value in params.items():
-            assert sample_config[section][param] == value, f"Fault key: {section}:{param}"
+            assert (
+                sample_config[section][param] == value
+            ), f"Fault key: {section}:{param}"
