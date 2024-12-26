@@ -56,6 +56,67 @@ WEIGHT_DICT = {
     "black": 900,
 }
 
+
+def setup_fonts(config: configparser.ConfigParser) -> dict:
+    """Build a structure that stores preconfigured methods to find fonts
+     on the system according to dynamic styles in use.
+
+    Structure example::
+
+        {
+            typeface_id: {
+                fixed: Callable,
+                proportional: None,
+            },
+        }
+
+    :param config: Opened ConfigParser object
+    :type config: configparser.ConfigParser
+    :return: Dict of typefaces ids as keys.
+        Values are dicts with always 2 keys: `fixed` & `proportional`.
+        Their values are None or a callable choosen for an optimal font search.
+    """
+
+    def rptlab_times(condensed, bold, italic):
+        """Configure internal reportlab fallback font (proportional)"""
+        return (
+            f"Times-{'Bold' if bold else ''}{'Italic' if italic else ''}"
+            if bold or italic
+            else "Times-Roman"
+        )
+
+    def rptlab_courier(condensed, bold, italic):
+        """Configure internal reportlab fallback font (fixed)"""
+        return (
+            f"Courier-{'Bold' if bold else ''}{'Oblique' if italic else ''}"
+            if any((bold, italic))
+            else "Courier"
+        )
+
+    typefaces_config = defaultdict(dict)
+    for typeface_id, typeface in typeface_names.items():
+        path = config[typeface]["path"]
+        typeface_config = {}
+        typefaces_config[typeface_id] = typeface_config
+        # Define the 2 default (and mandatory) font types
+        # /!\ FOR NOW no None value is allowed
+        for field in ("fixed", "proportional"):
+            fontname = config[typeface][field]
+
+            if fontname == "Times":
+                func = rptlab_times
+            elif fontname == "Courier":
+                func = rptlab_courier
+            else:
+                # Preconfigure the search method, the styles are the only
+                # remaining arguments that are filled up dynamically at runtime
+                func = partial(find_font, fontname, path=path)
+
+            typeface_config[field] = func
+
+    return typefaces_config
+
+
 @lru_cache
 def find_font(
     name, condensed, italic, bold, best=True, path=DIR_FONTS
