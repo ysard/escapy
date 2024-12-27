@@ -22,10 +22,10 @@ from escparser.commons import typeface_names
         (("NotoSans-", False, True, True), Path("/usr/share/fonts/truetype/noto/NotoSans-BoldItalic.ttf")),
         (("NotoSans-", False, True, False), Path("/usr/share/fonts/truetype/noto/NotoSans-Italic.ttf")),
         (("NotoSans-", False, False, True), Path("/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf")),
-        # kwarg best set to False: expect a list of Paths
+        # kwarg 'best' set to False: expect a list of Paths
         # only 1 match (the best font is found)
         (("NotoSans-", False, False, False, False), [Path("/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf")]),
-        # multiple matchs
+        # same but multiple matchs are expected => content is not tested
         (("FiraCode", True, True, False, False), [0] * 2),
         # Non-existing font
         (("NONE_FAKE", False, False, False), None),
@@ -44,14 +44,17 @@ from escparser.commons import typeface_names
         "NotoSans-BoldItalic",
         "NotoSans-Italic",
         "NotoSans-Bold.",
-        "not_best",
-        "not_bests",
+        "best_list",
+        "best_list_2",
         "not_found",
         "not_found_in_path",
         "approximate",
     ],
 )
 def test_find_font(arguments, expected):
+    """Test the expected accuracy of the algorithm used to search a font on
+    the basis of the fontname (font file name)
+    """
     found = find_font(*arguments)
 
     if isinstance(expected, list):
