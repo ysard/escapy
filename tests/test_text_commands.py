@@ -154,7 +154,7 @@ def test_select_international_charset(format_databytes):
 
 @pytest.fixture()
 def partial_fonts():
-
+    """Fixture that generates a minimal font struct"""
     fonts = {
         0: {
             "fixed": (lambda *args: Path("/usr/share/fonts/truetype/firacode/FiraCode-Bold.ttf")),
