@@ -1,11 +1,14 @@
 # Standard imports
+import configparser
 from pathlib import Path
 
 # Custom imports
 import pytest
 
 # Local imports
-from escparser.fonts import find_font
+from escparser.fonts import find_font, setup_fonts
+from .test_config_parser import sample_config
+from escparser.commons import typeface_names
 
 
 @pytest.mark.parametrize(
@@ -56,3 +59,37 @@ def test_find_font(arguments, expected):
         assert len(found) >= 1
     else:
         assert found == expected
+
+
+@pytest.mark.parametrize(
+    "sample_config,expected",
+    [
+        # Config with user settings vs expected parsed settings
+        (
+            # sample1:
+            """
+            [misc]
+            [Roman]
+            fixed = FiraCode
+            """,
+            # For now, we test only the typefaces ids
+            typeface_names.keys(),
+        ),
+    ],
+    ids=["sample1"],
+    indirect=["sample_config"],  # Send sample_config val to the fixture
+)
+def test_setup_fonts(sample_config, expected):
+    """Test the font structure used by the ESC parser to switch the typefaces"""
+
+    found = setup_fonts(sample_config)
+    assert found.keys() == expected
+
+    # We expect that all keys in the dict structure have a dict with
+    # fixed & proportional keys.
+    for typeface_id, typeface_defs in found.items():
+        assert typeface_defs.keys() == {"fixed", "proportional"}
+
+        # We want callables or None in the definitions
+        for font_type in typeface_defs.values():
+            assert callable(font_type) or font_type is None
