@@ -27,7 +27,19 @@ from lark.exceptions import UnexpectedToken
 import escparser.commons as cm
 from escparser.fonts import rptlab_times
 from .misc import format_databytes, pdf_comparison
-from .misc import DIR_DATA, esc_reset, cancel_bold, select_10cpi, select_12cpi, select_15cpi, select_condensed_printing, unset_condensed_printing, double_width, double_height, reset_double_height
+from .misc import (
+    DIR_DATA,
+    esc_reset,
+    cancel_bold,
+    select_10cpi,
+    select_12cpi,
+    select_15cpi,
+    select_condensed_printing,
+    unset_condensed_printing,
+    double_width,
+    double_height,
+    reset_double_height,
+)
 from .helpers.diff_pdf import is_similar_pdfs
 from escparser.parser import ESCParser, PrintMode, PrintScripting, PrintControlCodes
 
@@ -36,12 +48,12 @@ from escparser.parser import ESCParser, PrintMode, PrintScripting, PrintControlC
     "format_databytes",
     [
         # Test "0" as a chr (0x30) for d1; move to tb0
-        b"\x1B(t\x03\x00\x30\x08\x00" + cancel_bold,
+        b"\x1b(t\x03\x00\x30\x08\x00" + cancel_bold,
         # Test d1 as an int; move to tb0 to tb3
-        b"\x1B(t\x03\x00\x00\x08\x00" + cancel_bold,
-        b"\x1B(t\x03\x00\x01\x08\x00" + cancel_bold,
-        b"\x1B(t\x03\x00\x02\x08\x00" + cancel_bold,
-        b"\x1B(t\x03\x00\x03\x08\x00" + cancel_bold,
+        b"\x1b(t\x03\x00\x00\x08\x00" + cancel_bold,
+        b"\x1b(t\x03\x00\x01\x08\x00" + cancel_bold,
+        b"\x1b(t\x03\x00\x02\x08\x00" + cancel_bold,
+        b"\x1b(t\x03\x00\x03\x08\x00" + cancel_bold,
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
@@ -74,13 +86,13 @@ def test_assign_character_table(format_databytes):
     "format_databytes",
     [
         # Assign character table; Table with id 4 doesn't exist - ESC ( t
-        b"\x1B(t\x03\x00\x04\x08\x00" + cancel_bold,
+        b"\x1b(t\x03\x00\x04\x08\x00" + cancel_bold,
         # International charset id 0x0e doesn't exist - ESC R
-        b"\x1BR\x0e" + cancel_bold,
+        b"\x1bR\x0e" + cancel_bold,
         # Wrong typeface ID - ESC k
-        b"\x1B[\x0b" + cancel_bold,
+        b"\x1b[\x0b" + cancel_bold,
         # Wrong character table ID - ESC t
-        b"\x1Bt\x04" + cancel_bold,
+        b"\x1bt\x04" + cancel_bold,
         # More than 128 is not allowed for intercharacter space - ESC SP
         b"\x1b\x20\x80",
     ],
@@ -104,7 +116,7 @@ def test_wrong_commands(format_databytes):
     "format_databytes",
     [
         # ESC ( t; Assign character table; Combination 0,8 for d2,d3 doesn't exist
-        b"\x1B(t\x03\x00\x30\x00\x08" + cancel_bold,
+        b"\x1b(t\x03\x00\x30\x00\x08" + cancel_bold,
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
@@ -125,11 +137,11 @@ def test_bad_assign_character_table(format_databytes):
     "format_databytes",
     [
         # Uk
-        b"\x1BR\x03" + cancel_bold,
+        b"\x1bR\x03" + cancel_bold,
         # Korea
-        b"\x1BR\x0d" + cancel_bold,
+        b"\x1bR\x0d" + cancel_bold,
         # Legal
-        b"\x1BR\x40" + cancel_bold,
+        b"\x1bR\x40" + cancel_bold,
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
@@ -174,11 +186,11 @@ def partial_fonts():
     "format_databytes, expected_typefaceid, expected_fontpath",
     [
         # Typeface ID 2: 'Courier' in printer notation (patched here: FiraCode-Regular)
-        (b"\x1Bk\x02", 2, "/usr/share/fonts/truetype/firacode/FiraCode-Regular.ttf"),
+        (b"\x1bk\x02", 2, "/usr/share/fonts/truetype/firacode/FiraCode-Regular.ttf"),
         # Typeface ID 12 is not available: switch to default id (0) which is FiraCode-Bold
-        (b"\x1Bk\x0c", 0, "/usr/share/fonts/truetype/firacode/FiraCode-Bold.ttf"),
+        (b"\x1bk\x0c", 0, "/usr/share/fonts/truetype/firacode/FiraCode-Bold.ttf"),
         # Typeface ID 2: proportional alternative is choosen (Times)
-        (b"\x1Bp\x01" b"\x1Bk\x02", 2, None),
+        (b"\x1bp\x01" b"\x1bk\x02", 2, None),
         # Typeface ID 2: proportional alternative is choosen and triggered by ESC p (Times)
         (b"\x1Bk\x02" b"\x1Bp\x01", 2, "/usr/share/fonts/truetype/firacode/FiraCode-Regular.ttf"), # None), # TODO for now, ESC p doesn't trigger set_font
         # Typeface ID from 2 to 0 is not found in proportional alternative:
@@ -192,17 +204,21 @@ def partial_fonts():
         "typeface_not_available",
         "internal_rptlab_font",
         "prop_font_not_found",
-        "prop_font_not_found2"
+        "prop_font_not_found2",
     ],
 )
-def test_select_typeface(tmp_path, partial_fonts, format_databytes, expected_typefaceid, expected_fontpath):
+def test_select_typeface(
+    tmp_path, partial_fonts, format_databytes, expected_typefaceid, expected_fontpath
+):
     """Test internal changes in ESCParser object due to select_typeface - ESC k
 
     .. seealso:: For a higher-level test cf :meth:`test_fonts`.
     """
     output_file = tmp_path / "output.pdf"
 
-    escparser = ESCParser(format_databytes, available_fonts=partial_fonts, output_file=output_file)
+    escparser = ESCParser(
+        format_databytes, available_fonts=partial_fonts, output_file=output_file
+    )
     print(escparser.typefaces)
     assert escparser.typeface == expected_typefaceid, "Wrong typeface selected"
 
@@ -220,11 +236,11 @@ def test_select_typeface(tmp_path, partial_fonts, format_databytes, expected_typ
     "format_databytes",
     [
         # table 0
-        b"\x1Bt\x30" + cancel_bold,
-        b"\x1Bt\x00" + cancel_bold,
+        b"\x1bt\x30" + cancel_bold,
+        b"\x1bt\x00" + cancel_bold,
         # table 1
-        b"\x1Bt\x31" + cancel_bold,
-        b"\x1Bt\x01" + cancel_bold,
+        b"\x1bt\x31" + cancel_bold,
+        b"\x1bt\x01" + cancel_bold,
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
@@ -340,7 +356,7 @@ def test_select_letter_quality_or_draft():
         (b"\x1bx\x00" + b"\x1bp\x01", PrintMode.LQ),
         # Mode is not touched on ESCP2 printers if proportional spacing
         # and multipoint mode are enabled
-        (b"\x1bx\x00" + b"\x1bX\x01\x00\x00", PrintMode.DRAFT)
+        (b"\x1bx\x00" + b"\x1bX\x01\x00\x00", PrintMode.DRAFT),
     ]
     for code, expected in dataset:
         escparser = ESCParser(esc_reset + code, pdf=False)
@@ -456,7 +472,7 @@ def test_charset_tables(tmp_path: Path):
         table_3 + b"Hebrew, cp862",
         table_1 + b"\x1b(t\x03\x00\x01\x0c\x00" + hebrew_pangram,
         table_3 + b"Portuguese, brascii",
-        table_1 + b"\x1b(t\x03\x00\x01\x19\x00" + portuguese_pangram ,
+        table_1 + b"\x1b(t\x03\x00\x01\x19\x00" + portuguese_pangram,
         table_3 + b"Greek - Not supported charset 4,0 (should not crash)",
         # Double table selection to cover the two logger error outputs (assign + select)
         table_1 + b"\x1b(t\x03\x00\x01\x04\x00" + table_1 + greek_pangram,
@@ -491,8 +507,8 @@ def test_international_charsets(tmp_path: Path, assign_table_cmd, encoding):
 
     Custom encoding/decoding codecs are tested here.
     """
-    point_8 = b"\x1BX\x00\x10\x00" # 0x10 => 16 / 2 = 8
-    roman = b"\x1B\x6B\x00"
+    point_8 = b"\x1bX\x00\x10\x00"  # 0x10 => 16 / 2 = 8
+    roman = b"\x1b\x6b\x00"
     select_international_charset_prefix = b"\x1bR"
 
     lines = [
@@ -540,8 +556,8 @@ def test_fonts(tmp_path: Path):
     """
     test_phrase = b"The quick brown fox jumps over the lazy dog; THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG; 1234567890"
     cancel_left_margin = b"\x1bl\x00"  # ESC l
-    point_8 = b"\x1BX\x00\x10\x00"  # ESC X: 0x10 => 16 / 2 = 8 points
-    roman = b"\x1Bk\x00"  # ESC k
+    point_8 = b"\x1bX\x00\x10\x00"  # ESC X: 0x10 => 16 / 2 = 8 points
+    roman = b"\x1bk\x00"  # ESC k
     # Test typefaces
     lines = [
         esc_reset + cancel_left_margin + point_8,
@@ -550,23 +566,23 @@ def test_fonts(tmp_path: Path):
         b"Roman:",
         roman + test_phrase,
         roman + b"Sans serif:",
-        b"\x1Bk\x01" + test_phrase,
+        b"\x1bk\x01" + test_phrase,
         roman + b"Courier:",
-        b"\x1Bk\x02" + test_phrase,
+        b"\x1bk\x02" + test_phrase,
         roman + b"Prestige:",
-        b"\x1Bk\x03" + test_phrase,
+        b"\x1bk\x03" + test_phrase,
         roman + b"OCR-B:",
-        b"\x1Bk\x05" + test_phrase,
+        b"\x1bk\x05" + test_phrase,
         roman + b"OCR-A:",
-        b"\x1Bk\x06" + test_phrase,
+        b"\x1bk\x06" + test_phrase,
         roman + b"Orator:",
-        b"\x1Bk\x07" + test_phrase,
+        b"\x1bk\x07" + test_phrase,
         roman + b"Script-C:",
-        b"\x1Bk\x09" + test_phrase,
+        b"\x1bk\x09" + test_phrase,
         roman + b"Roman T:",
-        b"\x1Bk\x0a" + test_phrase,
+        b"\x1bk\x0a" + test_phrase,
         roman + b"SV Jittra (not available, fallback to default):",
-        b"\x1Bk\x1f" + test_phrase,
+        b"\x1bk\x1f" + test_phrase,
     ]
 
     code = b"\r\n".join(lines)
@@ -671,10 +687,12 @@ def test_select_font_by_pitch_and_point(tmp_path: Path):
         "select_10cpi_exit_multipoint",
         "proportional+condensed_20cpi",
         "proportional+condensed_set/unset_10cpi",
-        "proportional+condensed_9pins"
+        "proportional+condensed_9pins",
     ],
 )
-def test_character_pitch_changes(format_databytes: bytes, expected_cpi: float, pins: int | None):
+def test_character_pitch_changes(
+    format_databytes: bytes, expected_cpi: float, pins: int | None
+):
     """Test character pitch in NON-multipoint mode
 
     Cover: ESC P, ESC M, ESC g (select 10, 12, 15 cpi), double width, condensed, ESC X (pitch)
@@ -691,7 +709,7 @@ def test_character_pitch_changes(format_databytes: bytes, expected_cpi: float, p
         ## Multipoint mode
         # ESC X: m = 0x12: 360/18 = 20 cpi
         (b"\x1bX\x12\x00\x00", 20, None),
-        (b"\x1bX\x12\x00\x00" + select_condensed_printing, 20, None)
+        (b"\x1bX\x12\x00\x00" + select_condensed_printing, 20, None),
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
@@ -700,7 +718,9 @@ def test_character_pitch_changes(format_databytes: bytes, expected_cpi: float, p
         "multipoint_condensed_ignored_20cpi",
     ],
 )
-def test_character_pitch_changes_multipoint(format_databytes: bytes, expected_cpi: float, pins: int | None):
+def test_character_pitch_changes_multipoint(
+    format_databytes: bytes, expected_cpi: float, pins: int | None
+):
     """Test character pitch in multipoint mode
 
     Cover: ESC X (pitch)
@@ -733,7 +753,6 @@ def test_character_pitch_changes_multipoint(format_databytes: bytes, expected_cp
         # 9 pins: Previous status is applied when double-height exits
         (double_height + select_condensed_printing + reset_double_height, True, 9),
         (select_condensed_printing + double_height + reset_double_height, True, 9),
-
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
@@ -766,7 +785,7 @@ def test_condensed_mode(format_databytes: bytes, expected: float, pins: int | No
         (b"\x1bp\x01", True),
         (b"\x1bp\x00", False),
         # ESC !
-(       b"\x1b!\x02", True),
+        (b"\x1b!\x02", True),
         (b"\x1b!\x00", False),
     ],
     # First param goes in the 'request' param of the fixture format_databytes
@@ -915,10 +934,10 @@ def test_double_width_height(tmp_path: Path, pins: int, expected_filename: str):
     # ESC SP command => so use ESC p 0
     reset_intercharacter_space = b"\x1bp\x00"
     point_8 = b"\x1bX\x00\x10\x00"  # ESC X: 0x10 => 16 / 2 = 8 points
-    point_21 = b"\x1BX\x00\x2a\x00"  # ESC X: 0x2a => 42 / 2 = 21 points
+    point_21 = b"\x1bX\x00\x2a\x00"  # ESC X: 0x2a => 42 / 2 = 21 points
     # double-width
     # double_width = b"\x1BW\x01"
-    reset_double_width = b"\x1BW\x00"
+    reset_double_width = b"\x1bW\x00"
     # double-height
     # double_height = b"\x1Bw\x01"
     # reset_double_height = b"\x1Bw\x00"
@@ -984,13 +1003,13 @@ def test_double_width_height(tmp_path: Path, pins: int, expected_filename: str):
 
 def test_select_character_style(tmp_path: Path):
     """Test character styles: outline + shadow - ESC q"""
-    point_8 = b"\x1BX\x00\x10\x00"
+    point_8 = b"\x1bX\x00\x10\x00"
     # Disable multipoint mode used by point_8 because this mode ignores the
     # ESC SP command => so use ESC p 0
-    reset_intercharacter_space = b"\x1Bp\x00"
+    reset_intercharacter_space = b"\x1bp\x00"
     # double-width
     # double_width = b"\x1BW\x01"
-    reset_double_width = b"\x1BW\x00"
+    reset_double_width = b"\x1bW\x00"
     # double-height
     # double_height = b"\x1Bw\x01"
     # reset_double_height = b"\x1Bw\x00"
@@ -1078,6 +1097,7 @@ def test_print_data_as_characters(tmp_path: Path, control_codes, expected_filena
     .. warning:: The test is NOT in 9pins mode, control codes ARE printable by
         default.
     """
+
     def chunk_this(iterable, length):
         """Split iterable in chunks of equal sizes"""
         iterator = iter(iterable)
@@ -1130,8 +1150,8 @@ def test_control_codes_printing(tmp_path: Path):
     .. warning:: The test is in 9pins mode: control codes are NOT printable by
         default.
     """
-    point_8 = b"\x1BX\x00\x10\x00"  # 0x10 => 16 / 2 = 8
-    roman = b"\x1B\x6B\x00"
+    point_8 = b"\x1bX\x00\x10\x00"  # 0x10 => 16 / 2 = 8
+    roman = b"\x1b\x6b\x00"
 
     set_upper_print_cmd = b"\x1b6"
     unset_upper_print_cmd = b"\x1b7"
@@ -1234,36 +1254,36 @@ def test_text_enhancements(tmp_path: Path):
     """
     # Select courier because this font supports almost all properties
     # except condensed & proportional
-    courier = b"\x1Bk\x02"
+    courier = b"\x1bk\x02"
 
     lines = [
         esc_reset + courier,
-        b'Font enhancement - legacy ESC',
-        b'\x09Hanc regionem \x1b4praestitutis celebritati\x1b5 diebus',
-        b'invadere \x1bEparans\x1bF dux \x1b-\x01ante edictus\x1b-\x00 per solitudines',
-        b'Aboraeque \x1b\x47amnis herbidas ripas\x1b\x48, suorum indicio',
+        b"Font enhancement - legacy ESC",
+        b"\x09Hanc regionem \x1b4praestitutis celebritati\x1b5 diebus",
+        b"invadere \x1bEparans\x1bF dux \x1b-\x01ante edictus\x1b-\x00 per solitudines",
+        b"Aboraeque \x1b\x47amnis herbidas ripas\x1b\x48, suorum indicio",
         # Test all features on the same words
-        b'proditus, \x1b4\x1bE\x1b-\x01qui admissi flagitii metu exagitati\x1b5\x1bF\x1b-\x00 ad',
-        b'praesidia descivere Romana. absque ullo egressus',
-        b'effectu deinde tabescebat immobilis.',
-        b'',
-        b'Font enhancement - ESC ! (master)',
-        b'\x09Hanc regionem \x1b!\x40praestitutis celebritati\x1b!\x00 diebus',
-        b'invadere \x1b!\x08parans\x1b!\x00 dux \x1b!\x80ante edictus\x1b!\x00 per solitudines',
-        b'Aboraeque \x1b!\x08amnis herbidas ripas\x1b!\x00, suorum indicio',
+        b"proditus, \x1b4\x1bE\x1b-\x01qui admissi flagitii metu exagitati\x1b5\x1bF\x1b-\x00 ad",
+        b"praesidia descivere Romana. absque ullo egressus",
+        b"effectu deinde tabescebat immobilis.",
+        b"",
+        b"Font enhancement - ESC ! (master)",
+        b"\x09Hanc regionem \x1b!\x40praestitutis celebritati\x1b!\x00 diebus",
+        b"invadere \x1b!\x08parans\x1b!\x00 dux \x1b!\x80ante edictus\x1b!\x00 per solitudines",
+        b"Aboraeque \x1b!\x08amnis herbidas ripas\x1b!\x00, suorum indicio",
         # Test all features on the same words (bold + underline = 2 + 128)
-        b'proditus, \x1b!\x88qui admissi flagitii metu exagitati\x1b!\x00 ad',
-        b'praesidia descivere Romana. absque ullo egressus',
-        b'effectu deinde tabescebat immobilis.',
-        b'',
-        b'Font enhancement - multilines - ESC ! (master)',
-        b'\x09Hanc regionem praestitutis celebritati \x1b!\x40diebus',
-        b'invadere\x1b!\x00 parans dux ante edictus per \x1b!\x08solitudines',
-        b'Aboraeque\x1b!\x00 amnis herbidas ripas, suorum \x1b!\x80indicio',
-        b'proditus\x1b!\x00, qui admissi flagitii metu exagitati ad',
-        b'praesidia descivere Romana. absque ullo egressus',
-        b'effectu deinde tabescebat immobilis.',
-        b''
+        b"proditus, \x1b!\x88qui admissi flagitii metu exagitati\x1b!\x00 ad",
+        b"praesidia descivere Romana. absque ullo egressus",
+        b"effectu deinde tabescebat immobilis.",
+        b"",
+        b"Font enhancement - multilines - ESC ! (master)",
+        b"\x09Hanc regionem praestitutis celebritati \x1b!\x40diebus",
+        b"invadere\x1b!\x00 parans dux ante edictus per \x1b!\x08solitudines",
+        b"Aboraeque\x1b!\x00 amnis herbidas ripas, suorum \x1b!\x80indicio",
+        b"proditus\x1b!\x00, qui admissi flagitii metu exagitati ad",
+        b"praesidia descivere Romana. absque ullo egressus",
+        b"effectu deinde tabescebat immobilis.",
+        b"",
     ]
 
     code = b"\r\n".join(lines)
