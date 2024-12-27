@@ -18,7 +18,6 @@
 import itertools as it
 from pathlib import Path
 import pytest
-from unittest.mock import patch
 import struct
 
 # Custom imports
@@ -26,6 +25,7 @@ from lark.exceptions import UnexpectedToken
 
 # Local imports
 import escparser.commons as cm
+from escparser.fonts import rptlab_times
 from .misc import format_databytes, pdf_comparison
 from .misc import DIR_DATA, esc_reset, cancel_bold, select_10cpi, select_12cpi, select_15cpi, select_condensed_printing, unset_condensed_printing, double_width
 from .helpers.diff_pdf import is_similar_pdfs
@@ -152,35 +152,68 @@ def test_select_international_charset(format_databytes):
     ), f"Expected charset {charset_name}"
 
 
-@patch(
-    "escparser.parser.typefaces",
-    {
-        0: (lambda *args: "FiraCode-Bold", "truetype/firacode/{}.ttf"),
-        2: ("FiraCode-Regular", "truetype/firacode/{}.ttf"),
-    },
+@pytest.fixture()
+def partial_fonts():
+
+    fonts = {
+        0: {
+            "fixed": (lambda *args: Path("/usr/share/fonts/truetype/firacode/FiraCode-Bold.ttf")),
+            # Simulate a font not found
+            "proportional": (lambda *args: None),
+        },
+        2: {
+            "fixed": (lambda *args: Path("/usr/share/fonts/truetype/firacode/FiraCode-Regular.ttf")),
+            # Fallback to a reportlab internal font
+            "proportional": rptlab_times,
+        }
+    }
+    return fonts
+
+
+@pytest.mark.parametrize(
+    "format_databytes, expected_typefaceid, expected_fontpath",
+    [
+        # Typeface ID 2: 'Courier' in printer notation (patched here: FiraCode-Regular)
+        (b"\x1Bk\x02", 2, "/usr/share/fonts/truetype/firacode/FiraCode-Regular.ttf"),
+        # Typeface ID 12 is not available: switch to default id (0) which is FiraCode-Bold
+        (b"\x1Bk\x0c", 0, "/usr/share/fonts/truetype/firacode/FiraCode-Bold.ttf"),
+        # Typeface ID 2: proportional alternative is choosen (Times)
+        (b"\x1Bp\x01" b"\x1Bk\x02", 2, None),
+        # Typeface ID 2: proportional alternative is choosen and triggered by ESC p (Times)
+        (b"\x1Bk\x02" b"\x1Bp\x01", 2, "/usr/share/fonts/truetype/firacode/FiraCode-Regular.ttf"), # None), # TODO for now, ESC p doesn't trigger set_font
+        # Typeface ID from 2 to 0 is not found in proportional alternative:
+        # the command is ignored and the previous proportional font is used (Times)
+        (b"\x1Bk\x02" b"\x1Bp\x01" b"\x1Bk\x00", 2, "/usr/share/fonts/truetype/firacode/FiraCode-Regular.ttf"), # None), # TODO for now, ESC p doesn't trigger set_font
+    ],
+    # First param goes in the 'request' param of the fixture format_databytes
+    indirect=["format_databytes"],
+    ids=[
+        "change_typeface",
+        "typeface_not_available",
+        "internal_rptlab_font",
+        "prop_font_not_found",
+        "prop_font_not_found2"
+    ],
 )
-def test_select_typeface():
+def test_select_typeface(tmp_path, partial_fonts, format_databytes, expected_typefaceid, expected_fontpath):
     """Test internal changes in ESCParser object due to select_typeface - ESC k
 
-    .. seealso:: For higher-level test cf :meth:`test_fonts`.
+    .. seealso:: For a higher-level test cf :meth:`test_fonts`.
     """
-    format_databytes = b"\x1Bk\x02"
-    escparser = ESCParser(format_databytes)
-    expected = format_databytes[2]
-    assert escparser.typeface == expected, "Wrong typeface selected"
+    output_file = tmp_path / "output.pdf"
+
+    escparser = ESCParser(format_databytes, available_fonts=partial_fonts, output_file=output_file)
+    print(escparser.typefaces)
+    assert escparser.typeface == expected_typefaceid, "Wrong typeface selected"
 
     # TODO: _fontname should be at FiraCode-Regular but it's Helvetica ????
-    print(escparser.current_fontpath, escparser.current_pdf._fontname)
-    assert escparser.current_fontpath == "truetype/firacode/FiraCode-Regular.ttf"
-
-    # wrong typeface ID => switch to default (0) which is FiraCode-Bold
-    format_databytes = b"\x1Bk\x0c"
-    escparser = ESCParser(format_databytes)
-    expected = 0
-    assert escparser.typeface == expected, "Wrong typeface selected"
-
-    print(escparser.current_fontpath, escparser.current_pdf._fontname)
-    assert escparser.current_fontpath == "truetype/firacode/FiraCode-Bold.ttf"
+    found = escparser.current_fontpath
+    print(found, escparser.current_pdf._fontname)
+    if isinstance(found, Path):
+        # Cast to str for a simpler parametrized test data...
+        found = str(found)
+    # Expect Path | None
+    assert found == expected_fontpath
 
 
 @pytest.mark.parametrize(
