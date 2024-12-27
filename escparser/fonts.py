@@ -58,6 +58,24 @@ WEIGHT_DICT = {
 }
 
 
+def rptlab_times(condensed, italic, bold):
+    """Configure internal reportlab fallback font (proportional)"""
+    return (
+        f"Times-{'Bold' if bold else ''}{'Italic' if italic else ''}"
+        if bold or italic
+        else "Times-Roman"
+    )
+
+
+def rptlab_courier(condensed, italic, bold):
+    """Configure internal reportlab fallback font (fixed)"""
+    return (
+        f"Courier-{'Bold' if bold else ''}{'Oblique' if italic else ''}"
+        if any((bold, italic))
+        else "Courier"
+    )
+
+
 def setup_fonts(config: configparser.ConfigParser) -> dict:
     """Build a structure that stores preconfigured methods to find fonts
      on the system according to dynamic styles in use.
@@ -77,23 +95,6 @@ def setup_fonts(config: configparser.ConfigParser) -> dict:
         Values are dicts with always 2 keys: `fixed` & `proportional`.
         Their values are None or a callable choosen for an optimal font search.
     """
-
-    def rptlab_times(condensed, bold, italic):
-        """Configure internal reportlab fallback font (proportional)"""
-        return (
-            f"Times-{'Bold' if bold else ''}{'Italic' if italic else ''}"
-            if bold or italic
-            else "Times-Roman"
-        )
-
-    def rptlab_courier(condensed, bold, italic):
-        """Configure internal reportlab fallback font (fixed)"""
-        return (
-            f"Courier-{'Bold' if bold else ''}{'Oblique' if italic else ''}"
-            if any((bold, italic))
-            else "Courier"
-        )
-
     typefaces_config = defaultdict(dict)
     for typeface_id, typeface in typeface_names.items():
         path = config[typeface]["path"]
