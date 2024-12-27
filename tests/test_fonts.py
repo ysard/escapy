@@ -93,6 +93,8 @@ def test_reportlab_fallbacks(func, arguments, expected):
 def test_find_font(arguments, expected):
     """Test the expected accuracy of the algorithm used to search a font on
     the basis of the fontname (font file name)
+
+    .. seealso:: :meth:`find_font`.
     """
     found = find_font(*arguments)
 
@@ -159,12 +161,12 @@ def erroneous_fonts():
     [
         # Typeface ID 1: font_type 'proportional' has not the expected type
         # => TypeError
-        b"\x1Bk\x00" b"\x1Bp\x01" b"\x1Bk\x00",
+        b"\x1bk\x00" b"\x1bp\x01" b"\x1bk\x00",
         # Typeface ID 2: font_type 'proportional' is not defined.
         # This situation must not happen since these keys are set by the
         # configparser.
         # => KeyError
-        b"\x1Bk\x02" b"\x1Bp\x01" b"\x1Bk\x02",
+        b"\x1bk\x02" b"\x1bp\x01" b"\x1bk\x02",
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
