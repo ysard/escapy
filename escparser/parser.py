@@ -1607,12 +1607,9 @@ class ESCParser:
         font_type = "proportional" if self.proportional_spacing else "fixed"
         # Get typefaces definitions
         func = self.typefaces[self.typeface][font_type]
-        try:
-            font = func(self.condensed, self.italic, self.bold)
-            if font is None:
-                raise ValueError
-        except (TypeError, ValueError):
-            # callable not defined, or font not found
+        font = func(self.condensed, self.italic, self.bold)
+        if font is None:
+            # Font is not found
             LOGGER.warning(
                 "System font <%s> is not available in <%s> mode; do nothing",
                 typeface_names[self.typeface],
