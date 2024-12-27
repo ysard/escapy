@@ -35,7 +35,8 @@ select_15cpi = b"\x1bg"  # ESC g
 double_width = b"\x0e"  # SO
 select_condensed_printing = b"\x0f"  # SI
 unset_condensed_printing = b"\x12"  # DC2
-
+double_height = b"\x1Bw\x01"  # ESC w 1
+reset_double_height = b"\x1Bw\x00"  # ESC w 0
 
 @pytest.fixture
 def format_databytes(request):

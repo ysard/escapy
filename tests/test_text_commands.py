@@ -27,7 +27,7 @@ from lark.exceptions import UnexpectedToken
 import escparser.commons as cm
 from escparser.fonts import rptlab_times
 from .misc import format_databytes, pdf_comparison
-from .misc import DIR_DATA, esc_reset, cancel_bold, select_10cpi, select_12cpi, select_15cpi, select_condensed_printing, unset_condensed_printing, double_width
+from .misc import DIR_DATA, esc_reset, cancel_bold, select_10cpi, select_12cpi, select_15cpi, select_condensed_printing, unset_condensed_printing, double_width, double_height, reset_double_height
 from .helpers.diff_pdf import is_similar_pdfs
 from escparser.parser import ESCParser, PrintMode, PrintScripting, PrintControlCodes
 
@@ -637,6 +637,8 @@ def test_select_font_by_pitch_and_point(tmp_path: Path):
         (select_15cpi, 15, None),
         (select_10cpi + select_condensed_printing, 17.14, None),
         (select_12cpi + select_condensed_printing, 20, None),
+        # Switch back to 12cpi when condensed is unset
+        (select_12cpi + select_condensed_printing + unset_condensed_printing, 12, None),
         # ESCP2: select_15cpi + condensed: condensed is ignored
         (select_15cpi + select_condensed_printing, 15, None),
         # 9 pins: select_15cpi + condensed: condensed is set
@@ -663,6 +665,7 @@ def test_select_font_by_pitch_and_point(tmp_path: Path):
         "select_15cpi_15cpi",
         "select_10cpi+condensed_17.12cpi",
         "select_12cpi+condensed_20cpi",
+        "select_12cpi+condensed_switch_back_12cpi",
         "select_15cpi+condensed_ignored_15cpi",
         "select_15cpi+condensed_15cpi_9pins",
         "select_10cpi_exit_multipoint",
@@ -724,6 +727,13 @@ def test_character_pitch_changes_multipoint(format_databytes: bytes, expected_cp
         (b"\x1bp\x01" + select_condensed_printing, True, None),
         # ESC !, master cmd
         (b"\x1b!\x04", True, None),
+        # 9 pins: condensed is suspended or postponed by double-height
+        (double_height + select_condensed_printing, False, 9),
+        (select_condensed_printing + double_height, False, 9),
+        # 9 pins: Previous status is applied when double-height exits
+        (double_height + select_condensed_printing + reset_double_height, True, 9),
+        (select_condensed_printing + double_height + reset_double_height, True, 9),
+
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
@@ -734,6 +744,10 @@ def test_character_pitch_changes_multipoint(format_databytes: bytes, expected_cp
         "proportional_9pins",
         "proportional",
         "master_cmd",
+        "postponed_double_height_9pins",
+        "suspended_double_height_9pins",
+        "cancel_double_height_unset_9pins",
+        "cancel_suspend_double_height_9pins",
     ],
 )
 def test_condensed_mode(format_databytes: bytes, expected: float, pins: int | None):
