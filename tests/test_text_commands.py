@@ -1117,7 +1117,7 @@ def test_control_codes_printing(tmp_path: Path):
     ]
 
     code = b"\r\n".join(lines)
-    processed_file = tmp_path / "test_control_codes_printing.pdf"
+    processed_file = tmp_path / "test_control_codes_printing_9pins.pdf"
     _ = ESCParser(esc_reset + code, pins=9, output_file=str(processed_file))
 
     pdf_comparison(processed_file)
