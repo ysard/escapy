@@ -1628,6 +1628,7 @@ class ESCParser:
             LOGGER.debug("Loaded & used system font: %s", fontname)
         else:
             fontname = font
+            self.current_fontpath = None
             LOGGER.debug("Loaded & used reportlab font: %s", fontname)
 
         self.current_pdf.setFont(fontname, self.point_size)
