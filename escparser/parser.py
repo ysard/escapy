@@ -1816,7 +1816,7 @@ class ESCParser:
             1 Sans serif
         """
         value = args[1].value[0]
-        if value not in typeface_names:
+        if value not in self.typefaces:
             LOGGER.error("Typeface selected doesn't exist. Switch to default.")
             self.typeface = self.default_typeface
         else:
