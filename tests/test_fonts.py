@@ -13,6 +13,44 @@ from escparser.commons import typeface_names
 
 
 @pytest.mark.parametrize(
+    "func, arguments, expected",
+    [  # args order: condensed, italic, bold
+        (rptlab_times, (True, True, True), "Times-BoldItalic"),
+        (rptlab_times, (False, False, False), "Times-Roman"),
+        (rptlab_times, (True, False, False), "Times-Roman"),
+        (rptlab_times, (True, True, False), "Times-Italic"),
+        (rptlab_times, (True, False, True), "Times-Bold"),
+        (rptlab_times, (False, True, True), "Times-BoldItalic"),
+        (rptlab_times, (False, True, False), "Times-Italic"),
+        (rptlab_times, (False, False, True), "Times-Bold"),
+        (rptlab_courier, (True, True, True), "Courier-BoldOblique"),
+        (rptlab_courier, (False, False, False), "Courier"),
+        (rptlab_courier, (False, True, False), "Courier-Oblique"),
+    ],
+    ids=[
+        "Times-BoldItalic",
+        "Times-Roman",
+        "Times-Roman",
+        "Times-Italic",
+        "Times-Bold",
+        "Times-BoldItalic",
+        "Times-Italic",
+        "Times-Bold",
+        "Courier-BoldOblique",
+        "Courier",
+        "Courier-Oblique",
+    ],
+)
+def test_reportlab_fallbacks(func, arguments, expected):
+    """Test the font selection routines that produce reportlab font names
+
+    .. seealso:: :meth:`rptlab_times`, :meth:`rptlab_courier`.
+    """
+    found = func(*arguments)
+    assert found == expected
+
+
+@pytest.mark.parametrize(
     "arguments, expected",
     [   # args order: condensed, italic, bold
         (("NotoSans-", True, True, True), Path("/usr/share/fonts/truetype/noto/NotoSans-CondensedBoldItalic.ttf")),
