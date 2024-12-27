@@ -117,11 +117,13 @@ class ESCParser:
         :key single_sheets: Single-sheet of paper if True, Continuous paper
             otherwise. (default: True).
         :key pdf: Enable pdf generation via reportlab. (default: True).
+        :key output_file: Output filepath.
         :type code: bytes
         :type pins: int | None
         :type printable_area_margins_mm: tuple[int] | None
         :type single_sheets: bool
         :type pdf: bool
+        !type output_file: Path | str
         """
         # Misc #################################################################
         # Prepare for methods search in run_esc_instruction()
@@ -187,7 +189,7 @@ class ESCParser:
 
         if pdf:
             # Init PDF render
-            self.current_pdf = Canvas(output_file, pagesize=page_size, pageCompression=1)
+            self.current_pdf = Canvas(str(output_file), pagesize=page_size, pageCompression=1)
             self.current_pdf.setLineWidth(0.3)
             self.current_pdf.setFillOverprint(True)
             self.current_pdf.setProducer(
