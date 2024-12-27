@@ -1582,7 +1582,7 @@ class ESCParser:
             for fontname in fontnames
         ]
 
-    def set_font(self):
+    def set_font(self) -> bool:
         """Configure the current font (internal usage)
 
         Use bold, italic, condensed styles, and fixed or proportional spacing
@@ -1599,28 +1599,29 @@ class ESCParser:
             "NotoSans-Condensed",
             "NotoSans-Italic"
 
-        .. warning:: If a font is not available in the given spacing mode,
-            if the font is not found in the given system path, the current
+        .. warning:: If a font is not found in the given system path, the current
             font in use is NOT updated.
+
+        :return: True if the font is found and correctly loaded, False otherwise.
         """
         font_type = "proportional" if self.proportional_spacing else "fixed"
+        # Get typefaces definitions
+        func = self.typefaces[self.typeface][font_type]
         try:
-            # Get typefaces definitions
-            func = self.typefaces[self.typeface][font_type]
             font = func(self.condensed, self.italic, self.bold)
             if font is None:
                 raise ValueError
-        except (KeyError, TypeError, ValueError):
-            # font_type not defined, callable not defined, or font not found
+        except (TypeError, ValueError):
+            # callable not defined, or font not found
             LOGGER.warning(
                 "System font <%s> is not available in <%s> mode; do nothing",
                 typeface_names[self.typeface],
                 font_type
             )
-            return
+            return False
 
         if not self.current_pdf:
-            return
+            return True
 
         if isinstance(font, Path):
             # Not a font already available in reportlab
@@ -1633,6 +1634,7 @@ class ESCParser:
             LOGGER.debug("Loaded & used reportlab font: %s", fontname)
 
         self.current_pdf.setFont(fontname, self.point_size)
+        return True
 
     def assign_character_table(self, *args):
         """Assign a registered character table to a character table - ESC ( t
@@ -1816,6 +1818,7 @@ class ESCParser:
             1 Sans serif
         """
         value = args[1].value[0]
+        previous_value = self.typeface
         if value not in self.typefaces:
             LOGGER.error("Typeface selected doesn't exist. Switch to default.")
             self.typeface = self.default_typeface
@@ -1824,7 +1827,9 @@ class ESCParser:
 
         LOGGER.debug("Select printer typeface %s", typeface_names[self.typeface])
 
-        self.set_font()
+        if not self.set_font():
+            # Something bad happened: keep the old value
+            self.typeface = previous_value
 
     def define_user_defined_ram_characters(self, _, header, data):
         """Receive user-defined characters - ESC &
