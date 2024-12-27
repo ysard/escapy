@@ -264,7 +264,7 @@ def test_horizontal_tabs(tmp_path: Path):
     pouet = b"pouet"
     tab = b"\x09"
     esc_htab = b"\x1bD"
-    select_15cpi = b"\x1bg"
+    # select_15cpi = b"\x1bg"
     lines = [
         # default: tabs of 8 columns
         tab + coucou + tab + coucou,
@@ -917,11 +917,11 @@ def test_double_width_height(tmp_path: Path, pins: int, expected_filename: str):
     point_8 = b"\x1bX\x00\x10\x00"  # ESC X: 0x10 => 16 / 2 = 8 points
     point_21 = b"\x1BX\x00\x2a\x00"  # ESC X: 0x2a => 42 / 2 = 21 points
     # double-width
-    double_width = b"\x1BW\x01"
+    # double_width = b"\x1BW\x01"
     reset_double_width = b"\x1BW\x00"
     # double-height
-    double_height = b"\x1Bw\x01"
-    reset_double_height = b"\x1Bw\x00"
+    # double_height = b"\x1Bw\x01"
+    # reset_double_height = b"\x1Bw\x00"
 
     pangram = b"The quick brown fox jumps over the lazy dog"
 
@@ -989,11 +989,11 @@ def test_select_character_style(tmp_path: Path):
     # ESC SP command => so use ESC p 0
     reset_intercharacter_space = b"\x1Bp\x00"
     # double-width
-    double_width = b"\x1BW\x01"
+    # double_width = b"\x1BW\x01"
     reset_double_width = b"\x1BW\x00"
     # double-height
-    double_height = b"\x1Bw\x01"
-    reset_double_height = b"\x1Bw\x00"
+    # double_height = b"\x1Bw\x01"
+    # reset_double_height = b"\x1Bw\x00"
     # scripting
     enable_upperscripting = b"\x1bS\x00"
     disable_upperscripting = b"\x1bT"
