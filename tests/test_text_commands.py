@@ -347,6 +347,76 @@ def test_horizontal_tabs(tmp_path: Path):
     processed_file.unlink()
 
 
+@pytest.mark.parametrize(
+    "pins, expected_filename",
+    [
+        (None, "test_vertical_tabs.pdf"),
+        (9, "test_vertical_tabs_9pins.pdf"),
+    ],
+    ids=[
+        "ESCP2",
+        "9pins",
+    ],
+)
+def test_vertical_tabs(tmp_path: Path, pins: None | int, expected_filename):
+    """Test vertical tabs config & cancellation - ESC B, VT
+
+    - default config tab
+    - same as LF
+    - same as CR (double-width behavior is also tested)
+    - same as FF
+
+    :param pins: Pins configuration ESCP2 or 9 pins
+    """
+    pouet = b"pouet"
+    vtab = b"\x0b"
+    esc_vtab = b"\x1bB"  # ESC B
+
+    lines = [
+        # default
+        b"default: Expect a line feed",  # line 0
+        vtab  # line 1
+
+        # cancel all tabs
+        + esc_vtab + b"\x00"
+        b"expect a carriage return double-width is "
+        + (b"kept in ESCP2" if not pins else b"canceled in 9pins"),  # line 2
+        double_width + b"UUUUU" + vtab + b"TTTTT",  # line 3
+
+        # define 3 tabs to have 1, 2, 3 blank lines between 4 words
+        # starting from the line count before:
+        # - 1st word: normal position after a LF, line 5
+        # - 2nd word: 2 lines after, line 7
+        # - 3rd word: 3 lines after, line 10
+        # - 4th word: 4 lines after, line 14
+        esc_vtab + b"\x07\x0a\x0e\x00"
+        b"expect equivalent of 1, 2, 3 line feeds between words",  # line 4
+        pouet + vtab + pouet + vtab + pouet + vtab + pouet,
+
+        # Expect an FF
+        b"No tab below the current position: next page, expect a form feed",
+        vtab,
+        b"The next tab is IN the bottom-margin: next page, expect a form feed",
+        esc_vtab + b"\x07\x0a\x0e\x44\x00",  # last tab at line 68
+        b"\n" * 14,
+        vtab + pouet
+    ]
+
+    processed_file = tmp_path / expected_filename
+
+    code = esc_reset + b"\r\n".join(lines)
+    escparser = ESCParser(code, pins=pins, output_file=processed_file)
+
+    line_spacing = 1 / 6
+    assert escparser.current_line_spacing == line_spacing
+    expected = [i * line_spacing for i in (7, 10, 14, 68)] + [0] * 12
+    assert escparser.vertical_tabulations == expected
+    # Yeah... 4... but there are 3 pages... (the save method increments the count)
+    assert escparser.current_pdf.getPageNumber() == 4
+
+    pdf_comparison(processed_file)
+
+
 def test_select_letter_quality_or_draft():
     """ESC x Select LQ or draft"""
     dataset = [
