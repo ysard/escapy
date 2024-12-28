@@ -304,6 +304,10 @@ def test_horizontal_tabs(tmp_path: Path):
         esc_htab + b"\x00",
         coucou,
 
+        # tab at the right of the right margin: should be ignored
+        esc_htab + b"\x50\x00",
+        tab + coucou,
+
         # 1 tab of 1 column + 1 tab of 7 columns
         esc_htab + b"\x01\x08\x00",
         tab + coucou + tab + coucou,
