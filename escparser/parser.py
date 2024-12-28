@@ -412,12 +412,12 @@ class ESCParser:
 
     @property
     def double_width(self) -> bool:
-        """Get the double-width state (online OR multiline states)"""
+        """Get the double-width state (one line OR multiline states)"""
         return self._double_width or self._double_width_multi
 
     @double_width.setter
     def double_width(self, double_width: bool):
-        """Set the double-width state
+        """Set the double-width (one line) state - SO, ESC SO
 
         Used in combination with ESC SP that allows to double the extra space
         during double-width mode.
@@ -434,7 +434,7 @@ class ESCParser:
 
     @double_width_multi.setter
     def double_width_multi(self, double_width: bool):
-        """Set the double-width multiline state
+        """Set the double-width multiline state - ESC !, ESC W
 
         Used in combination with ESC SP that allows to double the extra space
         during double-width mode.
