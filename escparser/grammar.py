@@ -33,9 +33,6 @@ esc_grammar = r"""
     instruction:  tiff_compressed_rule
         | ANYTHING               -> binary_blob
         | INIT                   -> reset_printer
-        # | ESC CMD              -> esc_cmd
-        # | ESC ARG_CMD BIN_ARG  -> esc_bin_arg
-        # | ESC ARG_CMD ARG      -> esc_arg_cmd
 
         # Useless: do not implement
         | ESC "U" BIN_ARG_EX    -> switch_unidirectional_mode
@@ -76,11 +73,11 @@ esc_grammar = r"""
         | ESC "Q" BYTE_ARG          -> set_right_margin
 
         # Print position motion
-        | ESC "$" ARG HALF_BYTE_ARG             -> set_absolute_horizontal_print_position
-        | ESC "\\" ARG ARG                      -> set_relative_horizontal_print_position
+        | ESC "$" BYTE_ARG HALF_BYTE_ARG            -> set_absolute_horizontal_print_position
+        | ESC "\\" BYTE_ARG BYTE_ARG                -> set_relative_horizontal_print_position
         # TODO: see extended standard with nl = 4
-        | ESC "(V\x02\x00" ARG HALF_BYTE_ARG    -> set_absolute_vertical_print_position
-        | ESC "(v\x02\x00" ARG ARG              -> set_relative_vertical_print_position
+        | ESC "(V\x02\x00" BYTE_ARG HALF_BYTE_ARG   -> set_absolute_vertical_print_position
+        | ESC "(v\x02\x00" BYTE_ARG BYTE_ARG        -> set_relative_vertical_print_position
         # Variable command but limited by a NUL char
         | ESC "D" /[\x01-\xff]{0,32}\x00/   -> set_horizontal_tabs
         # Variable command but limited by a NUL char
@@ -91,10 +88,10 @@ esc_grammar = r"""
         # not implemented
         | ESC "/" /[\x00-\x07]/             -> select_vertical_tab_channel
         # not implemented
-        | ESC "e" BIN_ARG ARG               -> set_fixed_tab_increment
+        | ESC "e" BIN_ARG HALF_BYTE_ARG     -> set_fixed_tab_increment
         # not implemented
         | ESC "a" /[0-3\x00-\x03]/          -> select_justification
-        | ESC "J" ARG                       -> advance_print_position_vertically
+        | ESC "J" BYTE_ARG                  -> advance_print_position_vertically
         # not implemented: deleted command
         | ESC "j" BYTE_ARG                  -> reverse_paper_feed
         # not implemented: deleted command
@@ -286,7 +283,6 @@ esc_grammar = r"""
     MOVXBYTE_EX: "\xe4"
     MOVXDOT_EX: "\xe5"
 
-    ARG: /[^\x1b]/
     BIN_ARG: /[\x00\x01]/
     BIN_ARG_EX: /[01\x00\x01]/
     HALF_BYTE_ARG: /[\x00-\x7f]/
