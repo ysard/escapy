@@ -145,9 +145,11 @@ class ESCParser:
         self.bold = False
         self._underline = False
         self.scripting: None | PrintScripting = None
+        # Used to postpone or suspend the scripting status
         self.previous_scripting: None | PrintScripting = None
         self.character_style: None | PrintCharacterStyle = None
         self._condensed = False
+        # Used to postpone or suspend the condensed status
         self.previous_condensed = False
         self.double_strike = False
         self._double_width = False
@@ -1789,7 +1791,6 @@ class ESCParser:
         """Select the typeface for LQ printing - ESC k
 
         - TODO: The printer ignores this command if the user-defined character set is selected.
-            => celui de la RAM ou celui de la table ? select_user_defined_set() ?
         - TODO: If draft mode is selected when this command is sent,
             the new LQ typeface will be selected when the printer returns to LQ printing.
         - The Roman typeface is selected if the selected typeface is not available.
@@ -1979,9 +1980,10 @@ class ESCParser:
             Pitch = 10 cpi (m = 36)
             Point = 10.5 (nH = 0, nL = 21)
 
-        TODO: Use multipoint_mode to select a scalable version of the selected font.
+        .. note:: Use multipoint_mode to select a scalable version of the selected font.
             Not all typefaces are available in multipoint mode; see the Command Table
             for the typefaces available in multipoint mode on each printer.
+            => For now this IS NOT honored (we use scalable fonts everywhere).
 
         The ESC/P 2 command language implements four scalable multipoint fonts:
         Roman, Sans Serif, Roman T, and Sans Serif H not available to ESC/P printers.
