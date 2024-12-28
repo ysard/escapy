@@ -2108,6 +2108,8 @@ class ESCParser:
         """
         self._proportional_spacing = proportional_spacing in (1, 49)
 
+        self.set_font()
+
         if self.multipoint_mode or self.pins == 9:
             # ESC X (multipoint mode), or 9pins printers
             return
