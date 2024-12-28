@@ -141,6 +141,7 @@ def find_font(
     :key best: If True return only the best font path, otherwise return multiple Paths.
     :key path: (Optional) Path where the fonts are recursively searched
         (default: See :meth:`DIR_FONTS`).
+    :type name: str
     :type condensed: bool
     :type italic: bool
     :type bold: bool
