@@ -58,7 +58,7 @@ WEIGHT_DICT = {
 }
 
 
-def rptlab_times(condensed, italic, bold):
+def rptlab_times(condensed: bool, italic: bool, bold: bool) -> str:
     """Configure internal reportlab fallback font (proportional)"""
     return (
         f"Times-{'Bold' if bold else ''}{'Italic' if italic else ''}"
@@ -67,7 +67,7 @@ def rptlab_times(condensed, italic, bold):
     )
 
 
-def rptlab_courier(condensed, italic, bold):
+def rptlab_courier(condensed: bool, italic: bool, bold: bool) -> str:
     """Configure internal reportlab fallback font (fixed)"""
     return (
         f"Courier-{'Bold' if bold else ''}{'Oblique' if italic else ''}"
