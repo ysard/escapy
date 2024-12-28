@@ -24,6 +24,7 @@ from reportlab.lib.pagesizes import landscape
 
 # Local imports
 from escparser.parser import ESCParser
+from escparser.__main__ import escparser_entry_point
 from .misc import DIR_DATA, pdf_comparison
 
 
@@ -59,3 +60,62 @@ def test_full_file_conversion(tmp_path: Path, code_file: str, expected_pdf: str,
     _ = ESCParser(code, output_file=str(processed_file), **args)
 
     pdf_comparison(processed_file)
+
+
+@pytest.fixture()
+def minimal_config() -> str:
+    """Generate a minimal configuration
+
+    - misc section is mandatory
+    - fonfigure the default font
+    """
+    return """[misc]
+        [Roman]
+        fixed = FiraCode
+        """
+
+
+def test_argument_parser(tmp_path: Path, minimal_config: str):
+    """Almost full test from the command line to the pdf generated
+
+    :param tmp_path: Path of temporary working dir returned by a pytest fixture.
+    :param minimal_config: Minimal configuration file content.
+    """
+    empty_config_file = tmp_path / "config.conf"
+    empty_config_file.write_text(minimal_config)
+
+    processed_file = tmp_path / "escp2_1.pdf"
+    cmdline_args = {
+        "esc_prn": Path(DIR_DATA + "escp2_1.prn"),
+        "config": empty_config_file,
+        "output": processed_file,
+    }
+
+    # Do magic
+    escparser_entry_point(**cmdline_args)
+
+    pdf_comparison(processed_file)
+
+
+def test_empty_input_file(tmp_path: Path, minimal_config: str):
+    """Test an empty input file given from the command line
+
+    :param tmp_path: Path of temporary working dir returned by a pytest fixture.
+    :param minimal_config: Minimal configuration file content.
+    """
+    empty_config_file = tmp_path / "config.conf"
+    empty_config_file.write_text(minimal_config)
+
+    empty_input_file = tmp_path / "empty.prn"
+    empty_input_file.write_bytes(b"")
+
+    processed_file = tmp_path / "escp2_1.pdf"
+    cmdline_args = {
+        "esc_prn": empty_input_file,
+        "config": empty_config_file,
+        "output": processed_file,
+    }
+
+    # Do magic
+    with pytest.raises(SystemExit):
+        escparser_entry_point(**cmdline_args)
