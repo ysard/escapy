@@ -1632,7 +1632,7 @@ class ESCParser:
 
         if isinstance(font, Path):
             # Not a font already available in reportlab
-            fontname = font.name
+            fontname = font.stem
             self.register_fonts(fontname, fontpath=font)
             self.current_fontpath = font
             LOGGER.debug("Loaded & used system font: %s", fontname)
