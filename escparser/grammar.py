@@ -55,7 +55,6 @@ esc_grammar = r"""
         | FF                    -> form_feed
         | BS                    -> backspace
         | HT                    -> h_tab
-        # not implemented
         | VT                    -> v_tab
         | ESC "0"               -> set_18_line_spacing
         | ESC "1"               -> set_772_line_spacing
@@ -86,7 +85,8 @@ esc_grammar = r"""
         | ESC "D" /[\x01-\xff]{0,32}\x00/   -> set_horizontal_tabs
         # Variable command but limited by a NUL char
         | ESC "B" /[\x01-\xff]{0,16}\x00/   -> set_vertical_tabs
-        # not implemented - k = {1,16} ?
+        # not implemented
+        # Variable command but limited by a NUL char
         | ESC "b" /[\x00-\x07][\x01-\xff]{0,16}\x00/ -> set_vertical_tabs_vfu
         # not implemented
         | ESC "/" /[\x00-\x07]/             -> select_vertical_tab_channel
