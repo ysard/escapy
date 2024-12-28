@@ -224,9 +224,9 @@ def test_select_typeface(
     print(escparser.typefaces)
     assert escparser.typeface == expected_typefaceid, "Wrong typeface selected"
 
-    # TODO: _fontname should be at FiraCode-Regular but it's Helvetica ????
+    # Note: escparser.current_pdf._fontname can't be tested here because the
+    # save() to pdf action resets the canvas
     found = escparser.current_fontpath
-    print(found, escparser.current_pdf._fontname)
     if isinstance(found, Path):
         # Cast to str for a simpler parametrized test data...
         found = str(found)
