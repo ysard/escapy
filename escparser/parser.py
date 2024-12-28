@@ -383,7 +383,7 @@ class ESCParser:
             In this mode for ESCP2, only Black, Cyan, Magenta, Yellow are available.
             Non-ESCP2 printers can use any color.
         """
-        if color >= len(self.RGB_colors):
+        if color >= len(self.CMYK_colors):  # pragma: no cover
             # Color doesn't exist: ignore the command
             return
         if self.graphics_mode and self.pins != 9 and color not in (0, 1, 2, 4):
