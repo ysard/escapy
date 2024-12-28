@@ -100,7 +100,7 @@ class ESCParser:
 
     default_typeface = 0  # Roman
 
-    def __init__(self, code, available_fonts=typefaces, pins=None, printable_area_margins_mm=None, page_size=A4, single_sheets=True, pdf=True, output_file="output.pdf"):
+    def __init__(self, code, available_fonts=typefaces, pins=None, printable_area_margins_mm=None, page_size=A4, single_sheets=True, pdf=True, output_file="output.pdf", **kwargs):
         """
 
         :param code: Binary code to be parsed.
