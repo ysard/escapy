@@ -75,6 +75,7 @@ def parse_config(config: configparser.ConfigParser):
     default_font_path = misc_section.get("default_font_path")
     if not default_font_path:
         default_font_path = DIR_FONTS
+        misc_section["default_font_path"] = default_font_path
 
     ## Fonts sections
     for typeface in typeface_names.values():
