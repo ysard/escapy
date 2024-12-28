@@ -188,7 +188,7 @@ class ESCParser:
         # Init tabulations
         self.horizontal_tabulations = None
         self.reset_horizontal_tabulations()
-        self.vertical_tabulations = [0] * 16
+        self.vertical_tabulations = None
         # Must be None because functions where it is used have their own default values
         self.defined_unit = None
         self.current_line_spacing = 1 / 6
@@ -1447,20 +1447,79 @@ class ESCParser:
     def v_tab(self, *_):
         """Move the vertical print position to the next vertical tab below the current print position - VT
 
-        - TODO: Add a vertical tabulation
         - Move the horizontal print position to the left-margin position
+        - Same as an FF (form feed) if the next tab is below the bottom-margin
+          position, or if no tab is set below the current position.
+        - Same as a CR command if all tabs have been canceled with the ESC B NUL
+        - Same as an LF command if no tabs have been set since the printer was
+          turned on or was reset with the ESC @
 
         doc p52
 
-        TODO:
-            ESCP2:
-            NOT cancel double-width when VT functions the same as a CR command.
-            non-ESC/P 2 printers:
-            cancel double-width when VT functions the same as a CR command.
-        """
-        self.double_width = False
+        Double-width handling:
+            - ESCP2:
+            Do NOT cancel double-width when VT functions the same as a CR command
+            (normal behavior).
+            - non-ESC/P 2 printers:
+            Cancel double-width when VT functions the same as a CR command.
+            (normal behavior).
 
+        Non-ESCP2 printers:
+            - Vertical tabs are measured from the top-of-form position.
+              => WONTFIX: on these printers the top-margin is not modifiable
+              so the top-of-form IS the top-margin.
+            - advances to the top-of-form position on the next page if the
+              next tab is beyond the currently set page length.
+              => WONTFIX: In bottom-up, "beyond the page length" is below 0,
+              thus, below the bottom-margin position, which is already handled.
+            - ignored if the print position inside the bottom-margin
+              (ed.: between bottom-margin and page-length).
+              => WONTFIX: doc unclear p53 (next-page if beyond the bottom margin).
+        """
+        if self.vertical_tabulations is None:
+            # No tab is configured since turn on or reset => just a LF
+            # PS: triggers a double-width cancelation
+            self.line_feed()
+            return
+
+        # PS: triggers a double-width cancelation if 9pins
+        # PS2: We want to use underline checks routines in carriage_return
+        # but this will trigger double_width reset in 9pins.
+        # However, this reset is not legit if the cmd is not the same as a true
+        # CR cmd; thus, we must restore it later.
+        double_width_backup = self._double_width
         self.carriage_return()
+
+        if not any(self.vertical_tabulations):
+            # No tab is configured following a tab cancelation => just a CR
+            return
+        self.double_width = double_width_backup
+
+        # Guess the tab position
+        # We search the first tab pos BELOW the current cursor_y
+        # PS: Use bottom-up coordinates (top value > bottom value)
+        g = (
+            tab_pos
+            for tab_height in self.vertical_tabulations
+            if tab_height and ((tab_pos := self.top_margin - tab_height) < self.cursor_y)
+        )
+
+        try:
+            tab_pos = next(g)
+            LOGGER.debug("Choosen tab position: %s, %s", tab_pos, (self.top_margin-tab_pos) / self.current_line_spacing)
+        except StopIteration:
+            tab_pos = None
+
+        if not tab_pos or tab_pos < self.bottom_margin:
+            LOGGER.debug(
+                "No tab available below the current cursor_y position, "
+                "or tab is below bottom margin."
+            )
+            # PS: triggers a double-width cancelation
+            self.form_feed()
+            return
+
+        self.cursor_y = tab_pos
 
     def reset_horizontal_tabulations(self):
         """Set tabulation widths in character pitch
@@ -1520,9 +1579,8 @@ class ESCParser:
         """Set vertical tab positions (in the current line spacing) at the lines
         specified by n1 to nk, as measured from the top-margin position - ESC B
 
-        TODO: On non-ESC/P 2 printers:
-            Vertical tabs are measured from the top-of-form position.
-            is the same as setting the vertical tabs in VFU channel 0.
+        TODO:
+            - Is the same as setting the vertical tabs in VFU channel 0.
         """
         # Limited to 16 tabs by lark
         line_ids = args[1].value
@@ -1543,7 +1601,7 @@ class ESCParser:
             self.vertical_tabulations[tab_idx] = tab_height * self.current_line_spacing
 
             prev = tab_height
-            LOGGER.debug("tab set at line %s: %s", tab_idx, self.vertical_tabulations[tab_idx])
+            LOGGER.debug("tab %d set at line %s: %s", tab_idx, tab_height, self.vertical_tabulations[tab_idx])
 
     def set_italic(self, *_):
         """Enable italic style - ESC 4"""
