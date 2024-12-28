@@ -439,7 +439,7 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
                     expected_decompressed_bytes = (nH << 8) + nL
 
                     token_start_pos += 2
-                else:
+                else:  # pragma: no cover
                     raise ValueError("<XFER> F or BC (nibble) value not expected!")
 
                 LOGGER.debug("Expect %d decompressed bytes", expected_decompressed_bytes)
@@ -476,7 +476,7 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
                     nL, nH = next(iter_data), next(iter_data)
                     dot_offset = (nH << 8) + nL
                     lexer_state.line_ctr.char_pos += 2
-                else:
+                else:  # pragma: no cover
                     raise ValueError("<MOVY> F or BC (nibble) value not expected!")
 
                 # print("MOVY dot_offset:", dot_offset)
@@ -511,7 +511,7 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
                     if dot_offset & 0x8000:
                         dot_offset -= 2**16
                     lexer_state.line_ctr.char_pos += 2
-                else:
+                else:  # pragma: no cover
                     raise ValueError("<MOVX> F or BC (nibble) value not expected!")
 
                 # print("MOVX dot_offset:", dot_offset)
