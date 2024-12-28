@@ -116,7 +116,7 @@ def setup_fonts(config: configparser.ConfigParser) -> dict:
 
             typeface_config[field] = func
 
-    return typefaces_config
+    return dict(typefaces_config)
 
 
 @lru_cache
