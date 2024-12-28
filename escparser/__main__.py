@@ -30,30 +30,34 @@ import escparser.commons as cm
 LOGGER = cm.logger()
 
 
-def escparser_entry_point(config_file=None, **kwargs):
+def escparser_entry_point(**kwargs):
     """The main routine."""
     LOGGER.info("Libreprinter start; %s", __version__)
 
-    config = load_config(config_file=config_file)
-    configured_fonts = setup_fonts(config)
-
     # Open input file
-    esc_prn_file_content = kwargs["esc_prn_file"].read_bytes()
+    esc_prn_file_content = kwargs["esc_prn"].read_bytes()
     if not esc_prn_file_content:
         LOGGER.error("File is empty!")
+        raise SystemExit
+
+    # Parse the config file and preload fonts search routines
+    config = load_config(config_file=kwargs["config"])
+    configured_fonts = setup_fonts(config)
 
     ESCParser(
         esc_prn_file_content,
         available_fonts=configured_fonts,
+        output_file=kwargs["output"],
+        **kwargs
     )
 
 
-def args_to_params(args):
+def args_to_params(args):  # pragma: no cover
     """Return argparse namespace as a dict {variable name: value}"""
     return dict(vars(args).items())
 
 
-def main():
+def main():  # pragma: no cover
     """Entry point and argument parser"""
     parser = argparse.ArgumentParser(
         prog="",
@@ -67,8 +71,8 @@ def main():
     )
 
     parser.add_argument(
-        "-C",
-        "--config_file",
+        "-c",
+        "--config",
         nargs="?",
         help="Configuration file to use.",
         default=cm.CONFIG_FILE,
@@ -91,5 +95,5 @@ def main():
     escparser_entry_point(**params)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()
