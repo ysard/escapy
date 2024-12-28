@@ -1440,6 +1440,7 @@ class ESCParser:
             return
 
         if tab_pos > self.right_margin:
+            LOGGER.debug("Tab outside right margin: ignored")
             return
 
         self.cursor_x = tab_pos
