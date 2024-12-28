@@ -397,7 +397,11 @@ def test_vertical_tabs(tmp_path: Path, pins: None | int, expected_filename):
         b"No tab below the current position: next page, expect a form feed",
         vtab,
         b"The next tab is IN the bottom-margin: next page, expect a form feed",
-        esc_vtab + b"\x07\x0a\x0e\x44\x00",  # last tab at line 68
+
+        # PS: also tests:
+        # "a value of n less than the previous n ends tab setting (just like the NUL code)."
+        # The last tab is not enabled/used
+        esc_vtab + b"\x07\x0a\x0e\x44\x01\x00",  # penultimate tab at line 68
         b"\n" * 14,
         vtab + pouet
     ]
