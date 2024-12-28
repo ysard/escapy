@@ -319,14 +319,7 @@ def test_horizontal_tabs(tmp_path: Path):
     assert escparser.horizontal_tabulations == expected
 
     # comparaison of PDFs
-    # Keep track of the generated file in /tmp in case of error
-    backup_file = Path("/tmp/" + processed_file.name)
-    backup_file.write_bytes(processed_file.read_bytes())
-
-    ret = is_similar_pdfs(processed_file, Path(DIR_DATA + processed_file.name))
-    assert ret, f"Problematic file is saved at <{backup_file}> for further study."
-    # All is ok => delete the generated file
-    backup_file.unlink()
+    pdf_comparison(processed_file)
 
     # No change expected
     escparser = ESCParser(code, pins=9, output_file=str(processed_file))
