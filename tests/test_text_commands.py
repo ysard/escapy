@@ -192,10 +192,12 @@ def partial_fonts():
         # Typeface ID 2: proportional alternative is choosen (Times)
         (b"\x1bp\x01" b"\x1bk\x02", 2, None),
         # Typeface ID 2: proportional alternative is choosen and triggered by ESC p (Times)
-        (b"\x1Bk\x02" b"\x1Bp\x01", 2, "/usr/share/fonts/truetype/firacode/FiraCode-Regular.ttf"), # None), # TODO for now, ESC p doesn't trigger set_font
-        # Typeface ID from 2 to 0 is not found in proportional alternative:
+        # PS: ESC p triggers set_font
+        (b"\x1Bk\x02" b"\x1Bp\x01", 2, None),
+        # Typeface ID from 2 to 0 but 0 is not found in proportional alternative:
         # the command is ignored and the previous proportional font is used (Times)
-        (b"\x1Bk\x02" b"\x1Bp\x01" b"\x1Bk\x00", 2, "/usr/share/fonts/truetype/firacode/FiraCode-Regular.ttf"), # None), # TODO for now, ESC p doesn't trigger set_font
+        # PS: ESC p triggers set_font
+        (b"\x1Bk\x02" b"\x1Bp\x01" b"\x1Bk\x00", 2, None),
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
