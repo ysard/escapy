@@ -48,7 +48,7 @@ def escparser_entry_point(**kwargs):
         esc_prn_file_content,
         available_fonts=configured_fonts,
         output_file=kwargs["output"],
-        **kwargs
+        **kwargs,
     )
 
 
@@ -76,7 +76,7 @@ def main():  # pragma: no cover
         help="PDF output file.",
         type=Path,
         nargs="?",
-        default=Path("./output.pdf")
+        default=Path("./output.pdf"),
     )
 
     parser.add_argument(
