@@ -2264,12 +2264,12 @@ class ESCParser:
             6: "Double broken line",
         }
 
-        print(f"Scoring: {scoring_types[scoring_type_d1]}, {scoring_styles[scoring_style_d2]}")
+        LOGGER.debug("Scoring: %s, %s", scoring_types[scoring_type_d1], scoring_styles[scoring_style_d2])
         if scoring_type_d1 == 1:
             # Handle underline
             self.underline = scoring_style_d2 == 1
         else:
-            print("NotImplementedError")
+            LOGGER.error("Scoring: NotImplemented")
 
     def set_script_printing(self, *args):
         """Print characters that follow at about 2/3 their normal height - ESC S
