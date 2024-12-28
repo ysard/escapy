@@ -65,9 +65,18 @@ def main():  # pragma: no cover
     )
 
     parser.add_argument(
-        "esc_prn_file",
+        "esc_prn",
         help="ESC raw printer file.",
         type=Path
+    )
+
+    parser.add_argument(
+        "-o",
+        "--output",
+        help="PDF output file.",
+        type=Path,
+        nargs="?",
+        default=Path("./output.pdf")
     )
 
     parser.add_argument(
@@ -88,8 +97,8 @@ def main():  # pragma: no cover
 
     params = args_to_params(args)
     # Quick check
-    assert params["config_file"].exists(), \
-        f"Configuration file <{params['config_file']}> not found!"
+    assert params["config"].exists(), \
+        f"Configuration file <{params['config']}> not found!"
 
     # Do magic
     escparser_entry_point(**params)
