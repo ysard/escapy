@@ -130,7 +130,11 @@ class ESCParser:
         self.dir = frozenset(dir(self))
 
         self.mode: PrintMode = PrintMode.LQ
+        # Used to postpone or suspend the print mode
         self.previous_mode = self.mode
+        # Used to avoid set_font computations triggered by a chain of
+        # attribute modifications; See ESC !
+        self.set_font_lock = False
         # Note: There are non-ESCP2 printers that have 24, 48 pins !
         self.pins = pins
         self.current_pdf = None
@@ -1604,6 +1608,10 @@ class ESCParser:
 
         :return: True if the font is found and correctly loaded, False otherwise.
         """
+        if self.set_font_lock:
+            # See master_select()
+            return False
+
         font_type = "proportional" if self.proportional_spacing else "fixed"
         # Get typefaces definitions
         func = self.typefaces[self.typeface][font_type]
@@ -2176,21 +2184,27 @@ class ESCParser:
         """
         value = args[1].value[0]
 
+        # Temporary block set_font refresh (must be called once at the end)
+        self.set_font_lock = True
+
         # NOTE: do not use if ESC P/M methods are called later when
         # character_pitch is changed (these functions is already call it)
         # For now, the implementation doesn't call select_cpi() method.
-        self.cancel_multipoint_mode()
+        self.cancel_multipoint_mode()  # can trigger set_font
 
         self.character_pitch = 1 / 12 if value & 1 else 1 / 10
         # /!\ Use setter, make sure that multipoint mode is canceled before.
-        self.proportional_spacing = bool(value & 2)
-        self.condensed = bool(value & 4)
+        self.proportional_spacing = bool(value & 2)  # can trigger set_font
+        self.condensed = bool(value & 4)  # can trigger set_font
         self.bold = bool(value & 8)
         self.double_strike = bool(value & 16)
         self.double_width_multi = bool(value & 32)
         self.italic = bool(value & 64)
         self.underline = bool(value & 128)
 
+        # Mandatory for bold & italic that are not properties that trigger
+        # set_font()
+        self.set_font_lock = False
         self.set_font()
 
     def set_double_strike_printing(self, *_):
