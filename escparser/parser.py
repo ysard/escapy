@@ -385,6 +385,7 @@ class ESCParser:
         """
         if color >= len(self.CMYK_colors):  # pragma: no cover
             # Color doesn't exist: ignore the command
+            LOGGER.error("Color id %s is unknown! Ignore.", color)
             return
         if self.graphics_mode and self.pins != 9 and color not in (0, 1, 2, 4):
             LOGGER.warning("Color id %s not allowed in ESC ( G raster graphics mode")
