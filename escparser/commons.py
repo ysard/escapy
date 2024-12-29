@@ -15,17 +15,44 @@
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Logger settings and project constants"""
+
 # Standard imports
 from logging.handlers import RotatingFileHandler
 import logging
 import datetime as dt
 import tempfile
 
+# Custom imports
+from reportlab.lib import pagesizes
+
 
 # Paths
 DIR_LOGS = tempfile.gettempdir() + "/"
 CONFIG_FILE = "./escparser.conf"
 DIR_FONTS = "/usr/share/fonts/truetype/"
+
+# Page sizes should be in points (1/72 inch)
+PAGESIZE_MAPPING = {
+    "US-12": (597.6, 864.0),
+    "L-US-12": (864.0, 597.6),
+    "F-12": (597.6, 864.0),
+    "ANSI-4": (612.0, 792.0),
+    "L-ANSI-4": (792.0, 612.0),
+    "P-24": (1728.0, 2592.0),  # Plotter 24" x 36"
+    "P-36": (2592.0, 3024.0),  # Plotter 36" x 42"
+}
+IMPORTED_PAPERSIZES = {
+    name: paper_size
+    for name, paper_size in vars(pagesizes).items()
+    if name[0].isupper()
+}
+IMPORTED_LANDSCAPE_PAPERSIZES = {
+    "L-" + name: pagesizes.landscape(paper_size)
+    for name, paper_size in IMPORTED_PAPERSIZES.items()
+}
+
+PAGESIZE_MAPPING |= IMPORTED_PAPERSIZES | IMPORTED_LANDSCAPE_PAPERSIZES
+
 
 typeface_names = {
     0: "Roman",  # Times New Roman

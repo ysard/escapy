@@ -28,6 +28,7 @@ from escparser.commons import (
     LOG_LEVEL,
     DIR_FONTS,
     typeface_names,
+    PAGESIZE_MAPPING
 )
 
 LOGGER = logger()
@@ -42,7 +43,7 @@ def load_config(config_file=CONFIG_FILE):
     :return: Configuration updated object.
     :rtype: configparser.ConfigParser
     """
-    config = configparser.ConfigParser()
+    config = configparser.ConfigParser(allow_no_value=True)
     config.read(config_file)
     return parse_config(config)
 
@@ -76,6 +77,48 @@ def parse_config(config: configparser.ConfigParser):
     if not default_font_path:
         default_font_path = DIR_FONTS
         misc_section["default_font_path"] = default_font_path
+
+    pins = misc_section.get("pins")
+    if pins not in ("9", "24", "48", "", None):
+        LOGGER.error("pins: The number of pins is not expected (%s).", pins)
+        raise SystemExit
+
+    printable_area_margins_mm = misc_section.get("printable_area_margins_mm")
+    if printable_area_margins_mm and len(printable_area_margins_mm.replace(" ", "").split(",")) != 4:
+        LOGGER.error(
+            "printable_area_margins_mm: 4 values are expected "
+            "(top, bottom, left, right) (%s).",
+            printable_area_margins_mm
+        )
+        raise SystemExit
+
+    try:
+        automatic_linefeed = misc_section.get("automatic_linefeed")
+        automatic_linefeed = misc_section.getboolean("automatic_linefeed", False)
+    except ValueError:
+        LOGGER.error(
+            "automatic_linefeed: expect false or true (%s)",
+            automatic_linefeed
+        )
+        raise SystemExit
+
+    page_size = misc_section.get("page_size")
+    if page_size and page_size not in PAGESIZE_MAPPING and len(page_size.replace(" ", "").split(",")) != 2:
+        LOGGER.error(
+            "page_size: 2 values are expected (width, height) (%s).",
+            printable_area_margins_mm
+        )
+        raise SystemExit
+
+    try:
+        single_sheets = misc_section.get("single_sheets")
+        single_sheets = misc_section.getboolean("single_sheets", True)
+    except ValueError:
+        LOGGER.error(
+            "single_sheets: expect false or true (%s)",
+            single_sheets
+        )
+        raise SystemExit
 
     ## Fonts sections
     for typeface in typeface_names.values():
