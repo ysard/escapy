@@ -66,6 +66,18 @@ def parse_config(config: configparser.ConfigParser):
     """
     # rb = parser.getint('section', 'rb') if parser.has_option('section', 'rb') else None
 
+    def to_tuple(config_str) -> str | None:
+        """Get a tuple of values if the given param is not empty and not None"""
+        return config_str.split(",") if config_str else ""
+
+    def isfloat(string):
+        """Return True if the str can be cast to float"""
+        try:
+            float(string)
+            return True
+        except ValueError:
+            return False
+
     ## Misc section
     misc_section = config["misc"]
     loglevel = misc_section.get("loglevel")
@@ -73,55 +85,77 @@ def parse_config(config: configparser.ConfigParser):
         misc_section["loglevel"] = LOG_LEVEL
     log_level(misc_section["loglevel"])
 
+
     default_font_path = misc_section.get("default_font_path")
     if not default_font_path:
         default_font_path = DIR_FONTS
         misc_section["default_font_path"] = default_font_path
+
 
     pins = misc_section.get("pins")
     if pins not in ("9", "24", "48", "", None):
         LOGGER.error("pins: The number of pins is not expected (%s).", pins)
         raise SystemExit
 
+
     printable_area_margins_mm = misc_section.get("printable_area_margins_mm")
-    if (
-        printable_area_margins_mm
-        and len(printable_area_margins_mm.replace(" ", "").split(",")) != 4
-    ):
-        LOGGER.error(
-            "printable_area_margins_mm: 4 values are expected "
-            "(top, bottom, left, right) (%s).",
-            printable_area_margins_mm,
-        )
-        raise SystemExit
+    cleaned_data = to_tuple(printable_area_margins_mm)
+    if printable_area_margins_mm:
+
+        if len(cleaned_data) != 4 or not all(isfloat(i) for i in cleaned_data):
+            LOGGER.error(
+                "printable_area_margins_mm: 4 values are expected "
+                "(top, bottom, left, right) (%s).",
+                printable_area_margins_mm,
+            )
+            raise SystemExit
+
 
     automatic_linefeed = misc_section.get("automatic_linefeed")
-    try:
-        automatic_linefeed = misc_section.getboolean("automatic_linefeed", False)
-    except ValueError as exc:
-        LOGGER.error(
-            "automatic_linefeed: expect false or true (%s)", automatic_linefeed
-        )
-        raise SystemExit from exc
+    if not automatic_linefeed:
+        misc_section["automatic_linefeed"] = "false"
+    else:
+        try:
+            automatic_linefeed = misc_section.getboolean("automatic_linefeed")
+        except ValueError as exc:
+            LOGGER.error(
+                "automatic_linefeed: expect false or true (%s)", automatic_linefeed
+            )
+            raise SystemExit from exc
 
+    # page_size: We expect a default value A4 here
     page_size = misc_section.get("page_size")
-    if (
-        page_size
-        and page_size not in PAGESIZE_MAPPING
-        and len(page_size.replace(" ", "").split(",")) != 2
-    ):
-        LOGGER.error(
-            "page_size: 2 values are expected (width, height) (%s).",
-            printable_area_margins_mm,
-        )
-        raise SystemExit
+    cleaned_data = to_tuple(page_size)
+    print(cleaned_data)
+    if page_size:
+        if page_size not in PAGESIZE_MAPPING:
+            if  len(cleaned_data) == 1:
+                LOGGER.error(
+                    "page_size: A known alias or 2 values are expected (width, height) (%s).",
+                    page_size,
+                )
+                raise SystemExit
+
+            elif len(cleaned_data) != 2 or not all(isfloat(i) for i in cleaned_data):
+                LOGGER.error(
+                    "page_size: 2 values are expected (width, height) (%s).",
+                    page_size,
+                )
+                raise SystemExit
+    else:
+        misc_section["page_size"] = "A4"
+
 
     single_sheets = misc_section.get("single_sheets")
-    try:
-        single_sheets = misc_section.getboolean("single_sheets", True)
-    except ValueError as exc:
-        LOGGER.error("single_sheets: expect false or true (%s)", single_sheets)
-        raise SystemExit from exc
+    if not single_sheets:
+        misc_section["single_sheets"] = "true"
+    else:
+        try:
+            single_sheets = misc_section.getboolean("single_sheets")
+        except ValueError as exc:
+            LOGGER.error("single_sheets: expect false or true (%s)", single_sheets)
+            raise SystemExit from exc
+
 
     ## Fonts sections
     for typeface in typeface_names.values():
