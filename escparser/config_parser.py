@@ -95,14 +95,14 @@ def parse_config(config: configparser.ConfigParser):
         )
         raise SystemExit
 
+    automatic_linefeed = misc_section.get("automatic_linefeed")
     try:
-        automatic_linefeed = misc_section.get("automatic_linefeed")
         automatic_linefeed = misc_section.getboolean("automatic_linefeed", False)
-    except ValueError:
+    except ValueError as exc:
         LOGGER.error(
             "automatic_linefeed: expect false or true (%s)", automatic_linefeed
         )
-        raise SystemExit
+        raise SystemExit from exc
 
     page_size = misc_section.get("page_size")
     if (
@@ -116,12 +116,12 @@ def parse_config(config: configparser.ConfigParser):
         )
         raise SystemExit
 
+    single_sheets = misc_section.get("single_sheets")
     try:
-        single_sheets = misc_section.get("single_sheets")
         single_sheets = misc_section.getboolean("single_sheets", True)
-    except ValueError:
+    except ValueError as exc:
         LOGGER.error("single_sheets: expect false or true (%s)", single_sheets)
-        raise SystemExit
+        raise SystemExit from exc
 
     ## Fonts sections
     for typeface in typeface_names.values():
