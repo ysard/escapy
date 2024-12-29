@@ -317,7 +317,7 @@ def test_horizontal_tabs(tmp_path: Path):
     processed_file = tmp_path / "test_horizontal_tabs.pdf"
 
     code = esc_reset + b"\r\n".join(lines)
-    escparser = ESCParser(code, pins=None, output_file=str(processed_file))
+    escparser = ESCParser(code, pins=None, output_file=processed_file)
 
     expected = [0.1, 0.8] + [0] * 30
     assert escparser.horizontal_tabulations == expected
@@ -326,7 +326,7 @@ def test_horizontal_tabs(tmp_path: Path):
     pdf_comparison(processed_file)
 
     # No change expected
-    escparser = ESCParser(code, pins=9, output_file=str(processed_file))
+    escparser = ESCParser(code, pins=9, output_file=processed_file)
     assert escparser.horizontal_tabulations == expected
 
     # With a 1/15 character pitch the positions of the columns should be different
@@ -336,7 +336,7 @@ def test_horizontal_tabs(tmp_path: Path):
             esc_htab + b"\x01\x08\x00",
         ]
     )
-    escparser = ESCParser(code, pins=None, output_file=str(processed_file))
+    escparser = ESCParser(code, pins=None, output_file=processed_file)
     expected = [1 / 15, 8 / 15] + [0] * 30
     assert escparser.horizontal_tabulations == expected
 
@@ -553,7 +553,7 @@ def test_charset_tables(tmp_path: Path):
 
     code = b"\r\n".join(lines)
     processed_file = tmp_path / "test_charset_tables.pdf"
-    _ = ESCParser(code, output_file=str(processed_file))
+    _ = ESCParser(code, output_file=processed_file)
 
     pdf_comparison(processed_file)
 
@@ -597,7 +597,7 @@ def test_international_charsets(tmp_path: Path, assign_table_cmd, encoding):
 
     code = b"\r\n".join(lines)
     processed_file = tmp_path / "test_international_charset_tables.pdf"
-    escparser = ESCParser(code, output_file=str(processed_file))
+    escparser = ESCParser(code, output_file=processed_file)
 
     # Check that the base encoding is in use
     found_encoding = escparser.character_tables[escparser.character_table]
@@ -660,7 +660,7 @@ def test_fonts(tmp_path: Path):
 
     code = b"\r\n".join(lines)
     processed_file = tmp_path / "test_fonts.pdf"
-    _ = ESCParser(code, output_file=str(processed_file))
+    _ = ESCParser(code, output_file=processed_file)
 
     pdf_comparison(processed_file)
 
@@ -709,7 +709,7 @@ def test_select_font_by_pitch_and_point(tmp_path: Path):
 
     code = b"\r\n".join(lines)
     processed_file = tmp_path / "test_select_font_by_pitch_and_point.pdf"
-    _ = ESCParser(code, output_file=str(processed_file))
+    _ = ESCParser(code, output_file=processed_file)
 
     pdf_comparison(processed_file)
 
@@ -914,7 +914,7 @@ def test_set_intercharacter_space(tmp_path: Path):
 
     code = b"\r\n".join(lines)
     processed_file = tmp_path / "test_intercharacter_space.pdf"
-    _ = ESCParser(code, output_file=str(processed_file))
+    _ = ESCParser(code, output_file=processed_file)
 
     pdf_comparison(processed_file)
 
@@ -1069,7 +1069,7 @@ def test_double_width_height(tmp_path: Path, pins: int, expected_filename: str):
 
     code = b"\r\n".join(lines)
     processed_file = tmp_path / expected_filename
-    _ = ESCParser(code, pins=pins, output_file=str(processed_file))
+    _ = ESCParser(code, pins=pins, output_file=processed_file)
 
     pdf_comparison(processed_file)
 
@@ -1143,7 +1143,7 @@ def test_select_character_style(tmp_path: Path):
 
     code = b"\r\n".join(lines)
     processed_file = tmp_path / "test_select_character_style.pdf"
-    _ = ESCParser(code, output_file=str(processed_file))
+    _ = ESCParser(code, output_file=processed_file)
 
     pdf_comparison(processed_file)
 
@@ -1197,7 +1197,7 @@ def test_print_data_as_characters(tmp_path: Path, control_codes, expected_filena
 
     code = b"\r\n".join(lines)
     processed_file = tmp_path / expected_filename
-    _ = ESCParser(esc_reset + code, output_file=str(processed_file))
+    _ = ESCParser(esc_reset + code, output_file=processed_file)
 
     pdf_comparison(processed_file)
 
@@ -1258,7 +1258,7 @@ def test_control_codes_printing(tmp_path: Path):
 
     code = b"\r\n".join(lines)
     processed_file = tmp_path / "test_control_codes_printing_9pins.pdf"
-    _ = ESCParser(esc_reset + code, pins=9, output_file=str(processed_file))
+    _ = ESCParser(esc_reset + code, pins=9, output_file=processed_file)
 
     pdf_comparison(processed_file)
 
@@ -1306,7 +1306,7 @@ def test_text_scripting(tmp_path: Path):
 
     code = b"\r\n".join(lines)
     processed_file = tmp_path / "test_text_scripting.pdf"
-    _ = ESCParser(code, output_file=str(processed_file))
+    _ = ESCParser(code, output_file=processed_file)
 
     pdf_comparison(processed_file)
 
@@ -1361,6 +1361,6 @@ def test_text_enhancements(tmp_path: Path):
 
     code = b"\r\n".join(lines)
     processed_file = tmp_path / "test_text_enhancements.pdf"
-    _ = ESCParser(code, output_file=str(processed_file))
+    _ = ESCParser(code, output_file=processed_file)
 
     pdf_comparison(processed_file)

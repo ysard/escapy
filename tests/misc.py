@@ -57,7 +57,6 @@ def pdf_comparison(processed_file: Path):
         the comparison with an expected file with the same name, expected in
         the test_data directory.
     """
-    #
     # Keep track of the generated file in /tmp in case of error
     backup_file = Path("/tmp/" + processed_file.name)
     backup_file.write_bytes(processed_file.read_bytes())

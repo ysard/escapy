@@ -60,7 +60,7 @@ def test_ean_barcodes(tmp_path: Path):
 
     code = esc_reset + bytes(bytearray.fromhex(lines[0]))
     processed_file = tmp_path / "test_ean_barcodes.pdf"
-    _ = ESCParser(code, output_file=str(processed_file))
+    _ = ESCParser(code, output_file=processed_file)
 
     pdf_comparison(processed_file)
 
@@ -93,7 +93,7 @@ def test_interleaved_2_of_5_barcodes(tmp_path: Path):
 
     code = esc_reset + bytes(bytearray.fromhex(lines[0]))
     processed_file = tmp_path / "test_interleaved_2_of_5_barcodes.pdf"
-    _ = ESCParser(code, output_file=str(processed_file))
+    _ = ESCParser(code, output_file=processed_file)
 
     pdf_comparison(processed_file)
 
@@ -126,7 +126,7 @@ def test_upc_barcodes(tmp_path: Path):
 
     code = esc_reset + bytes(bytearray.fromhex(lines[0]))
     processed_file = tmp_path / "test_upc_barcodes.pdf"
-    _ = ESCParser(code, output_file=str(processed_file))
+    _ = ESCParser(code, output_file=processed_file)
 
     pdf_comparison(processed_file)
 
@@ -156,7 +156,7 @@ def test_code39_barcodes(tmp_path: Path):
     ]
     code = esc_reset + bytes(bytearray.fromhex(lines[0]))
     processed_file = tmp_path / "test_code39_barcodes.pdf"
-    _ = ESCParser(code, output_file=str(processed_file))
+    _ = ESCParser(code, output_file=processed_file)
 
     pdf_comparison(processed_file)
 
@@ -200,7 +200,7 @@ def test_code128_barcodes(tmp_path: Path):
     ]
     code = esc_reset + bytes(bytearray.fromhex(lines[0]))
     processed_file = tmp_path / "test_code128_barcodes.pdf"
-    _ = ESCParser(code, output_file=str(processed_file))
+    _ = ESCParser(code, output_file=processed_file)
 
     pdf_comparison(processed_file)
 
@@ -233,6 +233,6 @@ def test_postnet_barcode(tmp_path: Path):
     ]
     code = esc_reset + bytes(bytearray.fromhex(lines[0]))
     processed_file = tmp_path / "test_postnet_barcode.pdf"
-    _ = ESCParser(code, output_file=str(processed_file))
+    _ = ESCParser(code, output_file=processed_file)
 
     pdf_comparison(processed_file)

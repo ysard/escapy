@@ -58,7 +58,7 @@ def test_full_file_conversion(
     code = Path(DIR_DATA + code_file).read_bytes()
 
     processed_file = tmp_path / expected_pdf
-    _ = ESCParser(code, output_file=str(processed_file), **args)
+    _ = ESCParser(code, output_file=processed_file, **args)
 
     pdf_comparison(processed_file)
 

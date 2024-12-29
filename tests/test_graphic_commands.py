@@ -186,7 +186,7 @@ def test_select_bit_image_9pins(tmp_path: Path):
     m0_line = select_9pins_graphics_cmd + dot_density_m_0 + expect_88_columns + data_88_columns
 
     processed_file = tmp_path / "test_select_bit_image_9pins.pdf"
-    escparser = ESCParser(m0_line, pins=9, output_file=str(processed_file))
+    escparser = ESCParser(m0_line, pins=9, output_file=processed_file)
     assert escparser.horizontal_resolution == 1 / 60
     assert escparser.vertical_resolution == 1 / 72  # We are in 9 pins mode
     assert escparser.bytes_per_column == 2
@@ -284,7 +284,7 @@ def test_select_bit_image(tmp_path: Path):
     code = b"".join(lines)
 
     processed_file = tmp_path / "test_bitimage_doublespeed_and_colors.pdf"
-    escparser = ESCParser(code, output_file=str(processed_file))
+    escparser = ESCParser(code, output_file=processed_file)
 
     assert escparser.horizontal_resolution == 1 / 120
     assert escparser.vertical_resolution == 1 / 60
@@ -424,7 +424,7 @@ def test_print_raster_graphics(format_databytes: bytes, tmp_path: Path):
     Data examples from the doc p313.
     """
     processed_file = tmp_path / "test_raster_graphics_compress_no_and_rle.pdf"
-    escparser = ESCParser(format_databytes, output_file=str(processed_file))
+    escparser = ESCParser(format_databytes, output_file=processed_file)
 
     assert escparser.horizontal_resolution == 1 / 180
     assert escparser.vertical_resolution == 1 / 180
@@ -498,7 +498,7 @@ def test_print_tiff_raster_graphics(tmp_path: Path):
     ]
 
     processed_file = tmp_path / "test_print_tiff_raster_graphics.pdf"
-    escparser = ESCParser(b"".join(code), output_file=str(processed_file))
+    escparser = ESCParser(b"".join(code), output_file=processed_file)
 
     assert escparser.horizontal_resolution == 1 / 180
     assert escparser.vertical_resolution == 1 / 180
@@ -756,6 +756,6 @@ def test_global_print_tiff_raster_graphics(tmp_path: Path):
     ]
 
     processed_file = tmp_path / "test_global_print_tiff_raster_graphics.pdf"
-    _ = ESCParser(b"".join(code), output_file=str(processed_file))
+    _ = ESCParser(b"".join(code), output_file=processed_file)
 
     pdf_comparison(processed_file)
