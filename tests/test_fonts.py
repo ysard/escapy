@@ -9,7 +9,7 @@ from escparser.parser import ESCParser
 from .misc import format_databytes
 from escparser.fonts import find_font, setup_fonts, rptlab_times, rptlab_courier
 from .test_config_parser import sample_config
-from escparser.commons import typeface_names
+from escparser.commons import TYPEFACE_NAMES
 
 
 @pytest.mark.parametrize(
@@ -117,7 +117,7 @@ def test_find_font(arguments, expected):
             fixed = FiraCode
             """,
             # For now, we test only the typefaces ids
-            typeface_names.keys(),
+            TYPEFACE_NAMES.keys(),
         ),
     ],
     ids=["sample1"],

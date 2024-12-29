@@ -27,7 +27,7 @@ from escparser.commons import (
     CONFIG_FILE,
     LOG_LEVEL,
     DIR_FONTS,
-    typeface_names,
+    TYPEFACE_NAMES,
     PAGESIZE_MAPPING,
 )
 
@@ -158,7 +158,7 @@ def parse_config(config: configparser.ConfigParser):
 
 
     ## Fonts sections
-    for typeface in typeface_names.values():
+    for typeface in TYPEFACE_NAMES.values():
         # Create the section if not already defined
         if not config.has_section(typeface):
             config.add_section(typeface)

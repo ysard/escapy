@@ -27,7 +27,7 @@ from functools import partial, lru_cache
 from PIL import ImageFont
 
 # Local imports
-from escparser.commons import logger, typeface_names, DIR_FONTS
+from escparser.commons import logger, TYPEFACE_NAMES, DIR_FONTS
 
 LOGGER = logger()
 STRETCH_DICT = {
@@ -96,7 +96,7 @@ def setup_fonts(config: configparser.ConfigParser) -> dict:
         Their values are None or a callable choosen for an optimal font search.
     """
     typefaces_config = defaultdict(dict)
-    for typeface_id, typeface in typeface_names.items():
+    for typeface_id, typeface in TYPEFACE_NAMES.items():
         path = config[typeface]["path"]
         typeface_config = {}
         typefaces_config[typeface_id] = typeface_config

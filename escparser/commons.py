@@ -54,7 +54,7 @@ IMPORTED_LANDSCAPE_PAPERSIZES = {
 PAGESIZE_MAPPING |= IMPORTED_PAPERSIZES | IMPORTED_LANDSCAPE_PAPERSIZES
 
 
-typeface_names = {
+TYPEFACE_NAMES = {
     0: "Roman",  # Times New Roman
     1: "Sans serif",  # /usr/share/fonts/truetype/freefont/FreeSans*
     2: "Courier",
@@ -71,7 +71,7 @@ typeface_names = {
     31: "SV Jittra",
 }
 
-character_tablenames_mapping = {
+CHARACTER_TABLENAMES_MAPPING = {
     (0, 0): "Italic",
     (1, 0): "PC437 (US)",
     (1, 16): "PC437 Greek",
@@ -127,7 +127,7 @@ character_tablenames_mapping = {
 }
 
 # Codecs mapping
-character_table_mapping = {
+CHARACTER_TABLE_MAPPING = {
     (0, 0): "italic",  # Not existing code page but special processing; see binary_blob()
     (1, 0): "cp437",
     (1, 16): "cp737",
@@ -182,11 +182,11 @@ character_table_mapping = {
     (127, 7): "iso8859_7",
 }
 
-left_to_right_languages = ("cp720", "cp862")
+LEFT_TO_RIGHT_LANGUAGES = ("cp720", "cp862")
 
 # set of up to 12 particular characters that corresponds to symbols used
 # in various countries
-charset_mapping = {
+CHARSET_MAPPING = {
     0 : "us",  # "USA",
     1 : "fr",  # "France",
     2 : "de",  # "Germany",
@@ -204,7 +204,7 @@ charset_mapping = {
     64: "legal",  # "Legal",
 }
 
-international_charsets = {
+INTERNATIONAL_CHARSETS = {
     0: {
         35: "#",
         36: "$",

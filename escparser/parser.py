@@ -36,7 +36,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 # Local imports
 from escparser import __version__
 from escparser.grammar import init_parser
-from escparser.commons import typeface_names, charset_mapping, international_charsets, character_table_mapping, left_to_right_languages
+from escparser.commons import TYPEFACE_NAMES, CHARSET_MAPPING, INTERNATIONAL_CHARSETS, CHARACTER_TABLE_MAPPING, LEFT_TO_RIGHT_LANGUAGES
 from escparser.i18n_codecs import getregentry
 from escparser.fonts import typefaces
 from escparser.commons import logger
@@ -1075,7 +1075,7 @@ class ESCParser:
             return encoding
 
         # Build a new codec if the variant has never been encountered
-        encoding_variant = f"{encoding}_{charset_mapping[self.international_charset]}"
+        encoding_variant = f"{encoding}_{CHARSET_MAPPING[self.international_charset]}"
         try:
             codecs.lookup(encoding_variant)
         except LookupError:
@@ -1083,7 +1083,7 @@ class ESCParser:
                 getregentry,
                 effective_encoding=encoding_variant,
                 base_encoding=encoding,
-                intl_charset=international_charsets[self.international_charset]
+                intl_charset=INTERNATIONAL_CHARSETS[self.international_charset]
             )
             codecs.register(register_codec_func)
 
@@ -1146,7 +1146,7 @@ class ESCParser:
         # Use any of: replace, backslashreplace, ignore
         text = raw_text.decode(encoding_variant, errors="replace")
 
-        if encoding in left_to_right_languages:
+        if encoding in LEFT_TO_RIGHT_LANGUAGES:
             text = text[::-1]
 
         print(raw_text)
@@ -1682,7 +1682,7 @@ class ESCParser:
             # Font is not found
             LOGGER.warning(
                 "System font <%s> is not available in <%s> mode; do nothing",
-                typeface_names[self.typeface],
+                TYPEFACE_NAMES[self.typeface],
                 font_type
             )
             return False
@@ -1719,7 +1719,7 @@ class ESCParser:
         d1, d2, d3 = args[1].value
         # d1 should be in [0, 1, 2, 3] for ESCP2/ESCP
         # d1 should be in [0, 1] for 9 pins
-        selected_table = character_table_mapping[d2, d3]
+        selected_table = CHARACTER_TABLE_MAPPING[d2, d3]
 
         # Remap d1 if character code ("0", "1", ...) is used instead of an integer
         if d1 >= 0x30:
@@ -1810,7 +1810,7 @@ class ESCParser:
         value = args[1].value[0]
         self.international_charset = value
 
-        LOGGER.debug("Select international charset variant %s (%s)", value, charset_mapping[value])
+        LOGGER.debug("Select international charset variant %s (%s)", value, CHARSET_MAPPING[value])
 
     def select_letter_quality_or_draft(self, *args):
         """Select either LQ or draft printing - ESC x
@@ -1892,7 +1892,7 @@ class ESCParser:
         else:
             self.typeface = value
 
-        LOGGER.debug("Select printer typeface %s", typeface_names[self.typeface])
+        LOGGER.debug("Select printer typeface %s", TYPEFACE_NAMES[self.typeface])
 
         if not self.set_font():
             # Something bad happened: keep the old value
