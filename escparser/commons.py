@@ -133,50 +133,50 @@ character_table_mapping = {
     (1, 16): "cp737",
     (2, 0): "cp932",
     (3, 0): "cp850",
-    (4, 0): None, # "PC851 (Greek)",  # Superseeded by cp869
-    (5, 0): None, # "PC853 (Turkish)", # more complete than https://en.wikipedia.org/wiki/Code_page_853
+    (4, 0): None,  # "PC851 (Greek)",  # Superseeded by cp869
+    (5, 0): None,  # "PC853 (Turkish)", # more complete than https://en.wikipedia.org/wiki/Code_page_853
     (6, 0): "cp855",
     (7, 0): "cp860",
     (8, 0): "cp863",
     (9, 0): "cp865",
-    (10, 0): "cp852", # Latin-2 Central European languages
+    (10, 0): "cp852",  # Latin-2 Central European languages
     (11, 0): "cp857",
     (12, 0): "cp862",
     (13, 0): "cp864",
-    (13, 32): None, # "PC AR864",
+    (13, 32): None,  # "PC AR864",
     (14, 0): "cp866",
-    (14, 16): None, # "(Bulgarian ASCII****)",
-    (14, 32): None, # "PC866 LAT. (Latvian)", # code page 3012, https://en.wikipedia.org/wiki/Code_page_866#Latvian_variant
+    (14, 16): None,  # "(Bulgarian ASCII****)",
+    (14, 32): None,  # "PC866 LAT. (Latvian)", # code page 3012, https://en.wikipedia.org/wiki/Code_page_866#Latvian_variant
     (15, 0): "cp869",
-    (16, 0): None, # "USSR GOST (Russian)",
-    (17, 0): None, # "ECMA-94-1",
+    (16, 0): None,  # "USSR GOST (Russian)",
+    (17, 0): None,  # "ECMA-94-1",
     (18, 0): "iso8859_11", #KU42 (K.U. Thai)", # https://en.wikipedia.org/wiki/ISO/IEC_8859-11#Vendor_extensions
-    (19, 0): None, # "TIS11 (TS 988 Thai)",
-    (20, 0): None, # "TIS18 (GENERAL Thai)",
-    (21, 0): None, # "TIS17 (SIC STD. Thai)",
-    (22, 0): None, # "TIS13 (IBM STD. Thai)",
-    (23, 0): None, # "TIS16 (SIC OLD Thai)",
+    (19, 0): None,  # "TIS11 (TS 988 Thai)",
+    (20, 0): None,  # "TIS18 (GENERAL Thai)",
+    (21, 0): None,  # "TIS17 (SIC STD. Thai)",
+    (22, 0): None,  # "TIS13 (IBM STD. Thai)",
+    (23, 0): None,  # "TIS16 (SIC OLD Thai)",
     (24, 0): "cp861",
-    (25, 0): "brascii", # https://en.wikipedia.org/wiki/BraSCII almost 8859-1 except 2 chars
-    (26, 0): None, # "Abicomp",
-    (27, 0): None, # "MAZOWIA (Poland)",
-    (28, 0): None, # "Code MJK (CSFR)",
+    (25, 0): "brascii",  # https://en.wikipedia.org/wiki/BraSCII almost 8859-1 except 2 chars
+    (26, 0): None,  # "Abicomp",
+    (27, 0): None,  # "MAZOWIA (Poland)",
+    (28, 0): None,  # "Code MJK (CSFR)",
     (29, 7): "iso8859_7",
     (29, 16): "latin_1",
-    (30, 0): None, # "TSM/WIN (Thai system manager)",
+    (30, 0): None,  # "TSM/WIN (Thai system manager)",
     (31, 0): "iso8859_9",
-    (32, 0): None, # "Bulgaria",
-    (33, 0): None, # "Hebrew 7",
-    (34, 0): None, # "Hebrew 8",
-    (35, 0): "hp_roman8", # https://github.com/python/cpython/blob/main/Lib/encodings/hp_roman8.py
-    (36, 0): None, # "PC774 (Lithuania)", # https://en.wikipedia.org/wiki/Code_page_1118
-    (37, 0): None, # "Estonia (Estonia)",
-    (38, 0): None, # "ISCII", # https://en.wikipedia.org/wiki/Indian_Script_Code_for_Information_Interchange
-    (39, 0): None, # "PC-ISCII",
-    (40, 0): None, # "PC APTEC", # cp715
-    (41, 0): None, # "PC708", # https://en.wikipedia.org/wiki/Code_page_708
+    (32, 0): None,  # "Bulgaria",
+    (33, 0): None,  # "Hebrew 7",
+    (34, 0): None,  # "Hebrew 8",
+    (35, 0): "hp_roman8",  # https://github.com/python/cpython/blob/main/Lib/encodings/hp_roman8.py
+    (36, 0): None,  # "PC774 (Lithuania)", # https://en.wikipedia.org/wiki/Code_page_1118
+    (37, 0): None,  # "Estonia (Estonia)",
+    (38, 0): None,  # "ISCII", # https://en.wikipedia.org/wiki/Indian_Script_Code_for_Information_Interchange
+    (39, 0): None,  # "PC-ISCII",
+    (40, 0): None,  # "PC APTEC", # cp715
+    (41, 0): None,  # "PC708", # https://en.wikipedia.org/wiki/Code_page_708
     (42, 0): "cp720",
-    (112, 0): None, # "OCR-B", # code page 877 https://en.wikipedia.org/wiki/OCR-B
+    (112, 0): None,  # "OCR-B", # code page 877 https://en.wikipedia.org/wiki/OCR-B
     (127, 1): "latin_1",
     (127, 2): "iso8859_2",
     (127, 7): "iso8859_7",
@@ -304,7 +304,7 @@ international_charsets = {
         126: "ì",
     },
     7: {
-        35: "₧", #20a7 -> PESETA SIGN (Currency symbol)
+        35: "₧",  # 20a7 -> PESETA SIGN (Currency symbol)
         36: "$",
         64: "@",
         91: "¡",
@@ -482,5 +482,6 @@ def log_level(level):
         if handler.__class__
         in (logging.StreamHandler, logging.handlers.RotatingFileHandler)
     ]
+
 
 log_level(LOG_LEVEL)
