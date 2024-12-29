@@ -28,7 +28,7 @@ from escparser.commons import (
     LOG_LEVEL,
     DIR_FONTS,
     typeface_names,
-    PAGESIZE_MAPPING
+    PAGESIZE_MAPPING,
 )
 
 LOGGER = logger()
@@ -84,11 +84,14 @@ def parse_config(config: configparser.ConfigParser):
         raise SystemExit
 
     printable_area_margins_mm = misc_section.get("printable_area_margins_mm")
-    if printable_area_margins_mm and len(printable_area_margins_mm.replace(" ", "").split(",")) != 4:
+    if (
+        printable_area_margins_mm
+        and len(printable_area_margins_mm.replace(" ", "").split(",")) != 4
+    ):
         LOGGER.error(
             "printable_area_margins_mm: 4 values are expected "
             "(top, bottom, left, right) (%s).",
-            printable_area_margins_mm
+            printable_area_margins_mm,
         )
         raise SystemExit
 
@@ -97,16 +100,19 @@ def parse_config(config: configparser.ConfigParser):
         automatic_linefeed = misc_section.getboolean("automatic_linefeed", False)
     except ValueError:
         LOGGER.error(
-            "automatic_linefeed: expect false or true (%s)",
-            automatic_linefeed
+            "automatic_linefeed: expect false or true (%s)", automatic_linefeed
         )
         raise SystemExit
 
     page_size = misc_section.get("page_size")
-    if page_size and page_size not in PAGESIZE_MAPPING and len(page_size.replace(" ", "").split(",")) != 2:
+    if (
+        page_size
+        and page_size not in PAGESIZE_MAPPING
+        and len(page_size.replace(" ", "").split(",")) != 2
+    ):
         LOGGER.error(
             "page_size: 2 values are expected (width, height) (%s).",
-            printable_area_margins_mm
+            printable_area_margins_mm,
         )
         raise SystemExit
 
@@ -114,10 +120,7 @@ def parse_config(config: configparser.ConfigParser):
         single_sheets = misc_section.get("single_sheets")
         single_sheets = misc_section.getboolean("single_sheets", True)
     except ValueError:
-        LOGGER.error(
-            "single_sheets: expect false or true (%s)",
-            single_sheets
-        )
+        LOGGER.error("single_sheets: expect false or true (%s)", single_sheets)
         raise SystemExit
 
     ## Fonts sections
