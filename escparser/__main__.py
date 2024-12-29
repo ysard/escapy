@@ -51,12 +51,14 @@ def escparser_entry_point(**kwargs):
         **build_parser_params(config),
     )
 
+
 def build_parser_params(config) -> dict:
     """Get dict of params that match the kwargs of ESCParser object.
 
     :param config: Configuration object.
     :type config: configparser.ConfigParser
     """
+
     def to_tuple(config_str) -> tuple[float] | None:
         """Get a tuple of numeric values if the given param is not empty and not None"""
         return tuple(map(float, config_str.split(","))) if config_str else None
@@ -65,7 +67,11 @@ def build_parser_params(config) -> dict:
     pins = int(pins) if (pins := misc_section.get("pins")) else None
     printable_area_margins_mm = to_tuple(misc_section.get("printable_area_margins_mm"))
     automatic_linefeed = misc_section.getboolean("automatic_linefeed", False)
-    page_size = to_tuple(page_size) if (page_size := misc_section["page_size"]) not in cm.PAGESIZE_MAPPING else cm.PAGESIZE_MAPPING[page_size]
+    page_size = (
+        to_tuple(page_size)
+        if (page_size := misc_section["page_size"]) not in cm.PAGESIZE_MAPPING
+        else cm.PAGESIZE_MAPPING[page_size]
+    )
     single_sheets = misc_section.getboolean("single_sheets", True)
 
     return {
@@ -75,6 +81,7 @@ def build_parser_params(config) -> dict:
         "page_size": page_size,
         "single_sheets": single_sheets,
     }
+
 
 def args_to_params(args):  # pragma: no cover
     """Return argparse namespace as a dict {variable name: value}"""
