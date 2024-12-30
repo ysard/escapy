@@ -132,8 +132,8 @@ esc_grammar = r"""
         | ESC "G"                           -> set_double_strike_printing
         | ESC "H"                           -> unset_double_strike_printing
         | ESC "(-\x03\x00\x01" /[\x01-\x03][\x00-\x02\x05-\x06]/ -> select_line_score
-        | ESC "S" BIN_ARG_EX                -> set_script_printing
-        | ESC "T"                           -> unset_script_printing
+        | ESC _SCRIPT BIN_ARG_EX            -> set_script_printing
+        | ESC _UNSCRIPT                     -> unset_script_printing
         | ESC "q" /[\x00-\x03]/             -> select_character_style
         # Also available in graphics
         | ESC "r" /[\x00-\x06]/             -> set_printing_color
@@ -213,10 +213,13 @@ esc_grammar = r"""
         | MOVX_HEADER DATA+ -> set_relative_horizontal_position
         | MOVY_HEADER DATA+ -> set_relative_vertical_position
 
-
     # Everything but ESC
     # TODO exclude control codes
     ANYTHING.-1: /[^\x1b\t\n\r\x08\x09\x0b\x0c\x0e\x0f\x12\x14\x18\x7f]+/
+
+    # For user defined characters handling in ESCP2 mode
+    _SCRIPT: "S"
+    _UNSCRIPT: "T"
 
     # ASCII Control codes
     NUL: "\x00"
@@ -355,6 +358,7 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
     interactive = parser.parse_interactive(code, start)
     data_token_flag = False  # Used to trigger DATA token build
     expected_bytes = 0
+    scripting_status = None
     while True:
         try:
             token = next(interactive.lexer_thread.lex(interactive.parser_state))
@@ -516,6 +520,64 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
                 interactive.feed_token(token)
                 # Build a DATA token with the FINAL built value
                 token = Token("DATA", dot_offset)
+
+            elif token.type == "USER_CHARACTERS_HEADER":
+                first_char_code_n, last_char_code_m = token.value
+
+                lexer_state = interactive.lexer_thread.state
+                token_start_pos = lexer_state.line_ctr.char_pos
+
+                expected_char_nb = last_char_code_m - first_char_code_n + 1
+                LOGGER.debug("Expected char nb %d", expected_char_nb)
+
+                # For ESCP2 printers
+                nb_space_bytes = 3
+                # Number of bytes in a column
+                # Normal characters: 24/48 and 9 pins NLQ
+                # k = 3 × a1
+                # Super/subscript characters: 24/48 (not possible for 9 pins)
+                # k = 2 × a1
+                # Draft 9 pins characters:
+                # k = a1
+                column_bytes_size = 2 if scripting_status else 3
+
+                # expected_bytes = 0
+                # while expected_char_nb:
+                #     char_width_a1 = lexer_state.text[token_start_pos+expected_bytes+1]
+                #
+                #     char_expected_bytes = column_bytes_size * char_width_a1
+                #     expected_bytes += char_expected_bytes + nb_space_bytes
+                #
+                #     expected_char_nb -= 1
+                #
+                # data_token_flag = True
+                # LOGGER.debug("Total expect %d bytes", expected_bytes)
+
+                expected_bytes = 0
+                iter_data = iter(lexer_state.text[token_start_pos:])
+                while expected_char_nb:
+                    interactive.feed_token(token)
+                    space_left_a0, char_width_a1, space_right_a2 = islice(iter_data, 0, 3)
+
+                    char_expected_bytes = column_bytes_size * char_width_a1
+                    expected_bytes += char_expected_bytes + nb_space_bytes
+
+                    expected_char_nb -= 1
+
+                    char_data = bytes(islice(iter_data, 0, char_expected_bytes))
+
+                    token = Token("DATA", (
+                        (space_left_a0, char_width_a1, space_right_a2),
+                        char_data
+                        )
+                    )
+                    LOGGER.debug("Expect %d bytes", char_expected_bytes)
+                lexer_state.line_ctr.char_pos += expected_bytes
+
+            elif token.type in ("_SCRIPT", "_UNSCRIPT"):
+                # Follow the script status to handle user defined characters
+                # variable data size (ESCP2)
+                scripting_status = token.type == "_SCRIPT"
 
             if data_token_flag:
                 # For commands with variable size.
