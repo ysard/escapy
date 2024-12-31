@@ -1,6 +1,6 @@
 #  ESCParser is a software allowing to convert EPSON ESC/P, ESC/P2
 #  printer control language files into PDF files.
-#  Copyright (C) 2024  Ysard
+#  Copyright (C) 2024-2025  Ysard
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU Affero General Public License as published by
