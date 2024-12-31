@@ -24,8 +24,9 @@ from functools import lru_cache, partial
 from logging import DEBUG
 
 # Custom imports
+import numpy as np
+from PIL import Image
 from lark import Token
-from PIL import ImageFont
 from reportlab.lib import colors
 from reportlab.lib.colors import PCMYKColorSep
 from reportlab.pdfgen.canvas import Canvas
@@ -1739,19 +1740,22 @@ class ESCParser:
     def select_character_table(self, *args):
         """Select the character table to be used for printing from among the four tables 0-3 - ESC t
 
-        Default tables are listed below:
+        Default tables & actions are listed below:
 
             ESCP2/ESCP:
 
                 0      Italic
                 1      PC437
-                2      User-defined characters
+                2      User-defined characters (can shift them under some conditions).
                 3      PC437
 
-            9pins:
+            9, 24, 48 pins:
 
                 0       Italic
-                1       Graphic character table or (PC437 (US) according the doc)
+                1       Graphic character table or PC437 (US) according to the doc.
+
+            24, 48 pins:
+                2       Shift user-defined characters unconditionally.
 
         .. note:: Using table means using graphics characters (also called
             bitmap font). At the time, these characters are fixed for a
@@ -1898,7 +1902,7 @@ class ESCParser:
             # Something bad happened: keep the old value
             self.typeface = previous_value
 
-    def define_user_defined_ram_characters(self, _, header, data):
+    def define_user_defined_ram_characters(self, _, header, *data_tokens):
         """Receive user-defined characters - ESC &
 
         Printer memories:
@@ -1911,7 +1915,7 @@ class ESCParser:
         To copy user-defined characters (that have been created with the
         ESC & or ESC : commands) to the upper half of the character table,
         send the ESC % 0 command, followed by the ESC t 2 command.
-        However, you cannot copy user-defined characters  using ESC t 2 if you
+        However, you cannot copy user-defined characters using ESC t 2 if you
         have previously assigned another character table to table 2 using the
         ESC ( t command.
 
@@ -1932,36 +1936,105 @@ class ESCParser:
         Characters in RAM can only be printed as 10.5 or 21-point characters,
         even if you select a different point size with the ESC X command.
 
-        Amount of data depends on:
-            − The number of dots in the print head (9 or 24/48)
-            − The space you specify on the left and right of each character
-            − Character spacing (10 cpi, 12 cpi, 15 cpi, or proportional)
-            − The size of your characters (normal or super/subscript)
-            − The print quality of your characters (draft, LQ, or NLQ mode)
+        The amount of data expected depends on:
+
+        − The number of dots in the print head (9 or 24/48)
+        − The space you specify on the left and right of each character
+        − Character spacing (10 cpi, 12 cpi, 15 cpi, or proportional)
+        − The size of your characters (normal or super/subscript)
+        − The print quality of your characters (draft, LQ, or NLQ mode)
+
+        Doc p263.
 
         :param header: Header of the command, stores the first & the last
             character codes. Allows to calculate the number of characters set.
+        :param data_tokens: Iterable of DATA tokens; 1 token for each character.
+            The values of the tokens are tuples and follow the type
+            `tuple[tuple[int, int, int], bytes]`.
+
+            Example::
+
+                (space_left_a0, char_width_a1, space_right_a2), data
         """
         first_char_code_n, last_char_code_m = header.value
 
         expected_char_nb = last_char_code_m - first_char_code_n + 1
         LOGGER.debug("Expected char nb %d", expected_char_nb)
 
+        # Number of bytes in a column
+        # Normal characters: 24/48 and 9 pins NLQ
+        # k = 3 × a1
+        # Super/subscript characters: 24/48 (not possible for 9 pins)
+        # k = 2 × a1
+        # Draft 9 pins characters:
+        # k = a1
+        if self.pins == 9:
+            colum_bytes_size = 3 if self.mode == PrintMode.LQ else 1
+        else:
+            column_bytes_size = 2 if self.scripting else 3
+
+        bitmasks = tuple(range(8))
+        for char_code, token in enumerate(data_tokens, first_char_code_n):
+            (space_left_a0, char_width_a1, space_right_a2), data = token.value
+            # Debugging block: print raw data
+            # array = np.frombuffer(data, np.uint8)
+            # 2D array: isolate each column in the master array
+            # array = np.reshape(array, (char_width_a1, column_bytes_size))
+            # print(array.shape)
+            # print(array)
+            # Pillow accept a list of lines, not a list of columns;
+            # We need to transpose the 2D array (90° rotation + updown flip)
+            # print(array.T)
+            # input("pause")
+
+            # Extract the pixels (dots) from the bits of every byte
+            # 0: black color; 0xFF: white color
+            # Flatten the 2D array we obtain (list of lists of dots for each byte)
+            array = np.array(
+                [
+                    [0 if (0x80 & (i << mask)) else 0xff for mask in bitmasks]
+                    for i in data
+                ],
+                np.uint8
+            ).flatten()
+            # 2D array/matrix: isolate each column in the master array (vector)
+            array = np.reshape(array, (char_width_a1, column_bytes_size*8))
+            # Pillow accepts a list of lines, not a list of columns;
+            # We need to transpose the matrix (90° rotation + updown flip)
+            array = array.T
+
+            LOGGER.debug("Received char; size: %s", array.shape)
+            LOGGER.debug("Char code %s (%d)", format(first_char_code_n, '#04x'), first_char_code_n)
+            LOGGER.debug("Current PrintMode: %s", self.mode)
+            LOGGER.debug("Current Proportional status: %s", self._proportional_spacing)
+            LOGGER.debug("Current Scripting status: %s", self.scripting)
+
+
+            data = Image.fromarray(array)
+            data.save(f'char_{char_code}_pic.png')
+
 
     def copy_rom_to_ram(self, *args):
-        """Copies the data for the characters between 0 and 126 of the n typeface from ROM to RAM - ESC :
+        """Copy the data for the ROM characters to RAM - ESC :
 
-        TODO:
-            erases any characters that are currently stored in RAM.
-            Always copy ROM characters to RAM before you define user-defined characters.
+        The following attributes are reflected in the copied font: typeface,
+        international character set, size (super/subscript or normal),
+        and quality (draft/LQ).
 
-            You cannot copy ROM characters to RAM during multipoint mode.
+        .. note:: In the current implementation, typeface & international character
+            set are not used (respectively not significant & already applied
+            to the current encoding).
 
-        9 pins: only:
-            Copies the data for the characters between 0 and 255 of the Roman or Sans Serif typeface
-            Characters from 128 to 255 are copied from the italic character table
-            0: Roman
-            1: Sans serif
+        ESCP2:
+            Characters copied from locations 0 to 127
+        9pins:
+            Characters copied from locations 0 to 255;
+            TODO: locations from 128 to 255 are taken from the Italic table...
+
+        - Erase any characters that are currently stored in RAM.
+        - Ignored during multipoint mode (p255).
+
+        Doc p96
         """
         if self.multipoint_mode:
             LOGGER.error("You cannot copy ROM characters to RAM during multipoint mode.")
