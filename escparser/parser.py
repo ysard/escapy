@@ -21,6 +21,7 @@ from enum import Enum
 import itertools as it
 import codecs
 from functools import lru_cache, partial
+from hashlib import md5
 from logging import DEBUG
 
 # Custom imports
@@ -37,7 +38,15 @@ from reportlab.pdfbase.ttfonts import TTFont
 # Local imports
 from escparser import __version__
 from escparser.grammar import init_parser
-from escparser.commons import TYPEFACE_NAMES, CHARSET_MAPPING, INTERNATIONAL_CHARSETS, CHARACTER_TABLE_MAPPING, LEFT_TO_RIGHT_LANGUAGES
+from escparser.commons import (
+    TYPEFACE_NAMES,
+    CHARSET_MAPPING,
+    INTERNATIONAL_CHARSETS,
+    CHARACTER_TABLE_MAPPING,
+    LEFT_TO_RIGHT_LANGUAGES,
+    RAM_CHARACTERS_TABLE,
+    DIR_USER_DEFINED_IMAGES,
+)
 from escparser.i18n_codecs import getregentry
 from escparser.fonts import typefaces
 from escparser.commons import logger
@@ -277,6 +286,8 @@ class ESCParser:
         self.typeface = self.default_typeface
         self.copied_font = {}
         self.user_defined_ram_characters = False
+        from escparser.user_defined_characters import RAMCharacters
+        self.user_defined = RAMCharacters(parent=self)
         # Allow set operations on control codes
         # This attr store the current character points that MUST NOT be printed
         # About default config:
@@ -1944,7 +1955,7 @@ class ESCParser:
         − The size of your characters (normal or super/subscript)
         − The print quality of your characters (draft, LQ, or NLQ mode)
 
-        Doc p263.
+        Doc p263, ESCP2: p91, 9pins: p93.
 
         :param header: Header of the command, stores the first & the last
             character codes. Allows to calculate the number of characters set.
@@ -1956,10 +1967,14 @@ class ESCParser:
 
                 (space_left_a0, char_width_a1, space_right_a2), data
         """
-        first_char_code_n, last_char_code_m = header.value
+        first_char_code_n, _ = header.value
 
-        expected_char_nb = last_char_code_m - first_char_code_n + 1
-        LOGGER.debug("Expected char nb %d", expected_char_nb)
+        # Sync current settings and reset RAM characters if necessary
+        self.user_defined.extract_settings(self)
+
+        LOGGER.debug("Current PrintMode: %s", self.mode)
+        LOGGER.debug("Current Proportional status: %s", self._proportional_spacing)
+        LOGGER.debug("Current Scripting status: %s", self.scripting)
 
         # Number of bytes in a column
         # Normal characters: 24/48 and 9 pins NLQ
@@ -1987,6 +2002,8 @@ class ESCParser:
             # print(array.T)
             # input("pause")
 
+            md5_digest = md5(data).hexdigest()[:7]
+
             # Extract the pixels (dots) from the bits of every byte
             # 0: black color; 0xFF: white color
             # Flatten the 2D array we obtain (list of lists of dots for each byte)
@@ -2004,15 +2021,18 @@ class ESCParser:
             array = array.T
 
             LOGGER.debug("Received char; size: %s", array.shape)
-            LOGGER.debug("Char code %s (%d)", format(first_char_code_n, '#04x'), first_char_code_n)
-            LOGGER.debug("Current PrintMode: %s", self.mode)
-            LOGGER.debug("Current Proportional status: %s", self._proportional_spacing)
-            LOGGER.debug("Current Scripting status: %s", self.scripting)
+            LOGGER.debug("Received char; code %s (%d)", format(char_code, '#04x'), char_code)
 
-
+            # Save the image for later investigations
             data = Image.fromarray(array)
-            data.save(f'char_{char_code}_pic.png')
+            # data = data.resize((34, int(24*1.5)))
+            # TODO: check/create dir
+            data.save(f'{DIR_USER_DEFINED_IMAGES}/char_{md5_digest}.png')
 
+            self.user_defined.add_char(md5_digest, char_code)
+
+        self.user_defined.update_encoding()
+        self.user_defined.save()
 
     def copy_rom_to_ram(self, *args):
         """Copy the data for the ROM characters to RAM - ESC :
