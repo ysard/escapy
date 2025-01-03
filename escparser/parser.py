@@ -2535,7 +2535,7 @@ class ESCParser:
         # We use reportlab text render modes in this attribute! Not the ESC style id!
         self.character_style = character_style_mapping.get(value)
 
-        if LOGGER.level != DEBUG:
+        if LOGGER.level != DEBUG:  # pragma: no cover
             return
         character_style_names = {
             0: "Turn off outline/shadow printing",
