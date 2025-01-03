@@ -285,7 +285,7 @@ class ESCParser:
         self.international_charset = 0
         self.typeface = self.default_typeface
         self.copied_font = {}
-        self.user_defined_ram_characters = False
+        self.ram_characters = False
         from escparser.user_defined_characters import RAMCharacters
         self.user_defined = RAMCharacters(parent=self)
         # Allow set operations on control codes
@@ -1075,14 +1075,20 @@ class ESCParser:
         """Get the encoding in use according to the current character table and
         international_charset loaded.
 
+        Whatever the encoding, if the RAM characters are activated,
+        "user_defined" is returned.
+
         .. warning:: Italic is currently not supported.
         """
-        # Decode the text according to the current character table
-        encoding = self.character_tables[self.character_table]
+        if self.ram_characters:
+            encoding = RAM_CHARACTERS_TABLE
+        else:
+            # Decode the text according to the current character table
+            encoding = self.character_tables[self.character_table]
+
         if encoding in (None, "italic"):
             # Encoding not supported, fall back to cp437; See select_character_table()
             return "cp437"
-
         if self.international_charset == 0:
             return encoding
 
@@ -2110,13 +2116,12 @@ class ESCParser:
     def select_user_defined_set(self, *args):
         """Switch between normal and user-defined characters - ESC %
 
-        NOTE/TODO: cf model spec:
-            Draft user-defined characters are converted to LQ characters during LQ mode.
+        .. seealso:: :meth:`encoding` where the attribute `ram_character` is used.
         """
         value = args[1].value[0]
-        self.user_defined_ram_characters = value in (1, 49)
+        self.ram_characters = value in (1, 49)
 
-        LOGGER.debug("User-defined (RAM) characters: %s", self.user_defined_ram_characters)
+        LOGGER.debug("User-defined (RAM) characters: %s", self.ram_characters)
 
     def select_cpi(self, _, cmd_letter: Token):
         """Selects 10.5-point, *-cpi character printing - ESC P, ESC M, ESC g
