@@ -50,7 +50,7 @@ def test_no_loglevel(tmp_path: Path, capsys, set_loglevel: None):
 
     captured = capsys.readouterr()
     print(captured)
-    assert not captured, "stdout,stderr should be empty in loglevel None"
+    assert not (captured.out or captured.err), "stdout,stderr should be empty in loglevel None"
 
 
 def test_not_implemented_command(tmp_path: Path, caplog):
