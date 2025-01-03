@@ -99,7 +99,7 @@ def getregentry(
 
     .. seealso:: :meth:`codecs.register`.
 
-    :param base_encoding: Encoding name passed by the lookup function.
+    :param encoding: Encoding name passed by the lookup function.
     :key effective_encoding: Encoding name that will be used to register the new
         codec.
     :key base_encoding: Encoding used as a base for the new codec.
