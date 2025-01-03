@@ -471,8 +471,12 @@ def log_level(level):
     """
     level = level.upper()
     if level == "NONE":
+        # Override all severity levels under CRITICAL
         logging.disable()
         return
+    else:
+        # Remove the overriding level
+        logging.disable(logging.NOTSET)
     # Main logger
     _logger.setLevel(level)
     # Handlers
