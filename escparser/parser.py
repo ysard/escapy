@@ -2046,9 +2046,26 @@ class ESCParser:
         international character set, size (super/subscript or normal),
         and quality (draft/LQ).
 
+        Doc is unclear:
+
+            When you send the ESC : command, the printer copies all the characters
+            from locations 0 to 127 in the currently selected typeface.
+
+            On some printers, you can specify which typeface to copy to RAM memory.
+
+        So, ESC : 0 can mean "keep current typeface whatever it is",
+        or "select typeface 0 (Roman)"...
+
         .. note:: In the current implementation, typeface & international character
-            set are not used (respectively not significant & already applied
-            to the current encoding).
+            set are not used; respectively, for an implementation choice
+            and because already applied to the current encoding.
+
+            Indeed, if typeface is used, it must be used in the settings dict
+            that detects a change and decide to clear the RAM content.
+            If the typeface here, is not the typeface in use when ESC & is sent,
+            the RAM content will be cleared.
+            For now we do not expect that the typeface change can be postponed
+            until the ESC & use.
 
         ESCP2:
             Characters copied from locations 0 to 127
@@ -2056,24 +2073,39 @@ class ESCParser:
             Characters copied from locations 0 to 255;
             TODO: locations from 128 to 255 are taken from the Italic table...
 
+        LX-series printers, ActionPrinter Apex 80, ActionPrinter T-1000, ActionPrinter 2000
+            TODO: Only characters from 58 to 63 can be copied to RAM.
+
         - Erase any characters that are currently stored in RAM.
         - Ignored during multipoint mode (p255).
+        - Ignore this command if the specified typeface is not available in ROM.
 
-        Doc p96
+        Doc p255,p96
         """
+        # Get typeface id
+        # /!\ If typeface is used (not at the moment),
+        # the font change is delayed until RAM characters are activated with ESC %
+        typeface = args[1].value[0]
+
         if self.multipoint_mode:
+            # Used in place of @multipoint_mode_ignore (for logging purposes)
             LOGGER.error("You cannot copy ROM characters to RAM during multipoint mode.")
             return
 
-        value = args[1].value[0]
+        if typeface not in self.typefaces:
+            LOGGER.error("Typeface selected doesn't exist. Ignored.")
+            return
 
-        # Save typeface, international character set, size (super/subscript or normal), and quality (draft/LQ)
-        self.copied_font = {
-            "typeface": value,
-            "int_charset": self.international_charset,
-            "size": None,
-            "mode": self.mode,
-        }
+        # Use the original ROM encoding, including an eventual international charset
+        # We need to bypass RAM encoding (user_defined) if already set;
+        # the encoding property must be fooled temporary to return it.
+        # => Use the encoding property but temporary disable ram_characters attr.
+        ram_characters_backup = self.ram_characters
+        self.ram_characters = False
+        # Sync current settings
+        self.user_defined.extract_settings(self)
+        self.user_defined.from_rom(self.encoding, typeface, self.pins)
+        self.ram_characters = ram_characters_backup
 
     def select_user_defined_set(self, *args):
         """Switch between normal and user-defined characters - ESC %
