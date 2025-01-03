@@ -424,6 +424,8 @@ def test_select_character_table(pins):
         shift user-defined characters unconditionally
 
     .. seealso:: :meth:`test_shift_upper_charset`.
+    .. seealso:: :meth:`tests.test_text_commands.test_select_character_table`
+        for more general test on tables 0-3.
     """
     # Assign French, cp863 table to table 2
     assign_table2_cmd = b"\x1b(t\x03\x00\x02\x08\x00"

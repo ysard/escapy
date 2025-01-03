@@ -254,7 +254,11 @@ def test_select_typeface(
     ],
 )
 def test_select_character_table(format_databytes):
-    """Select character table - ESC t 0-3\x00-\x03"""
+    """Select character table - ESC t 0-3\x00-\x03
+
+    .. seealso:: :meth:`tests.test_user_defined_characters.test_select_character_table`
+        for ESC t 2 command support.
+    """
     print(format_databytes)
 
     escparser = ESCParser(format_databytes, pdf=False)
