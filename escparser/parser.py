@@ -1783,22 +1783,27 @@ class ESCParser:
                 character_table = 0
             case 1 | 49:
                 character_table = 1
-            case (2 | 50) if self.pins in (24, 48):
-                # TODO: On 24/48-pin printers, non-ESC/P 2 printers:
-                print(
-                    "copies the user-defined characters from positions 0 to 127 to positions 128 to 255"
+            case (2 | 50) if (
+                self.pins in (24, 48)
+                or self.pins is None and not isinstance(self.character_tables[2], str)
+            ):
+                # - ESC/P 2 printers:
+                #   cannot shift user-defined characters if you have previously
+                #   assigned another character table to table 2 using
+                #   the ESC ( t command. Once you have assigned a registered
+                #   table to Table 2, you cannot use it for user-defined characters
+                #   (until you reset the printer with the ESC @ command).
+                # - 24/48-pin printers, non-ESC/P 2 printers:
+                #   shift user-defined characters unconditionally
+                LOGGER.debug(
+                    "Shift user-defined characters "
+                    "from positions 0 to 127 to positions 128 to 255"
                 )
-                raise NotImplementedError
-            case (2 | 50):
-                # TODO: ESCP2 only (so not only non 9 pins !!)
+                self.user_defined.shift_upper_charset()
+                return
+            case (2 | 50): # TODO test ESC t 2 switches test from test_text_commands
+                # PS: Not available on 9 pins printers; ESCP2 only
                 character_table = 2
-                assert (
-                    self.user_defined_RAM_characters
-                ), "ROM characters should be previously selected"
-                # TODO:
-                # En fait cette table peut être utilisée pour des caractères non personnalisés
-                # mais une fois cela fait, l'utilisation de caractères personnalisés ne peut se faire
-                # qu'après un reset ESC @.
             case 3 | 51:
                 character_table = 3
             case _:  # pragma: no cover
