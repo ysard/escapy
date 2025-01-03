@@ -53,7 +53,7 @@ IMPORTED_LANDSCAPE_PAPERSIZES = {
 
 PAGESIZE_MAPPING |= IMPORTED_PAPERSIZES | IMPORTED_LANDSCAPE_PAPERSIZES
 
-
+# Typefaces / fonts
 TYPEFACE_NAMES = {
     0: "Roman",  # Times New Roman
     1: "Sans serif",  # /usr/share/fonts/truetype/freefont/FreeSans*
@@ -70,6 +70,9 @@ TYPEFACE_NAMES = {
     30: "SV Busaba",
     31: "SV Jittra",
 }
+
+# Character tables / encodings
+RAM_CHARACTERS_TABLE = "user_defined"
 
 CHARACTER_TABLENAMES_MAPPING = {
     (0, 0): "Italic",
