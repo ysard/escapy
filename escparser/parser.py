@@ -272,11 +272,12 @@ class ESCParser:
 
         LOGGER.debug("constructed page length: %s", self.page_length)
 
+        # Table of (pre)loaded encodings
         self.character_tables = [
             "italic",
-            "cp437", # "PC437"
-            None, # "User-defined characters"
-            "cp437", # "PC437"
+            "cp437",
+            None, # User-defined characters: can be reassigned but lost until reset
+            "cp437",
         ]
         self.typefaces = available_fonts
         # Internal use for tests; used only for external/system fonts
@@ -1807,7 +1808,7 @@ class ESCParser:
                 )
                 self.user_defined.shift_upper_charset()
                 return
-            case (2 | 50): # TODO test ESC t 2 switches test from test_text_commands
+            case (2 | 50):
                 # PS: Not available on 9 pins printers; ESCP2 only
                 character_table = 2
             case 3 | 51:
@@ -1842,7 +1843,7 @@ class ESCParser:
         """Select either LQ or draft printing - ESC x
 
         TODO: If Draft quality is enabled:
-            - Typeface: Draft typeface only
+            - Typeface: Draft typeface only => not a concern for us
             - Point size: 10.5 and 21-point sizes only
 
         If Letter Quality is enabled:
@@ -2521,7 +2522,7 @@ class ESCParser:
     def select_character_style(self, *args):
         """Turn on/off outline and shadow printing - ESC q
 
-        - only 24/48 pins
+        - only ESCP2/ESCP 24/48 pins
         - TODO: does not affect graphics characters
         """
         value = args[1].value[0]
