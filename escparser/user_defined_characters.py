@@ -137,6 +137,10 @@ class RAMCharacters:
 
     @property
     def settings(self):
+        """Get the settings (traits) that define the characters in RAM
+
+        For now: print mode, proportional spacing, scripting mode.
+        """
         return self._settings
 
     @settings.setter
