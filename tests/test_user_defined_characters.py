@@ -28,7 +28,7 @@ import pytest
 from escparser.commons import RAM_CHARACTERS_TABLE
 from escparser.parser import ESCParser, PrintMode, PrintScripting
 from escparser.user_defined_characters import RAMCharacters
-from escparser import ram_codec
+from escparser.encodings import ram_codec
 from .misc import esc_reset, pdf_comparison
 
 
@@ -462,7 +462,7 @@ def test_ram_codec():
     register_codec_func = partial(
         ram_codec.getregentry,
         effective_encoding=RAM_CHARACTERS_TABLE,
-        intl_charset=charset_mapping,
+        mapping_charset=charset_mapping,
     )
     codecs.register(register_codec_func)
 
