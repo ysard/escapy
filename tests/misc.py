@@ -42,6 +42,53 @@ unset_condensed_printing = b"\x12"  # DC2
 double_height = b"\x1Bw\x01"  # ESC w 1
 reset_double_height = b"\x1Bw\x00"  # ESC w 0
 
+
+typefaces = {
+    # FiraCode: doesn't support all languages
+    0: {
+        "fixed": partial(
+            find_font, "FiraCode", path="/usr/share/fonts/truetype/firacode/"
+        ),
+        "proportional": lambda *_: None,
+    },
+    # Sans serif => Fixedsys Excelsior
+    1: {
+        "fixed": partial(find_font, "FSEX302-alt", path="./resources/"),
+        "proportional": lambda *_: None,
+    },
+    2: {
+        "fixed": partial(
+            find_font, "Courier_New", path="/usr/share/fonts/truetype/msttcorefonts/"
+        ),
+        "proportional": lambda *_: None,
+    },
+    3: {
+        "fixed": partial(find_font, "prestigenormal", path="./resources/"),
+        "proportional": lambda *_: None,
+    },
+    5: {
+        "fixed": partial(find_font, "ocr-b-regular", path="./resources/"),
+        "proportional": lambda *_: None,
+    },
+    6: {
+        "fixed": partial(find_font, "ocra", path="./resources/"),
+        "proportional": lambda *_: None,
+    },
+    7: {
+        "fixed": partial(find_font, "orator", path="./resources/"),
+        "proportional": lambda *_: None,
+    },
+    9: {
+        "fixed": partial(find_font, "scriptc", path="./resources/"),
+        "proportional": lambda *_: None,
+    },
+    10: {
+        "fixed": partial(find_font, "romant", path="./resources/"),
+        "proportional": lambda *_: None,
+    },
+}
+
+
 @pytest.fixture
 def format_databytes(request):
     """
