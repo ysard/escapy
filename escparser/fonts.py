@@ -85,7 +85,7 @@ def setup_fonts(config: configparser.ConfigParser) -> dict:
         {
             typeface_id: {
                 fixed: Callable,
-                proportional: None,
+                proportional: lambda *_: None,
             },
         }
 
@@ -93,7 +93,10 @@ def setup_fonts(config: configparser.ConfigParser) -> dict:
     :type config: configparser.ConfigParser
     :return: Dict of typefaces ids as keys.
         Values are dicts with always 2 keys: `fixed` & `proportional`.
-        Their values are None or a callable choosen for an optimal font search.
+        Their values are callables choosen for an optimal font search.
+        Each callable MUST support the following arguments (in this order):
+        `condensed, italic, bold`.
+        See :meth:`find_font`.
     """
     typefaces_config = defaultdict(dict)
     for typeface_id, typeface in TYPEFACE_NAMES.items():
