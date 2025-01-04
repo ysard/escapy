@@ -27,11 +27,15 @@ from .misc import DIR_DATA, esc_reset
 
 @pytest.fixture
 def set_loglevel():
+    """Fixture to safely test NONE loglevel
+
+    DEBUG loglevel is restored in the tear down for further tests
+    """
     log_level("NONE")
 
     yield None
 
-    # Restore previous loglevel for further tests
+    # Restore loglevel
     log_level("debug")
 
 

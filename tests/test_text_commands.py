@@ -14,6 +14,7 @@
 #
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Test commands & functions that directly impact the text rendering"""
 # Standard imports
 import itertools as it
 from pathlib import Path
@@ -228,6 +229,8 @@ def test_select_typeface(
     """Test internal changes in ESCParser object due to select_typeface - ESC k
 
     .. seealso:: For a higher-level test cf :meth:`test_fonts`.
+
+    :param partial_fonts: Fixture that generates a minimal font struct
     """
     output_file = tmp_path / "output.pdf"
 

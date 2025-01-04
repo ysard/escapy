@@ -54,8 +54,8 @@ def test_ean_barcodes(tmp_path: Path):
         "02"  # Module width m = 2 dots / 180 inch
         "00"  # Space adjustment value s = +0 dots / 360 inch
         "7D 00"  # Bar length v1, v2 = 125 / 180 inch
-        "00"  # Control flags c Barcode Data
-        "30 31 32 33 34 35 36 35"
+        "00"  # Control flags c 
+        "30 31 32 33 34 35 36 35"  # Barcode Data
     ]
 
     code = esc_reset + bytes(bytearray.fromhex(lines[0]))
