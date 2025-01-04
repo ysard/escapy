@@ -4,6 +4,7 @@ poc/
 *.pdf
 *.png
 *.pbm
+*.json
 
 # PyCharm
 .idea/
