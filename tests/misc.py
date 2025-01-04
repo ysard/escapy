@@ -89,6 +89,29 @@ typefaces = {
 }
 
 
+# Extra fonts ready to be inserted in typefaces at any position
+noto_font_def = {
+    # Noto should allow all languages but the base name should be adapted.
+    # Ex: NotoSansThai-*
+    "fixed": partial(
+        find_font, "NotoSansMono", path="/usr/share/fonts/truetype/noto/"
+    ),
+    "proportional": partial(
+        find_font, "NotoSans-", path="/usr/share/fonts/truetype/noto/"
+    ),
+}
+
+
+liberation_font_def = {
+    "fixed": partial(
+        find_font, "LiberationMono", path="/usr/share/fonts/truetype/liberation/"
+    ),
+    "proportional": partial(
+        find_font, "LiberationSans", path="/usr/share/fonts/truetype/liberation/"
+    ),
+}
+
+
 @pytest.fixture
 def format_databytes(request):
     """
