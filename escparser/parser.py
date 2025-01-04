@@ -3625,6 +3625,8 @@ class ESCParser:
 
         - TODO: The bar code is not printed when part of the bar code is past
           the right margin.
+
+        PS: It's not a BASIC script & my customers may need it ><.
         """
         barcode_types = {
             0: "EAN13",
