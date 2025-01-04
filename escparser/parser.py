@@ -1734,15 +1734,25 @@ class ESCParser:
             it for user-defined characters. Once you assign a registered table
             to Table 2, you must reset the printer (with the ESC @ command)
             before you can use it for user-defined characters.
+
+        .. warning::
+            d1 should be in [0, 1, 2, 3] for ESCP2,
+            d1 should be in [0, 1] for ESCP (24/48 pins), 9 pins.
         """
         d1, d2, d3 = args[1].value
-        # d1 should be in [0, 1, 2, 3] for ESCP2/ESCP
-        # d1 should be in [0, 1] for 9 pins
         selected_table = CHARACTER_TABLE_MAPPING[d2, d3]
 
         # Remap d1 if character code ("0", "1", ...) is used instead of an integer
         if d1 >= 0x30:
             d1 -= 0x30
+
+        if d1 > 1 and self.pins in (9, 24, 48):
+            LOGGER.error(
+                "Table id %d is NOT expected for the printer's pins mode (%s)",
+                d1,
+                self.pins
+            )
+            return
 
         # Replace the old table
         self.character_tables[d1] = selected_table
