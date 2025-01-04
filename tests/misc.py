@@ -18,9 +18,13 @@
 # Standard imports
 import os
 from pathlib import Path
+from functools import partial
+
+# Custom imports
 import pytest
 
 # Local imports
+from escparser.fonts import find_font
 from .helpers.diff_pdf import is_similar_pdfs
 
 # Test data path depends on the current package name

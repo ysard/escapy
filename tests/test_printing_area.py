@@ -18,16 +18,20 @@
 # Standard imports
 from struct import pack
 from pathlib import Path
-import pytest
+from functools import partial
 
 # Custom imports
+import pytest
 from lark.exceptions import UnexpectedToken
 from reportlab.lib.pagesizes import A4
 
 # Local imports
-from .misc import format_databytes
+from escparser.parser import ESCParser as _ESCParser
+from .misc import format_databytes, typefaces
 from .misc import esc_reset, cancel_bold
-from escparser.parser import ESCParser
+
+# Inject test typefaces
+ESCParser = partial(_ESCParser, available_fonts=typefaces)
 
 
 @pytest.mark.parametrize(
@@ -155,7 +159,7 @@ def test_set_right_margin(format_databytes: bytes, expected_offset: float):
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
-    ids=["single-sheets", "default", "outside_page_length", "7/72_linespacing"]
+    ids=["single-sheets", "default", "outside_page_length", "7/72_linespacing"],
 )
 def test_set_bottom_margin(format_databytes, single_sheet, expected_bottom_margin):
     """Test ESC N
@@ -358,16 +362,16 @@ def test_set_page_length_inches(format_databytes, expected):
         # Relative horizontal position - ESC \
         # +2inch absolute, then -1inch relative (-180/180) = 1inch
         # default unit: 1/180
-        (b"\x1b$\x78\x00" + b'\x1b\\' + pack("<h", -180), None, 1, 0),
+        (b"\x1b$\x78\x00" + b"\x1b\\" + pack("<h", -180), None, 1, 0),
         # 9 pins default unit: 1/120
         # +2inch absolute, then -120/120
-        (b"\x1b$\x78\x00" + b'\x1b\\' + pack("<h", -120), 9, 1, 0),
+        (b"\x1b$\x78\x00" + b"\x1b\\" + pack("<h", -120), 9, 1, 0),
         # Prepend ESC ( U to set defined unit to 2/360
         # +2inch absolute, then -180/180
         (b"\x1b$\x78\x00" + b"\x1b(U\x01\x00\x14" + b'\x1b\\' + pack("<h", -180), None, 1, 0),
         # Outside right margin -400/180inch ~ 2.22: ignored
         # +2inch absolute, then -2.22inch
-        (b"\x1b$\x78\x00" + b'\x1b\\' + pack("<h", -400), None, 2, 0),
+        (b"\x1b$\x78\x00" + b"\x1b\\" + pack("<h", -400), None, 2, 0),
         #
         # Absolute vertical position - ESC ( V
         # 1 inch below top margin 360 (360/360) for default unit: 1/360
@@ -376,7 +380,7 @@ def test_set_page_length_inches(format_databytes, expected):
         # 1 inch below top margin 180 (180/180)
         (b"\x1b(U\x01\x00\x14" + b"\x1b(V\x02\x00" + pack("<H", 180), None, 0, -1),
         # 12 inch below top margin: next page
-        (b"\x1b(V\x02\x00" + pack("<H", 12*360), None, 0, 0),
+        (b"\x1b(V\x02\x00" + pack("<H", 12 * 360), None, 0, 0),
         # 1 inch below top margin, then 1/360 inch below top margin:
         # movement amplitude too large (359/360 inch): ignored
         (b"\x1b(V\x02\x00" + pack("<H", 360) + b"\x1b(V\x02\x00" + pack("<H", 1), None, 0, -1),
@@ -387,7 +391,7 @@ def test_set_page_length_inches(format_databytes, expected):
         # 179/360 inch up: outside top margin: ignored
         (b"\x1b(v\x02\x00" + pack("<h", -179), None, 0, 0),
         # 12 inch down: outside bottom margin: next page
-        (b"\x1b(v\x02\x00" + pack("<h", 12*360), None, 0, 0),
+        (b"\x1b(v\x02\x00" + pack("<h", 12 * 360), None, 0, 0),
         # 1 inch up (>179/360): movement amplitude too large: ignored
         (b"\x1b(v\x02\x00" + pack("<h", -360), None, 0, 0),
         # Prepend ESC ( U to set defined unit to 2/360
@@ -440,7 +444,9 @@ def test_set_page_length_inches(format_databytes, expected):
         "AdV_1inch_9pins",
     ],
 )
-def test_set_print_position(format_databytes, pins: int, x_offset: int | float, y_offset: int | float):
+def test_set_print_position(
+    format_databytes, pins: int, x_offset: int | float, y_offset: int | float
+):
     """Test relative & absolute position movements
 
     Cover:
@@ -476,7 +482,7 @@ def test_h_v_skip():
     assert escparser.cursor_x >= 1
 
     escparser = ESCParser(esc_reset + vertical_skip, pins=9, pdf=False)
-    print(escparser.current_line_spacing * 10) # 1/6 * 10
+    print(escparser.current_line_spacing * 10)  # 1/6 * 10
     # We need to round the values... rounding errors seem to accumulate
     expected = round(escparser.printable_area[0] - escparser.current_line_spacing * 10, 5)
     found = round(escparser.cursor_y, 5)

@@ -18,18 +18,24 @@
 # Standard imports
 import itertools as it
 from pathlib import Path
-import pytest
 import struct
+from functools import partial
 
 # Custom imports
+import pytest
 from lark.exceptions import UnexpectedToken
 
 # Local imports
 import escparser.commons as cm
+from escparser.parser import (
+    ESCParser as _ESCParser,
+    PrintMode,
+    PrintScripting,
+    PrintControlCodes,
+)
 from escparser.fonts import rptlab_times
 from .misc import format_databytes, pdf_comparison
 from .misc import (
-    DIR_DATA,
     esc_reset,
     cancel_bold,
     select_10cpi,
@@ -40,9 +46,11 @@ from .misc import (
     double_width,
     double_height,
     reset_double_height,
+    typefaces,
 )
-from .helpers.diff_pdf import is_similar_pdfs
-from escparser.parser import ESCParser, PrintMode, PrintScripting, PrintControlCodes
+
+# Inject test typefaces
+ESCParser = partial(_ESCParser, available_fonts=typefaces)
 
 
 @pytest.mark.parametrize(

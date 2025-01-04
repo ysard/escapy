@@ -26,10 +26,13 @@ import pytest
 
 # Local imports
 from escparser.commons import RAM_CHARACTERS_TABLE
-from escparser.parser import ESCParser, PrintMode, PrintScripting
+from escparser.parser import ESCParser as _ESCParser, PrintMode, PrintScripting
 from escparser.user_defined_characters import RAMCharacters
 from escparser.encodings import ram_codec
-from .misc import esc_reset, pdf_comparison
+from .misc import esc_reset, pdf_comparison, typefaces
+
+# Inject test typefaces
+ESCParser = partial(_ESCParser, available_fonts=typefaces)
 
 
 def normal_char_data() -> bytes:
@@ -555,7 +558,7 @@ def test_select_user_defined_set(tmp_path: Path, normal_char_data: bytes):
     processed_file = tmp_path / "test_select_user_defined_set.pdf"
     func = partialmethod(mocked_init, db_filepath=mocked_db_file)
     with patch.object(RAMCharacters, "__init__", func):
-        _ = ESCParser(
+        _ = _ESCParser(
             code, pins=None, available_fonts=fonts, output_file=processed_file
         )
 

@@ -17,16 +17,20 @@
 """Test real-life file rendering"""
 # Standard imports
 from pathlib import Path
-import pytest
+from functools import partial
 
 # Custom imports
+import pytest
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.pagesizes import landscape
 
 # Local imports
-from escparser.parser import ESCParser
+from escparser.parser import ESCParser as _ESCParser
 from escparser.__main__ import escparser_entry_point
-from .misc import DIR_DATA, pdf_comparison
+from .misc import DIR_DATA, pdf_comparison, typefaces
+
+# Inject test typefaces
+ESCParser = partial(_ESCParser, available_fonts=typefaces)
 
 
 @pytest.mark.parametrize(

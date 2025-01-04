@@ -17,12 +17,18 @@
 """Miscellaneous tests (global loglevel settings, grammar behaviour)"""
 # Standard imports
 from pathlib import Path
+from functools import partial
+
+# Custom imports
 import pytest
 
 # Local imports
 from escparser.commons import log_level
-from escparser.parser import ESCParser
-from .misc import DIR_DATA, esc_reset
+from escparser.parser import ESCParser as _ESCParser
+from .misc import DIR_DATA, esc_reset, typefaces
+
+# Inject test typefaces
+ESCParser = partial(_ESCParser, available_fonts=typefaces)
 
 
 @pytest.fixture

@@ -27,15 +27,19 @@ Tested modes:
 import struct
 from pathlib import Path
 from unittest.mock import patch
-import pytest
+from functools import partial
 
 # Custom imports
+import pytest
 from lark.exceptions import UnexpectedToken
 
 # Local imports
-from escparser.parser import ESCParser
+from escparser.parser import ESCParser as _ESCParser
 from .misc import format_databytes, pdf_comparison
-from .misc import esc_reset, cancel_bold, graphics_mode
+from .misc import esc_reset, cancel_bold, graphics_mode, typefaces
+
+# Inject test typefaces
+ESCParser = partial(_ESCParser, available_fonts=typefaces)
 
 
 DECOMPRESSED_DATA = [
@@ -64,6 +68,7 @@ COMPRESSED_DATA = bytearray(
         ]
     )
 )
+
 
 @pytest.mark.parametrize(
     "format_databytes",
@@ -304,7 +309,7 @@ def test_rle_decompress():
     """
     expected_decompressed_data = DECOMPRESSED_DATA
 
-    found = ESCParser.decompress_rle_data(COMPRESSED_DATA)
+    found = _ESCParser.decompress_rle_data(COMPRESSED_DATA)
 
     assert found == expected_decompressed_data
 
@@ -351,9 +356,9 @@ def get_raster_data_3bytes(microweave: bool = False):
     # nL, hH: Horizontal resolution: 9 bytes of 8 dots = 72 dots
     # PS: length of decompressed data: vertical * horizontal = 9 bytes * 24 lines
     #   216 bytes
-    decompressed_data = DECOMPRESSED_DATA + bytes(2*len(DECOMPRESSED_DATA))
+    decompressed_data = DECOMPRESSED_DATA + bytes(2 * len(DECOMPRESSED_DATA))
     assert len(decompressed_data) == v_dot_count_m[0] * 9
-    h_dot_count = struct.pack("<h", 9*8)
+    h_dot_count = struct.pack("<h", 9 * 8)
 
     enable_microweave_cmd = b"\x1b(i\x01\x001"
 
@@ -388,9 +393,11 @@ def get_raster_data_1dot():
 
     code = line_spacing_180dpi + graphics_mode
 
-    for idx in range(0, 9*8, 9):
-        chunk = DECOMPRESSED_DATA[idx:idx+9]
-        code += raster_graphics + v_res_h_res + v_dot_count_m + h_dot_count + chunk + b"\n"
+    for idx in range(0, 9 * 8, 9):
+        chunk = DECOMPRESSED_DATA[idx : idx + 9]
+        code += (
+            raster_graphics + v_res_h_res + v_dot_count_m + h_dot_count + chunk + b"\n"
+        )
     return code
 
 
@@ -414,7 +421,14 @@ def get_raster_data_1dot():
     ],
     # First param goes in the 'databytes' param of the fixture format_databytes
     indirect=["format_databytes"],
-    ids=["no_rle", "rle", "no_rle_not_allowed_color_change", "24dots_v_band", "1dot_v_band", "24dots_v_band_microweave"],
+    ids=[
+        "no_rle",
+        "rle",
+        "no_rle_not_allowed_color_change",
+        "24dots_v_band",
+        "1dot_v_band",
+        "24dots_v_band_microweave",
+    ],
 )
 def test_print_raster_graphics(format_databytes: bytes, tmp_path: Path):
     """Test raster graphics 0 and 1 modes (no compress, RLE compress modes)
