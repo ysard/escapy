@@ -101,10 +101,12 @@ class PrintControlCodes(Enum):
 LOGGER = logger()
 
 class ESCParser:
-    """
-    https://support2.epson.net/manuals/english/page/epl_5800/ref_g/APCOM_3.HTM
-    ESC/P2 mode
-    FX mode (FX and LQ commands)
+    """Parser routines used to interpret ESC bytecode and build PDF files
+
+    Epson printer control languages supported:
+
+    - ESC/P
+    - ESC/P2
     """
 
     default_typeface = 0  # Roman
@@ -125,6 +127,9 @@ class ESCParser:
 
         :param code: Binary code to be parsed.
             Expected format: ESC/P, ESC/P2, ESC/P 9 Pins.
+        :key available_fonts: A structure that stores preconfigured methods to
+            find fonts on the system, according to dynamic styles in use.
+            See :meth:`escparser.fonts.setup_fonts`.
         :key pins: Number of pins of the printer head (9, 24, 48, None).
             Use None for default modern ESCP2 printers with nozzles. (default: None).
         :key printable_area_margins_mm: Define printable margins in mm.
@@ -139,6 +144,7 @@ class ESCParser:
         :key pdf: Enable pdf generation via reportlab. (default: True).
         :key output_file: Output filepath.
         :type code: bytes
+        :type available_fonts: dict
         :type pins: int | None
         :type printable_area_margins_mm: tuple[int] | None
         :type single_sheets: bool
