@@ -47,7 +47,7 @@ from escparser.commons import (
     RAM_CHARACTERS_TABLE,
     DIR_USER_DEFINED_IMAGES,
 )
-from escparser.i18n_codecs import getregentry
+from escparser.encodings.i18n_codecs import getregentry
 from escparser.fonts import typefaces
 from escparser.commons import logger
 
