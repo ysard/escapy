@@ -610,8 +610,7 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
 
     tree = interactive.resume_parse()
     if LOGGER.level == DEBUG:
-        print(tree.pretty())
-
+        LOGGER.debug(tree.pretty())
     return tree
 
 def init_parser(code, *args, **kwargs):
