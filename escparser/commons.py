@@ -32,6 +32,7 @@ CONFIG_FILE = "./escparser.conf"
 DIR_FONTS = "/usr/share/fonts/truetype/"
 
 # Page sizes should be in points (1/72 inch)
+# Custom sizes added to reportlab sizes
 PAGESIZE_MAPPING = {
     "US-12": (597.6, 864.0),
     "L-US-12": (864.0, 597.6),
@@ -41,6 +42,7 @@ PAGESIZE_MAPPING = {
     "P-24": (1728.0, 2592.0),  # Plotter 24" x 36"
     "P-36": (2592.0, 3024.0),  # Plotter 36" x 42"
 }
+# Reportlab sizes
 IMPORTED_PAPERSIZES = {
     name: paper_size
     for name, paper_size in vars(pagesizes).items()
@@ -50,7 +52,7 @@ IMPORTED_LANDSCAPE_PAPERSIZES = {
     "L-" + name: pagesizes.landscape(paper_size)
     for name, paper_size in IMPORTED_PAPERSIZES.items()
 }
-
+# Merged sizes
 PAGESIZE_MAPPING |= IMPORTED_PAPERSIZES | IMPORTED_LANDSCAPE_PAPERSIZES
 
 # Typefaces / fonts
