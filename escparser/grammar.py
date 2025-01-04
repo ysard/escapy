@@ -589,8 +589,7 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
                 lexer_state = interactive.lexer_thread.state
                 token_start_pos = lexer_state.line_ctr.char_pos
                 token_end_pos = token_start_pos + expected_bytes
-                # print("ici", lexer_state.text, token_start_pos, token_end_pos)
-                # print("ici", token_start_pos, token_end_pos)
+                # print(lexer_state.text, token_start_pos, token_end_pos)
 
                 # Build the new token
                 # NOTE: DO NOT DO THIS, internal value will not be modified !!!
@@ -606,8 +605,6 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
                 lexer_state.line_ctr.char_pos -= rewind_offset
 
                 data_token_flag = False
-                # print(value)
-                # input("pause")
 
             interactive.feed_token(token)
 
