@@ -19,6 +19,7 @@ branch_coverage:
 docstring_coverage:
 	interrogate -v escparser/ \
 	    -e escparser/__init__.py \
+	    -e escparser/encodings/__init__.py \
 	    -e escparser/handlers/__init__.py \
 	    --badge-style flat --generate-badge images/
 
