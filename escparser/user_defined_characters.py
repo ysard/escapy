@@ -269,11 +269,11 @@ class RAMCharacters:
 
         self.charset_mapping[code] = char
 
-    def save(self, db_filepath: Path = None):
+    def save(self):
         """Save the JSON database of characters mappings
 
         Should be saved each time ESC & (add user-defined characters) is sent
         to the printer.
         See :meth:`RAMCharacters.load_manual_mapping`.
         """
-        db_filepath.write_text(json.dumps(self.database, indent=4, cls=EnumsEncoder))
+        self.db_filepath.write_text(json.dumps(self.database, indent=4, cls=EnumsEncoder))
