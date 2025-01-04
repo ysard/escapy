@@ -149,7 +149,7 @@ class ESCParser:
         :type printable_area_margins_mm: tuple[int] | None
         :type single_sheets: bool
         :type pdf: bool
-        !type output_file: Path | str
+        :type output_file: Path | str
         """
         # Misc #################################################################
         # Prepare for methods search in run_esc_instruction()
@@ -3763,15 +3763,11 @@ class ESCParser:
         """
         parse_tree = init_parser(program) # ambiguity='explicit'
 
+        # with PyCallGraph(output=GraphvizOutput(), config=config):
+
         # Parse the tree (Note: The first tree token is Token('RULE', 'start'))
         self.run_esc_instruction(parse_tree)
 
         # Save the pdf file
         if self.current_pdf:
             self.current_pdf.save()
-
-def main():  # pragma: no cover
-    pass
-
-if __name__ == "__main__":  # pragma: no cover
-    main()
