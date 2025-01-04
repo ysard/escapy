@@ -45,15 +45,18 @@ from escparser.parser import ESCParser, PrintMode, PrintScripting, PrintControlC
 
 
 @pytest.mark.parametrize(
-    "format_databytes",
+    "format_databytes, pins",
     [
         # Test "0" as a chr (0x30) for d1; move to tb0
-        b"\x1b(t\x03\x00\x30\x08\x00" + cancel_bold,
+        (b"\x1b(t\x03\x00\x30\x08\x00" + cancel_bold, None),
         # Test d1 as an int; move to tb0 to tb3
-        b"\x1b(t\x03\x00\x00\x08\x00" + cancel_bold,
-        b"\x1b(t\x03\x00\x01\x08\x00" + cancel_bold,
-        b"\x1b(t\x03\x00\x02\x08\x00" + cancel_bold,
-        b"\x1b(t\x03\x00\x03\x08\x00" + cancel_bold,
+        (b"\x1b(t\x03\x00\x00\x08\x00" + cancel_bold, None),
+        (b"\x1b(t\x03\x00\x01\x08\x00" + cancel_bold, None),
+        (b"\x1b(t\x03\x00\x02\x08\x00" + cancel_bold, None),
+        (b"\x1b(t\x03\x00\x03\x08\x00" + cancel_bold, None),
+        # d1 table > 1 is not expected => ignored on 9,24,48pins (not ESCP2)
+        (b"\x1b(t\x03\x00\x03\x08\x00" + cancel_bold, 9),
+        (b"\x1b(t\x03\x00\x03\x08\x00" + cancel_bold, 24),
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
@@ -63,12 +66,18 @@ from escparser.parser import ESCParser, PrintMode, PrintScripting, PrintControlC
         "PC863 (Canada-French)_tb1",
         "PC863 (Canada-French)_tb2",
         "PC863 (Canada-French)_tb3",
+        "tb3_ignored_9pins",
+        "tb3_ignored_24pins",
     ],
 )
-def test_assign_character_table(format_databytes):
+def test_assign_character_table(format_databytes, pins: None | int):
     """Assign character table - ESC ( t
 
     Play with d2, d3 to assign d1 table.
+
+    d1 table > 1 is not expected => ignored on 9,24,48pins (not ESCP2).
+
+    :params pins: Define printer type; None for ESCP2, 24/48 for ESCP, or 9pins.
     """
     print(format_databytes)
 
@@ -78,8 +87,12 @@ def test_assign_character_table(format_databytes):
         d1_slot -= 0x30
 
     print("table slot:", d1_slot)
-    expected = "cp863"
-    assert escparser.character_tables[d1_slot] == expected
+    if pins is None:
+        expected = "cp863"
+        assert escparser.character_tables[d1_slot] == expected
+    else:
+        # cmd should be ignored => table not modified (default)
+        assert escparser.character_table == 1
 
 
 @pytest.mark.parametrize(
