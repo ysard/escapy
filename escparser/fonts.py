@@ -78,7 +78,7 @@ def rptlab_courier(condensed: bool, italic: bool, bold: bool) -> str:
 
 def setup_fonts(config: configparser.ConfigParser) -> dict:
     """Build a structure that stores preconfigured methods to find fonts
-     on the system according to dynamic styles in use.
+     on the system, according to dynamic styles in use.
 
     Structure example::
 
