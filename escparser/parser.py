@@ -119,6 +119,7 @@ class ESCParser:
         printable_area_margins_mm=None,
         page_size=A4,
         single_sheets=True,
+        automatic_linefeed=False,
         pdf=True,
         output_file="output.pdf",
         **kwargs
@@ -141,6 +142,9 @@ class ESCParser:
             (default: A4: 8.27 in x 11.7 in, so (595.2755905511812, 841.8897637795277).
         :key single_sheets: Single-sheet of paper if True, Continuous paper
             otherwise. (default: True).
+        :key automatic_linefeed: When automatic line-feed is selected (historically
+            through DIP-switch or panel setting), the CR command is accompanied
+            by a LF command.
         :key pdf: Enable pdf generation via reportlab. (default: True).
         :key output_file: Output filepath.
         :type code: bytes
@@ -148,6 +152,7 @@ class ESCParser:
         :type pins: int | None
         :type printable_area_margins_mm: tuple[int] | None
         :type single_sheets: bool
+        :type automatic_linefeed: bool
         :type pdf: bool
         :type output_file: Path | str
         """
@@ -164,6 +169,11 @@ class ESCParser:
         # Note: There are non-ESCP2 printers that have 24, 48 pins !
         self.pins = pins
         self.current_pdf = None
+
+        if automatic_linefeed:
+            # CR will be accompanied by LF;
+            # LF will call _carriage_return() internally.
+            self.carriage_return = self.line_feed
 
         # Character enhancements ###############################################
         self.baseline_offset = 7 / 72 if self.pins == 9 else 20 / 180
@@ -509,7 +519,7 @@ class ESCParser:
 
     def reset_cursor_x(self):
         """Move the X cursor to the left edge of the printing area (left-margin)"""
-        self.carriage_return()
+        self._carriage_return()
 
     def set_page_format(self, *args):
         """Set top and bottom margins - ESC ( c
@@ -1055,7 +1065,7 @@ class ESCParser:
         elif m == 1:
             # vertically
             _ = [self.line_feed() for _ in range(n)]
-            self.carriage_return()
+            self._carriage_return()
             self.double_width = False
 
     def backspace(self, *_):
@@ -1300,8 +1310,18 @@ class ESCParser:
         """Move the print position to the left-margin position
 
         TODO: non-ESC/P 2 printers: The printer prints all data in the line buffer
-        TODO: When automatic line-feed is selected (through DIP-switch or panel setting),
-             the CR command is accompanied by a LF command.
+        - When automatic line-feed is selected (through DIP-switch or panel setting),
+          the CR command is accompanied by a LF command.
+          See the `automatic_linefeed` setting.
+        """
+        self._carriage_return()
+
+    def _carriage_return(self):
+        """Move the print position to the left-margin position
+
+        Internal use only. Exists to support the `automatic_linefeed` setting.
+
+        .. seealso:: :meth:`carriage_return`.
         """
         if self.pins == 9:
             self.double_width = False
@@ -1346,7 +1366,7 @@ class ESCParser:
         if underline:
             self.underline = False
 
-        self.carriage_return()
+        self._carriage_return()
         self.cursor_y -= self.current_line_spacing
 
         if underline:
@@ -1431,7 +1451,7 @@ class ESCParser:
         LOGGER.info("NEXT PAGE! at y offset %s", self.cursor_y)
 
         self.reset_cursor_y()
-        self.carriage_return()
+        self._carriage_return()
 
         if self.current_pdf:
             # stop drawing on the current page and any further
@@ -1525,7 +1545,7 @@ class ESCParser:
         # However, this reset is not legit if the cmd is not the same as a true
         # CR cmd; thus, we must restore it later.
         double_width_backup = self._double_width
-        self.carriage_return()
+        self._carriage_return()
 
         if not any(self.vertical_tabulations):
             # No tab is configured following a tab cancelation => just a CR
@@ -3219,7 +3239,7 @@ class ESCParser:
         """
         dot_offset = args[1].value
 
-        self.carriage_return()
+        self._carriage_return()
 
         unit = self.defined_unit if self.defined_unit else 1/360
         self.cursor_y -= dot_offset * unit
@@ -3235,7 +3255,7 @@ class ESCParser:
 
         .. seealso:: :meth:`set_movx_unit`
         """
-        self.carriage_return()
+        self._carriage_return()
         self.set_movx_unit(8)
 
     def set_movx_unit_1dot(self, *_):
@@ -3249,7 +3269,7 @@ class ESCParser:
 
         .. seealso:: :meth:`set_movx_unit`
         """
-        self.carriage_return()
+        self._carriage_return()
         self.set_movx_unit(1)
 
     def set_movx_unit(self, dot_unit):
@@ -3280,7 +3300,7 @@ class ESCParser:
         - Combinations of colors are not available and will be ignored.
         """
         self.color = args[0].value[0] & 0x0f
-        self.carriage_return()
+        self._carriage_return()
 
     def exit_tiff_raster_graphics(self, *_):
         """Exit TIFF compressed raster graphics mode - <EXIT>
@@ -3289,7 +3309,7 @@ class ESCParser:
 
         - Move the horizontal print position to 0 (left-most print position).
         """
-        self.carriage_return()
+        self._carriage_return()
 
     ## bit image
     def select_bit_image(self, *args):
