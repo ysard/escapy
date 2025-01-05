@@ -1187,6 +1187,8 @@ class ESCParser:
 
         # Get the encoding according to an enventually international charset set
         encoding_variant = self.encoding
+        # LOGGER.debug("Encoding variant in use: %s", encoding_variant)
+
         # Fallback if character is not in the code page
         # Use any of: replace, backslashreplace, ignore
         text = raw_text.decode(encoding_variant, errors="replace")
@@ -1194,8 +1196,8 @@ class ESCParser:
         if encoding in LEFT_TO_RIGHT_LANGUAGES:
             text = text[::-1]
 
-        print(raw_text)
-        print(text)
+        # print(raw_text)
+        # print(text)
         if not text:
             return
 
@@ -1371,8 +1373,6 @@ class ESCParser:
 
         if underline:
             self.underline = True
-
-        print()
 
         self.end_page_paper_handling()
 
