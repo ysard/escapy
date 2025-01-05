@@ -84,9 +84,11 @@ def test_default_file():
     # Transtype for easier debugging (original object has a different string rep)
     found_misc_section = dict(sample_config["misc"])
     found_roman_section = dict(sample_config["Roman"])
+    found_sansserif_section = dict(sample_config["Sans serif"])
 
     assert found_misc_section == expected_misc_section
     assert found_roman_section == expected_roman_section
+    assert found_sansserif_section == expected_roman_section
 
 
 @pytest.mark.parametrize(
@@ -214,7 +216,11 @@ def test_erroneous_settings(sample_config):
     indirect=["sample_config"],  # Send sample_config val to the fixture
 )
 def test_specific_settings(sample_config, expected_settings):
-    """Test user settings vs parsed ones"""
+    """Test user settings vs parsed ones
+
+    .. note:: Roman & Sans serif sections are mandatory and created if not in the
+        config file.
+    """
     for section, params in expected_settings.items():
         for param, value in params.items():
             assert (
