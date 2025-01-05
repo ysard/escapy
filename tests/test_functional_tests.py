@@ -41,6 +41,7 @@ ESCParser = partial(_ESCParser, available_fonts=typefaces)
         ("Test2_badcommand.prn", "Test2_badcommand.pdf", {"pins": 9}),
         ("escp2_1.prn", "escp2_1.pdf", {}),
         ("escp2_1.prn", "escp2_1_9pins.pdf", {"pins": 9}),
+        ("escp2_1.prn", "escp2_1.pdf", {"automatic_linefeed": True}),
     ],
     ids=[
         "test_Graphics_invoice.CP850",
@@ -48,6 +49,7 @@ ESCParser = partial(_ESCParser, available_fonts=typefaces)
         "Test2_badcommand",
         "escp2_1",
         "escp2_1_9pins",
+        "escp2_1_auto_linefeed",
     ],
 )
 def test_full_file_conversion(
@@ -61,6 +63,10 @@ def test_full_file_conversion(
     :param args: Tuple of arguments passed to the ESCParser object.
     """
     code = Path(DIR_DATA + code_file).read_bytes()
+
+    if args.get("automatic_linefeed"):
+        # CR is replaced by CR + LF internally
+        code = code.replace(b"\n", b"")
 
     processed_file = tmp_path / expected_pdf
     _ = ESCParser(code, output_file=processed_file, **args)
