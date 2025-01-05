@@ -220,6 +220,8 @@ def partial_fonts():
         # the command is ignored and the previous proportional font is used (Times)
         # PS: ESC p triggers set_font
         (b"\x1Bk\x02" b"\x1Bp\x01" b"\x1Bk\x00", 2, None),
+        # Typeface change is refused when user-defined RAM characters are selected
+        (b"\x1b%\x01" b"\x1Bk\x02", 0, "/usr/share/fonts/truetype/firacode/FiraCode-Bold.ttf"),
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
@@ -229,6 +231,7 @@ def partial_fonts():
         "internal_rptlab_font",
         "prop_font_not_found",
         "prop_font_not_found2",
+        "ram_characters_ignored",
     ],
 )
 def test_select_typeface(
