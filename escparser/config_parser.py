@@ -56,8 +56,10 @@ def parse_config(config: configparser.ConfigParser):
 
         The syntax `if not xxx:` handles None and '' data retrieved from file.
 
-    Defines default values for fixed & proportional fonts (Courier, Times).
-    These fonts are embedded in ReportLab.
+    Defines default values for fixed & proportional font versions, respectively
+    Courier & Times; these fonts are embedded in ReportLab.
+
+    Roman & Sans serif sections are mandatory and created if not in the config file.
 
     :param config: Opened ConfigParser object
     :type config: configparser.ConfigParser
