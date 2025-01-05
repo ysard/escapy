@@ -158,9 +158,12 @@ def parse_config(config: configparser.ConfigParser):
 
 
     ## Fonts sections
+    mandatory_typefaces = ("Roman", "Sans serif")
     for typeface in TYPEFACE_NAMES.values():
         # Create the section if not already defined
         if not config.has_section(typeface):
+            if typeface not in mandatory_typefaces:
+                continue
             config.add_section(typeface)
         font_section = config[typeface]
 
