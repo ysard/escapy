@@ -1838,7 +1838,7 @@ class ESCParser:
                 character_table = 1
             case (2 | 50) if (
                 self.pins in (24, 48)
-                or self.pins is None and not isinstance(self.character_tables[2], str)
+                or self.pins is None and self.character_tables[2] is None
             ):
                 # - ESC/P 2 printers:
                 #   cannot shift user-defined characters if you have previously
