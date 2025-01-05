@@ -1903,7 +1903,7 @@ class ESCParser:
     def select_typeface(self, *args):
         """Select the typeface for LQ printing - ESC k
 
-        - TODO: The printer ignores this command if the user-defined character set is selected.
+        - The printer ignores this command if the user-defined character set is selected.
         - TODO: If draft mode is selected when this command is sent,
             the new LQ typeface will be selected when the printer returns to LQ printing.
         - The Roman typeface is selected if the selected typeface is not available.
@@ -1937,8 +1937,15 @@ class ESCParser:
             0 Roman
             1 Sans serif
         """
+        if self.ram_characters:
+            return
+
         value = args[1].value[0]
         previous_value = self.typeface
+        if value == previous_value:
+            # do nothing if no change
+            return
+
         if value not in self.typefaces:
             LOGGER.error("Typeface selected doesn't exist. Switch to default.")
             self.typeface = self.default_typeface
