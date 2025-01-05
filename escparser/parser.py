@@ -3348,6 +3348,8 @@ class ESCParser:
         :type data: bytearray | bytes
         :type extended_dots: bool
         """
+        if not self.current_pdf:
+            return
         # def chunk_this(iterable, length):
         #     """Split iterable in chunks of equal sizes"""
         #     iterator = iter(iterable)
