@@ -1568,6 +1568,7 @@ class ESCParser:
             tab_pos = None
 
         if not tab_pos or tab_pos < self.bottom_margin:
+            # => like a FF
             LOGGER.debug(
                 "No tab available below the current cursor_y position, "
                 "or tab is below bottom margin."
@@ -2698,12 +2699,17 @@ class ESCParser:
         Canceled when the buffer is full, or the printer receives the following commands:
         LF, FF, VT, DC4, ESC W 0.
 
-        .. seealso:: :meth:`unset_double_width_printing`, :meth:`switch_double_width_printing`
+        .. seealso:: :meth:`unset_double_width_printing`,
+            :meth:`switch_double_width_printing`, :meth:`v_tab`.
 
-        TODO: ESCP2 : not canceled by the VT command when it functions the same as a CR command.
-        TODO: non-ESC/P 2 printers:
-            also canceled when the printer receives the following commands:
-            CR and VT (when it functions the same as a CR command).
+        Double-width handling:
+            - ESCP2:
+            Do NOT cancel double-width when VT functions the same as a CR command
+            (normal behavior).
+            - non-ESC/P 2 printers:
+            Cancel double-width when VT functions the same as a CR command,
+            and with a CR command.
+            (normal behavior).
         """
         self.double_width = True
 
