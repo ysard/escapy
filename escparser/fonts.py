@@ -100,6 +100,10 @@ def setup_fonts(config: configparser.ConfigParser) -> dict:
     """
     typefaces_config = defaultdict(dict)
     for typeface_id, typeface in TYPEFACE_NAMES.items():
+        if not config.has_section(typeface):
+            # Skip not mandatory and not defined typefaces
+            continue
+
         path = config[typeface]["path"]
         typeface_config = {}
         typefaces_config[typeface_id] = typeface_config
@@ -108,6 +112,9 @@ def setup_fonts(config: configparser.ConfigParser) -> dict:
         for field in ("fixed", "proportional"):
             fontname = config[typeface][field]
 
+            if fontname == "":
+                # Font version explicitely not available
+                func = lambda *_: None
             if fontname == "Times":
                 func = rptlab_times
             elif fontname == "Courier":

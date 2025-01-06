@@ -58,6 +58,8 @@ def parse_config(config: configparser.ConfigParser):
 
     Defines default values for fixed & proportional font versions, respectively
     Courier & Times; these fonts are embedded in ReportLab.
+    For not mandatory typefaces, each version can be left empty to explicitely
+    mark it as not available.
 
     Roman & Sans serif sections are mandatory and created if not in the config file.
 
@@ -162,9 +164,10 @@ def parse_config(config: configparser.ConfigParser):
     ## Fonts sections
     mandatory_typefaces = ("Roman", "Sans serif")
     for typeface in TYPEFACE_NAMES.values():
+        is_mandatory = typeface in mandatory_typefaces
         # Create the section if not already defined
         if not config.has_section(typeface):
-            if typeface not in mandatory_typefaces:
+            if not is_mandatory:
                 continue
             config.add_section(typeface)
         font_section = config[typeface]
@@ -174,13 +177,15 @@ def parse_config(config: configparser.ConfigParser):
             font_section["path"] = default_font_path
 
         # Define default fallback fonts
+        # For not mandatory typefaces, each version can be left empty to explicitely
+        # mark it as not available.
         fixed_font = font_section.get("fixed")
         if not fixed_font:
-            font_section["fixed"] = "Courier"
+            font_section["fixed"] = "Courier" if is_mandatory else ""
 
         proportional_font = font_section.get("proportional")
         if not proportional_font:
-            font_section["proportional"] = "Times"
+            font_section["proportional"] = "Times" if is_mandatory else ""
 
     debug_config_file(config)
     return config
