@@ -65,7 +65,7 @@ def test_full_file_conversion(
     code = Path(DIR_DATA + code_file).read_bytes()
 
     if args.get("automatic_linefeed"):
-        # CR is replaced by CR + LF internally
+        # CR is replaced by CR + LF internally: delete all LF for simulation
         code = code.replace(b"\n", b"")
 
     processed_file = tmp_path / expected_pdf
