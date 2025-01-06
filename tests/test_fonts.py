@@ -115,9 +115,12 @@ def test_find_font(arguments, expected):
             [misc]
             [Roman]
             fixed = FiraCode
+            [Courier]
+            fixed =
             """,
             # For now, we test only the typefaces ids
-            TYPEFACE_NAMES.keys(),
+            # Mandatory typefaces are expected
+            {0, 1, 2},
         ),
     ],
     ids=["sample1"],

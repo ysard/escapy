@@ -194,6 +194,8 @@ def test_erroneous_settings(sample_config):
             default_font_path=/one_path/
             [Roman]
             fixed = FiraCode
+            [Courier]
+            fixed = FiraCode
             """,
             {
                 "misc": {
@@ -209,6 +211,11 @@ def test_erroneous_settings(sample_config):
                     "fixed": "Courier",
                     "proportional": "Times",
                 },
+                # For not mandatory typefaces, variants can be left empty
+                "Courier": {
+                    "fixed": "FiraCode",
+                    "proportional": "",
+                }
             },
         ),
     ],
