@@ -1727,7 +1727,7 @@ class ESCParser:
         :return: True if the font is found and correctly loaded, False otherwise.
         """
         if self.set_font_lock:
-            # See master_select()
+            # See master_select() (avoid multiple useless calls)
             return False
 
         font_type = "proportional" if self.proportional_spacing else "fixed"
@@ -1747,7 +1747,7 @@ class ESCParser:
             return True
 
         if isinstance(font, Path):
-            # Not a font already available in reportlab
+            # Not a font embedded in reportlab
             fontname = font.stem
             self.register_fonts(fontname, fontpath=font)
             self.current_fontpath = font
