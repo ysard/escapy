@@ -139,7 +139,7 @@ def test_setup_fonts(sample_config, expected):
 
         # We want callables or None in the definitions
         for font_type in typeface_defs.values():
-            assert callable(font_type) or font_type is None
+            assert callable(font_type)
 
 
 @pytest.fixture()
