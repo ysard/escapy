@@ -193,6 +193,15 @@ class ESCParser:
         self.double_height = False
         self._color = 0  # Black
 
+        self.color_names = [
+            "Black",
+            "Magenta",
+            "Cyan",
+            "Violet",
+            "Yellow",
+            "Red",
+            "Green",
+        ]
         self.RGB_colors = [
             "#000000",  # Black
             "#ff00ff",  # Magenta
@@ -431,7 +440,7 @@ class ESCParser:
             return
 
         self._color = color
-        LOGGER.debug("Update color: %s", color)
+        LOGGER.debug("Update color: %d (%s)", color, self.color_names[color])
 
         if self.current_pdf:
             # Update PDF setting
