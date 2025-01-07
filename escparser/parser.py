@@ -122,7 +122,7 @@ class ESCParser:
         automatic_linefeed=False,
         pdf=True,
         output_file="output.pdf",
-        **kwargs
+        **_
     ):
         """
 
