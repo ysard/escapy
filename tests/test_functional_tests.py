@@ -42,6 +42,7 @@ ESCParser = partial(_ESCParser, available_fonts=typefaces)
         ("escp2_1.prn", "escp2_1.pdf", {}),
         ("escp2_1.prn", "escp2_1_9pins.pdf", {"pins": 9}),
         ("escp2_1.prn", "escp2_1.pdf", {"automatic_linefeed": True}),
+        ("TDS420A_epson_9_24_c_page4_patched.prn", "TDS420A_epson_9_24_c_page4_patched.pdf", {}),
     ],
     ids=[
         "test_Graphics_invoice.CP850",
@@ -50,6 +51,7 @@ ESCParser = partial(_ESCParser, available_fonts=typefaces)
         "escp2_1",
         "escp2_1_9pins",
         "escp2_1_auto_linefeed",
+        "TDS420A_escp",
     ],
 )
 def test_full_file_conversion(
