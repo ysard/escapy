@@ -1143,6 +1143,36 @@ class ESCParser:
 
         return encoding_variant
 
+    def compute_horizontal_scale_coef(self) -> float:
+        """Get a scale coefficient used to simulate double-width, double-height
+         and condensed printing.
+
+         Since that only the point-size is modifiable on modern fonts, we must
+         play with this parameter and with a horizontal scale coefficient
+         to stretch the text and obtain the rendering of ancient days.
+
+         :return: A numeric value used in the `setHorizScale` methods of the
+            reportlab textobjects.
+         """
+        if self.double_height and self.double_width:
+            # The point size is already multiplied by 2
+            # roughly equivalent to x2 point size: do not change horizontal scale
+            horizontal_scale_coef = 1
+        elif self.double_width:
+            horizontal_scale_coef = 2
+        elif self.double_height:
+            # The point size is already multiplied by 2, we must reduce the pitch
+            horizontal_scale_coef = 0.5
+        else:
+            horizontal_scale_coef = 1
+
+        # if self.condensed:
+        #     # Try to get the coefficient currently applied on the default
+        #     # character pitch 1/10 (condensed mode applies a variable coef).
+        #     horizontal_scale_coef *= self.character_pitch / (1 / 10)
+
+        return horizontal_scale_coef
+
     def binary_blob(self, arg):
         """Print text characters
 
@@ -1170,17 +1200,8 @@ class ESCParser:
         """
         raw_text = arg.value
         cursor_y = self.cursor_y - self.baseline_offset
-        if self.double_height and self.double_width:
-            # The point size is already multiplied by 2
-            # roughly equivalent to x2 point size: do not change horizontal scale
-            horizontal_scale_coef = 1
-        elif self.double_width:
-            horizontal_scale_coef = 2
-        elif self.double_height:
-            # The point size is already multiplied by 2, we must reduce the pitch
-            horizontal_scale_coef = 0.5
-        else:
-            horizontal_scale_coef = 1
+
+        horizontal_scale_coef = self.compute_horizontal_scale_coef()
 
         # Decode the text according to the current character table
         encoding = self.character_tables[self.character_table]
