@@ -1190,13 +1190,11 @@ class ESCParser:
 
         .. warning:: The horizontal move should be according to the selected pitch
             (or the width of each character if proportional spacing is selected).
-            Since we use modern fonts we must use an accurate width which is not
-            based on fixed character spacing, but on the point size and the
-            internal settings of monospaced/non-monospaced and
-            pitch fixed/not pitch fixed fonts.
+            Since we use modern fonts, we must use an accurate width which is not
+            based on fixed character spacing, but on the point size.
 
-            This will generate positionning errors when the old font is not strictly
-            the same (i.e. double width font, etc.).
+            This will generate positionning errors compared to the old fonts
+            especially if the new font is not strictly the same.
         """
         raw_text = arg.value
         cursor_y = self.cursor_y - self.baseline_offset
