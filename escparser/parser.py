@@ -3097,6 +3097,9 @@ class ESCParser:
         - The final print position is the dot after the far right dot on the top
           row of the graphics printed with this command.
 
+        .. note:: About the radius of circle dots.
+            See explanations on :meth:`print_bit_image_dots`.
+
         :param data: Decompressed data bytes (1 byte for 8 dots).
         :key h_dot_count: (default: None) Total number of dots for the given line(s)
             Used to move the cursor_x after the data has been printed.
@@ -3130,7 +3133,7 @@ class ESCParser:
                         self.current_pdf.circle(
                             x_pos * 72,
                             y_pos * 72,
-                            self.horizontal_resolution * 72,
+                            self.horizontal_resolution * 72 * 0.64,
                             stroke=0,
                             fill=1,
                         )
@@ -3397,9 +3400,28 @@ class ESCParser:
 
         The final print position is the dot after the far right dot on the top
         row of the graphics printed with this command.
-
-        cursor_y is NOT incremented; when the function ends the print position
+        So, cursor_y is NOT incremented; when the function ends, the print position
         is at top-right (y start, x end).
+
+        .. note:: About the radius of circle dots.
+            The circle is inscribed in the square of the pixel it is supposed to
+            represent. Thus, the surface on the circle is ~78% of the surface of
+            the square. Uncovered white surfaces alter the perception of color
+            nuances.
+            To compensate this, we increase the diameter of the circle by
+            approximately 28% (empirical value vs the theoritical value of
+            100-78=22%). The radius is thus obtained as follows:
+
+                max(self.horizontal_resolution, self.vertical_resolution) / 2 \
+                * 72 * 1.28
+
+            We use the maximum of the 2 axis resolutions to compensate low
+            resolutions used most often for reasons of printing speed and more
+            rarely for the purpose of actually leaving empty spaces between dots
+            or lines of dots (especially for 9pins printer that are limited by
+            a vertical resolution of 1/72). Circles therefore overlap each other
+            and it's a deliberate choice.
+
 
         :param data: Bytes of graphics data.
         :key extended_dots: Optional, enable support of print heads with 9 pins
@@ -3487,7 +3509,7 @@ class ESCParser:
                     self.current_pdf.circle(
                         self.cursor_x * 72,
                         y_pos * 72,
-                        self.horizontal_resolution * 72,
+                        max(self.horizontal_resolution, self.vertical_resolution) * 72 * 0.64,
                         stroke=0,
                         fill=1,
                     )
