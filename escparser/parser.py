@@ -244,8 +244,7 @@ class ESCParser:
             self.current_pdf.setLineWidth(0.3)
             self.current_pdf.setFillOverprint(True)
             self.current_pdf.setProducer(
-                f"ESCParser {__version__} - https://github.com/ysard/escparser,"
-                " with ReportLab PDF Library - www.reportlab.com"
+                f"ESCParser {__version__} - https://github.com/ysard/escparser"
             )
 
         # Page configuration ###################################################
