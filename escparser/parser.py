@@ -3517,22 +3517,6 @@ class ESCParser:
                 # Consume the MSB
                 col_int = (col_int << 1) & overflow_mask
 
-
-            # g = [
-            #     self.cursor_y - ((7-i) * self.vertical_resolution)
-            #     for byte_idx, col_byte in enumerate(col_bytes)
-            #     for i in range(0 if extended_dots and byte_idx else 7, -1, -1)
-            #     if col_byte & (1 << i)
-            # ]
-            # for y_pos in g:
-            #     self.current_pdf.circle(
-            #         self.cursor_x * 72,
-            #         y_pos * 72,
-            #         self.horizontal_resolution * 72,
-            #         stroke=0,
-            #         fill=1,
-            #     )
-
             # Increment global cursor_x
             self.cursor_x += self.horizontal_resolution
 
