@@ -130,7 +130,6 @@ def parse_config(config: configparser.ConfigParser):
     # page_size: We expect a default value A4 here
     page_size = misc_section.get("page_size")
     cleaned_data = to_tuple(page_size)
-    print(cleaned_data)
     if page_size:
         if page_size not in PAGESIZE_MAPPING:
             if  len(cleaned_data) == 1:
