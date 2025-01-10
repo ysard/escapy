@@ -19,6 +19,7 @@
 # Standard imports
 import argparse
 from pathlib import Path
+import sys
 
 # Custom imports
 from escparser import __version__
@@ -35,7 +36,7 @@ def escparser_entry_point(**kwargs):
     LOGGER.info("Libreprinter start; %s", __version__)
 
     # Open input file
-    esc_prn_file_content = kwargs["esc_prn"].read_bytes()
+    esc_prn_file_content = kwargs["esc_prn"].buffer.read()
     if not esc_prn_file_content:
         LOGGER.error("File is empty!")
         raise SystemExit
@@ -98,7 +99,8 @@ def main():  # pragma: no cover
     parser.add_argument(
         "esc_prn",
         help="ESC raw printer file.",
-        type=Path
+        type=argparse.FileType('r'),
+        default=sys.stdin
     )
 
     parser.add_argument(
