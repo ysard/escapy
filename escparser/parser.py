@@ -3488,7 +3488,10 @@ class ESCParser:
         #             )
 
         def chunk_this(iterable, length):
-            """Split iterable in chunks of equal sizes"""
+            """Split iterable in chunks of equal sizes
+            .. todo:: Update this with itertools.batched for the 3.12 migration;
+                this is twice as fast.
+            """
             iterator = iter(iterable)
             for _ in range(0, len(iterable), length):
                 yield int.from_bytes(it.islice(iterator, length), "big")
