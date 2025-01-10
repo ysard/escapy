@@ -243,6 +243,7 @@ class ESCParser:
             self.current_pdf = Canvas(str(output_file), pagesize=page_size, pageCompression=1)
             self.current_pdf.setLineWidth(0.3)
             self.current_pdf.setFillOverprint(True)
+            self.current_pdf.setStrokeOverprint(True)
             self.current_pdf.setProducer(
                 f"ESCParser {__version__} - https://github.com/ysard/escparser"
             )
@@ -445,6 +446,7 @@ class ESCParser:
             # Update PDF setting
             # self.current_pdf.setFillColor(colors.HexColor(self.RGB_colors[color]))
             self.current_pdf.setFillColor(self.CMYK_colors[color])
+            self.current_pdf.setStrokeColor(self.CMYK_colors[color])
 
     @property
     def point_size(self) -> float:
@@ -3117,9 +3119,16 @@ class ESCParser:
         y_pos = self.cursor_y
         column_offset = i = 0
 
+        # Configure setlinecap: round
+        # Configure linewidth
+        # No noop to end previous path (useless here)
+        linewidth = round(self.horizontal_resolution * 72 * 1.28, 2)
+        self.current_pdf._code.append(f"1 J {linewidth} w")
+
         for line_idx, line_bytes in enumerate(chunk_this(data, self.bytes_per_line), 1):
             # Keep track of the x position in the current line
             column_offset = 0
+            cy = "{:.2f}".format(y_pos * 72, 2).rstrip("0")
             for col_int in line_bytes:
                 i = 0
                 # Consume all bits of the current byte
@@ -3129,13 +3138,11 @@ class ESCParser:
                     if col_int & mask:
                         x_pos = self.cursor_x + (column_offset + i) * self.horizontal_resolution
                         # print("offset, i: x,y", column_offset, i, x_pos, y_pos)
-                        self.current_pdf.circle(
-                            x_pos * 72,
-                            y_pos * 72,
-                            self.horizontal_resolution * 72 * 0.64,
-                            stroke=0,
-                            fill=1,
+                        cx = "{:.2f}".format(x_pos * 72, 2).rstrip("0")
+                        self.current_pdf._code.append(
+                            f"{cx} {cy} m {cx} {cy} l",
                         )
+
                     # Consume the MSB
                     col_int = overflow_mask & (col_int << 1)
                     i += 1
@@ -3143,6 +3150,9 @@ class ESCParser:
 
             # Print the next line below
             y_pos -= self.vertical_resolution
+
+            # Close and stroke path
+            self.current_pdf._code.append("S")
 
         # Get rid of the last bits of potentially, partially used last byte
         # (just use the number of expected dots).
@@ -3421,7 +3431,6 @@ class ESCParser:
             a vertical resolution of 1/72). Circles therefore overlap each other
             and it's a deliberate choice.
 
-
         :param data: Bytes of graphics data.
         :key extended_dots: Optional, enable support of print heads with 9 pins
             (Default: False).
@@ -3490,6 +3499,20 @@ class ESCParser:
         mask = 1 << (self.bytes_per_column * 8 -1)
         overflow_mask = 2**(8*self.bytes_per_column) -1
         prev_col_int = 0
+
+        # Circles: Bézier curves are not used in order to avoid heavy
+        # memory, CPU & disk overload. Instead, for a point, we use a line with
+        # two semicircular arcs around the end points with a diameter equal to
+        # the width of the line drawn.
+        # Configure setlinecap: round (1 J)
+        # Configure linewidth (w)
+        # No noop to end previous path (n) (useless here)
+        linewidth = round(
+            max(self.horizontal_resolution, self.vertical_resolution) * 72 * 1.28,
+            2
+        )
+        self.current_pdf._code.append(f"1 J {linewidth} w")
+
         for col_int in chunk_this(data, self.bytes_per_column):
             if self.double_speed:
                 # Clear bits using the previous column as a bitmask
@@ -3501,16 +3524,17 @@ class ESCParser:
                 col_int &= 0xff80
 
             i = 0
+            # Do not search further, it IS the most efficient way to
+            # round & strip trailing zeroes (to save space).
+            cx = "{:.2f}".format(self.cursor_x * 72, 2).rstrip("0")
             while col_int:
                 if col_int & mask:
                     # At each bit, move the local cursor_y down
                     y_pos = self.cursor_y - i * self.vertical_resolution
-                    self.current_pdf.circle(
-                        self.cursor_x * 72,
-                        y_pos * 72,
-                        max(self.horizontal_resolution, self.vertical_resolution) * 72 * 0.64,
-                        stroke=0,
-                        fill=1,
+
+                    cy = "{:.2f}".format(y_pos * 72, 2).rstrip("0")
+                    self.current_pdf._code.append(
+                        f"{cx} {cy} m {cx} {cy} l",
                     )
                 i += 1
                 # Consume the MSB
@@ -3518,6 +3542,8 @@ class ESCParser:
 
             # Increment global cursor_x
             self.cursor_x += self.horizontal_resolution
+        # Close and stroke path
+        self.current_pdf._code.append("S")
 
     def configure_bit_image(self, dot_density_m):
         """Configure the bit image printing mode according to the given dot density (internal usage)
