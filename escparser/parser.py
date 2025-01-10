@@ -146,7 +146,7 @@ class ESCParser:
             through DIP-switch or panel setting), the CR command is accompanied
             by a LF command.
         :key pdf: Enable pdf generation via reportlab. (default: True).
-        :key output_file: Output filepath.
+        :key output_file: Output filepath. (default: output.pdf).
         :type code: bytes
         :type available_fonts: dict
         :type pins: int | None
@@ -154,7 +154,7 @@ class ESCParser:
         :type single_sheets: bool
         :type automatic_linefeed: bool
         :type pdf: bool
-        :type output_file: Path | str
+        :type output_file: io.TextIOWrapper | str
         """
         # Misc #################################################################
         # Prepare for methods search in run_esc_instruction()
@@ -240,7 +240,10 @@ class ESCParser:
 
         if pdf:
             # Init PDF render
-            self.current_pdf = Canvas(str(output_file), pagesize=page_size, pageCompression=1)
+            if not isinstance(output_file, str):
+                # Support of argparse value vs default str
+                output_file = output_file.buffer
+            self.current_pdf = Canvas(output_file, pagesize=page_size, pageCompression=1)
             self.current_pdf.setLineWidth(0.3)
             self.current_pdf.setFillOverprint(True)
             self.current_pdf.setStrokeOverprint(True)
