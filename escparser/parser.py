@@ -3508,6 +3508,9 @@ class ESCParser:
 
         # Iterate on bytes inside columns
         for col_int in chunk_this(data, self.bytes_per_column):
+            # if cursor_x >= self.right_margin:
+            #     continue
+
             if double_speed:
                 # Clear bits using the previous column as a bitmask
                 col_int &= ~prev_col_int
