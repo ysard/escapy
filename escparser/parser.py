@@ -1524,11 +1524,11 @@ class ESCParser:
             tab_pos = None
 
         if not tab_pos:
-            LOGGER.debug("No tab available after the current cursor_x position")
+            LOGGER.warning("No tab available after the current cursor_x position")
             return
 
         if tab_pos > self.right_margin:
-            LOGGER.debug("Tab outside right margin: ignored")
+            LOGGER.error("Tab outside right margin: ignored")
             return
 
         self.cursor_x = tab_pos
@@ -1601,7 +1601,7 @@ class ESCParser:
 
         if not tab_pos or tab_pos < self.bottom_margin:
             # => like a FF
-            LOGGER.debug(
+            LOGGER.warning(
                 "No tab available below the current cursor_y position, "
                 "or tab is below bottom margin."
             )
