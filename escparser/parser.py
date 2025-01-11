@@ -3457,51 +3457,7 @@ class ESCParser:
         """
         if not self.current_pdf:
             return
-        # def chunk_this(iterable, length):
-        #     """Split iterable in chunks of equal sizes"""
-        #     iterator = iter(iterable)
-        #     for i in range(0, len(iterable), length):
-        #         yield tuple(it.islice(iterator, length))
 
-        # # Iterate on columns
-        # prev_col_int = 0
-        # for col_bytes in chunk_this(data, self.bytes_per_column):
-        #
-        #     if self.double_speed:
-        #         # Clear bits using the previous column as a bitmask
-        #         col_int = int.from_bytes(col_bytes, 'big')
-        #         col_int &= ~(prev_col_int)
-        #         prev_col_int = col_int
-        #         col_bytes = col_int.to_bytes(self.bytes_per_column, byteorder='big')
-        #
-        #     # Iterate on bytes inside columns
-        #     for byte_idx, col_byte in enumerate(col_bytes):
-        #     # for col_byte in col_bytes:
-        #         # skip if no dots
-        #         if col_byte == 0:
-        #             continue
-        #
-        #         # For 9pins print heads, only the 1st bit of the 2nd byte is used
-        #         start = 0 if extended_dots and byte_idx else 7
-        #
-        #         for i in range(start, -1, -1):
-        #
-        #             # bit not set for this dot
-        #             if not col_byte & (1 << i):
-        #                 continue
-        #
-        #             # print("PIX ON byte_idx, bit_idx", byte_idx, i)
-        #
-        #             # Increment local y
-        #             y_pos = self.cursor_y - ((7-i) * self.vertical_resolution)
-        #             # print("y", y_pos)
-        #             self.current_pdf.circle(
-        #                 self.cursor_x * 72,
-        #                 y_pos * 72,
-        #                 self.horizontal_resolution * 72,
-        #                 stroke=0,
-        #                 fill=1,
-        #             )
         # For a function called hundreds of thousands or even millions of times,
         # local variables are preferable as they reduce the indirection level.
         double_speed = self.double_speed
