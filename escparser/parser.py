@@ -3111,6 +3111,13 @@ class ESCParser:
         :type data: bytearray
         :type h_dot_count: int
         """
+        code = self.current_pdf._code
+        horizontal_resolution = self.horizontal_resolution
+        vertical_resolution = self.vertical_resolution
+        cursor_x = self.cursor_x
+        cursor_y = self.cursor_y
+        dots = True
+
         def chunk_this(iterable, length):
             """Split iterable in chunks of equal sizes"""
             iterator = iter(iterable)
@@ -3119,43 +3126,49 @@ class ESCParser:
 
         mask = 0x80
         overflow_mask = 0xff
-        y_pos = self.cursor_y
+        y_pos = cursor_y
         column_offset = i = 0
 
-        # Configure setlinecap: round
-        # Configure linewidth
-        # No noop to end previous path (useless here)
-        linewidth = round(self.horizontal_resolution * 72 * 1.28, 2)
-        self.current_pdf._code.append(f"1 J {linewidth} w")
+        if dots:
+            # Configure setlinecap: round
+            # Configure linewidth
+            # No noop to end previous path (useless here)
+            linewidth = round(horizontal_resolution * 72 * 1.28, 2)
+            code.append(f"1 J {linewidth} w")
+        else:
+            h_res = "{:.2f}".format(horizontal_resolution * 72, 2).rstrip("0")
+            v_res = "{:.2f}".format(vertical_resolution * 72, 2).rstrip("0")
+            rect_suffix = f" {h_res} {v_res} re f"
 
+        # Iterate on bytes inside lines
         for line_idx, line_bytes in enumerate(chunk_this(data, self.bytes_per_line), 1):
             # Keep track of the x position in the current line
             column_offset = 0
             cy = "{:.2f}".format(y_pos * 72, 2).rstrip("0")
             for col_int in line_bytes:
-                i = 0
                 # Consume all bits of the current byte
                 # at each loop the current byte is shifted to the left with an offset of 1.
                 # This avoids testing the remaining bits if their value is zero.
+                i = 0
                 while col_int:
                     if col_int & mask:
-                        x_pos = self.cursor_x + (column_offset + i) * self.horizontal_resolution
+                        x_pos = cursor_x + (column_offset + i) * horizontal_resolution
                         # print("offset, i: x,y", column_offset, i, x_pos, y_pos)
                         cx = "{:.2f}".format(x_pos * 72, 2).rstrip("0")
-                        self.current_pdf._code.append(
-                            f"{cx} {cy} m {cx} {cy} l",
+                        code.append(
+                            f"{cx} {cy} m {cx} {cy} l" if dots else (f"{cx} {cy}" + rect_suffix),
                         )
-
                     # Consume the MSB
                     col_int = overflow_mask & (col_int << 1)
                     i += 1
                 column_offset += 8
 
             # Print the next line below
-            y_pos -= self.vertical_resolution
+            y_pos -= vertical_resolution
 
-            # Close and stroke path
-            self.current_pdf._code.append("S")
+            if dots:
+                # Close and stroke path => can be at the upper level, but break 1dot_v_band test
+                code.append("S")
 
         # Get rid of the last bits of potentially, partially used last byte
         # (just use the number of expected dots).
@@ -3164,7 +3177,7 @@ class ESCParser:
         # just use the x offset on the unique line (column_offset)
         # adjusted to reflect the number of the set bits in the last byte.
         printed_dots = h_dot_count if h_dot_count else column_offset -8 +i
-        self.cursor_x = printed_dots * self.horizontal_resolution
+        self.cursor_x = printed_dots * horizontal_resolution
 
     @staticmethod
     def decompress_rle_data(compressed_data: bytearray) -> bytearray:
@@ -3489,6 +3502,15 @@ class ESCParser:
         #                 stroke=0,
         #                 fill=1,
         #             )
+        # For a function called hundreds of thousands or even millions of times,
+        # local variables are preferable as they reduce the indirection level.
+        double_speed = self.double_speed
+        code = self.current_pdf._code
+        horizontal_resolution = self.horizontal_resolution
+        vertical_resolution = self.vertical_resolution
+        cursor_x = self.cursor_x
+        cursor_y = self.cursor_y
+        dots = True
 
         def chunk_this(iterable, length):
             """Split iterable in chunks of equal sizes
@@ -3506,21 +3528,31 @@ class ESCParser:
         overflow_mask = 2**(8*self.bytes_per_column) -1
         prev_col_int = 0
 
-        # Circles: Bézier curves are not used in order to avoid heavy
-        # memory, CPU & disk overload. Instead, for a point, we use a line with
-        # two semicircular arcs around the end points with a diameter equal to
-        # the width of the line drawn.
-        # Configure setlinecap: round (1 J)
-        # Configure linewidth (w)
-        # No noop to end previous path (n) (useless here)
-        linewidth = round(
-            max(self.horizontal_resolution, self.vertical_resolution) * 72 * 1.28,
-            2
-        )
-        self.current_pdf._code.append(f"1 J {linewidth} w")
+        if dots:
+            # Circles: Bézier curves are not used in order to avoid heavy
+            # memory, CPU & disk overload. Instead, for a point, we use a line with
+            # two semicircular arcs around the end points with a diameter equal to
+            # the width of the line drawn.
+            # We use a stroke directive here.
+            # Configure setlinecap: round (1 J)
+            # Configure linewidth (w)
+            # No noop to end previous path (n) (useless here)
+            linewidth = round(
+                max(horizontal_resolution, vertical_resolution) * 72 * 1.28,
+                2
+            )
+            code.append(f"1 J {linewidth} w")
+        else:
+            # Rectangles: width and height are the current H/V resolutions.
+            # The prefix including the coordinates is added in the loop.
+            # We use a fill directive here.
+            h_res = "{:.2f}".format(horizontal_resolution * 72, 2).rstrip("0")
+            v_res = "{:.2f}".format(vertical_resolution * 72, 2).rstrip("0")
+            rect_suffix = f" {h_res} {v_res} re f"
 
+        # Iterate on bytes inside columns
         for col_int in chunk_this(data, self.bytes_per_column):
-            if self.double_speed:
+            if double_speed:
                 # Clear bits using the previous column as a bitmask
                 col_int &= ~prev_col_int
                 prev_col_int = col_int
@@ -3529,27 +3561,30 @@ class ESCParser:
                 # For 9pins print heads, only the 1st bit of the 2nd byte is used
                 col_int &= 0xff80
 
-            i = 0
             # Do not search further, it IS the most efficient way to
             # round & strip trailing zeroes (to save space).
-            cx = "{:.2f}".format(self.cursor_x * 72, 2).rstrip("0")
+            cx = "{:.2f}".format(cursor_x * 72, 2).rstrip("0")
+            i = 0
             while col_int:
                 if col_int & mask:
                     # At each bit, move the local cursor_y down
-                    y_pos = self.cursor_y - i * self.vertical_resolution
-
+                    y_pos = cursor_y - i * vertical_resolution
                     cy = "{:.2f}".format(y_pos * 72, 2).rstrip("0")
-                    self.current_pdf._code.append(
-                        f"{cx} {cy} m {cx} {cy} l",
+                    code.append(
+                        f"{cx} {cy} m {cx} {cy} l" if dots else (f"{cx} {cy}" + rect_suffix)
                     )
                 i += 1
                 # Consume the MSB
                 col_int = (col_int << 1) & overflow_mask
 
             # Increment global cursor_x
-            self.cursor_x += self.horizontal_resolution
-        # Close and stroke path
-        self.current_pdf._code.append("S")
+            cursor_x += horizontal_resolution
+
+        if dots:
+            # Close and stroke path
+            code.append("S")
+
+        self.cursor_x = cursor_x
 
     def configure_bit_image(self, dot_density_m):
         """Configure the bit image printing mode according to the given dot density (internal usage)
