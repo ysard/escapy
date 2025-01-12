@@ -199,7 +199,19 @@ def test_select_bit_image_9pins(tmp_path: Path):
     pdf_comparison(processed_file)
 
 
-def test_select_bit_image(tmp_path: Path):
+@pytest.mark.parametrize(
+    # Ink dots will be drawn as circles if True, or as rectangles otherwise
+    "dots_as_circles, expected_filename",
+    [
+        (True, "test_bitimage_doublespeed_and_colors.pdf"),
+        (False, "test_bitimage_doublespeed_and_colors_rectangles.pdf"),
+    ],
+    ids=[
+        "dots_as_circles",
+        "dots_as_rectangles",
+    ],
+)
+def test_select_bit_image(tmp_path: Path, dots_as_circles: bool, expected_filename: str):
     """Test select_bit_image ESC *
 
     Show different representation of a form like the ⌐ (reversed not sign)
@@ -288,8 +300,10 @@ def test_select_bit_image(tmp_path: Path):
 
     code = b"".join(lines)
 
-    processed_file = tmp_path / "test_bitimage_doublespeed_and_colors.pdf"
-    escparser = ESCParser(code, output_file=processed_file)
+    processed_file = tmp_path / expected_filename
+    escparser = ESCParser(
+        code, dots_as_circles=dots_as_circles, output_file=processed_file
+    )
 
     assert escparser.horizontal_resolution == 1 / 120
     assert escparser.vertical_resolution == 1 / 60
@@ -465,7 +479,19 @@ def test_switch_microweave_mode():
         assert escparser.microweave_mode == expected
 
 
-def test_print_tiff_raster_graphics(tmp_path: Path):
+@pytest.mark.parametrize(
+    # Ink dots will be drawn as circles if True, or as rectangles otherwise
+    "dots_as_circles, expected_filename",
+    [
+        (True, "test_print_tiff_raster_graphics.pdf"),
+        (False, "test_print_tiff_raster_graphics_rectangles.pdf"),
+    ],
+    ids=[
+        "dots_as_circles",
+        "dots_as_rectangles",
+    ],
+)
+def test_print_tiff_raster_graphics(tmp_path: Path, dots_as_circles: bool, expected_filename: str):
     """Test TIFF raster graphics (mainly <XFER>)
 
     Cover ESC . 2, <MOVY>, full <XFER> command (nibble combinations), <EXIT>.
@@ -511,8 +537,10 @@ def test_print_tiff_raster_graphics(tmp_path: Path):
         exit_cmd,
     ]
 
-    processed_file = tmp_path / "test_print_tiff_raster_graphics.pdf"
-    escparser = ESCParser(b"".join(code), output_file=processed_file)
+    processed_file = tmp_path / expected_filename
+    escparser = ESCParser(
+        b"".join(code), dots_as_circles=dots_as_circles, output_file=processed_file
+    )
 
     assert escparser.horizontal_resolution == 1 / 180
     assert escparser.vertical_resolution == 1 / 180
