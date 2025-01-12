@@ -237,7 +237,7 @@ def test_erroneous_settings(sample_config):
     indirect=["sample_config"],  # Send sample_config val to the fixture
 )
 def test_specific_settings(sample_config, expected_settings):
-    """Test user settings vs parsed ones
+    """Test user settings vs parsed ones (focused on font definition)
 
     .. note:: Roman & Sans serif sections are mandatory and created if not in the
         config file.

@@ -419,7 +419,6 @@ def test_select_character_table(pins):
     """Test the behavior of the ESC t 2 command when a table has been
     assigned (or tried to be) to table 2.
 
-
     - ESC/P 2 printers:
         cannot shift user-defined characters if you have previously
         assigned another character table to table 2 using
