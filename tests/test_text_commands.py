@@ -1375,8 +1375,8 @@ def test_text_enhancements(tmp_path: Path):
         b"\x09Hanc regionem \x1b!\x40praestitutis celebritati\x1b!\x00 diebus",
         b"invadere \x1b!\x08parans\x1b!\x00 dux \x1b!\x80ante edictus\x1b!\x00 per solitudines",
         b"Aboraeque \x1b!\x08amnis herbidas ripas\x1b!\x00, suorum indicio",
-        # Test all features on the same words (bold + underline = 2 + 128)
-        b"proditus, \x1b!\x88qui admissi flagitii metu exagitati\x1b!\x00 ad",
+        # Test all features on the same words (bold + italic + underline = 8 + 64 + 128)
+        b"proditus, \x1b!\xc8qui admissi flagitii metu exagitati\x1b!\x00 ad",
         b"praesidia descivere Romana. absque ullo egressus",
         b"effectu deinde tabescebat immobilis.",
         b"",
