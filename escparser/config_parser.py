@@ -160,6 +160,11 @@ def parse_config(config: configparser.ConfigParser):
             raise SystemExit from exc
 
 
+    renderer = misc_section.get("renderer")
+    if not renderer or renderer not in ("dots", "rectangles"):
+        misc_section["renderer"] = "dots"
+
+
     ## Fonts sections
     mandatory_typefaces = ("Roman", "Sans serif")
     for typeface in TYPEFACE_NAMES.values():
