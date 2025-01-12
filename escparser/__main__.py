@@ -23,7 +23,7 @@ import sys
 
 # Custom imports
 from escparser import __version__
-from escparser.config_parser import load_config
+from escparser.config_parser import load_config, build_parser_params
 from escparser.fonts import setup_fonts
 from escparser.parser import ESCParser
 import escparser.commons as cm
@@ -51,39 +51,6 @@ def escparser_entry_point(**kwargs):
         output_file=kwargs["output"],
         **build_parser_params(config),
     )
-
-
-def build_parser_params(config) -> dict:
-    """Get dict of params that match the kwargs of ESCParser object.
-
-    :param config: Configuration object.
-    :type config: configparser.ConfigParser
-    """
-
-    def to_tuple(config_str) -> tuple[float] | None:
-        """Get a tuple of numeric values if the given param is not empty and not None"""
-        return tuple(map(float, config_str.split(","))) if config_str else None
-
-    misc_section = config["misc"]
-    pins = int(pins) if (pins := misc_section.get("pins")) else None
-    printable_area_margins_mm = to_tuple(misc_section.get("printable_area_margins_mm"))
-    automatic_linefeed = misc_section.getboolean("automatic_linefeed", False)
-    page_size = (
-        to_tuple(page_size)
-        if (page_size := misc_section["page_size"]) not in cm.PAGESIZE_MAPPING
-        else cm.PAGESIZE_MAPPING[page_size]
-    )
-    single_sheets = misc_section.getboolean("single_sheets", True)
-    dots_as_circles = misc_section.get("renderer") == "dots"
-
-    return {
-        "pins": pins,
-        "printable_area_margins_mm": printable_area_margins_mm,
-        "automatic_linefeed": automatic_linefeed,
-        "page_size": page_size,
-        "single_sheets": single_sheets,
-        "dots_as_circles": dots_as_circles,
-    }
 
 
 def args_to_params(args):  # pragma: no cover
