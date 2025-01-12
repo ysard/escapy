@@ -23,9 +23,8 @@ import configparser
 import pytest
 
 # Local imports
-from escparser.__main__ import build_parser_params
 from escparser.commons import log_level, LOG_LEVEL, DIR_FONTS
-from escparser.config_parser import parse_config, load_config
+from escparser.config_parser import parse_config, load_config, build_parser_params
 
 
 def default_config():
