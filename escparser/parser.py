@@ -120,7 +120,7 @@ class ESCParser:
         page_size=A4,
         single_sheets=True,
         automatic_linefeed=False,
-        dots_renderer=True,
+        dots_as_circles=True,
         pdf=True,
         output_file="output.pdf",
         **_
@@ -146,7 +146,7 @@ class ESCParser:
         :key automatic_linefeed: When automatic line-feed is selected (historically
             through DIP-switch or panel setting), the CR command is accompanied
             by a LF command.
-        :key dots_renderer: Ink dots will be drawn as circles if True, or as
+        :key dots_as_circles: Ink dots will be drawn as circles if True, or as
             rectangles otherwise. (default: True).
         :key pdf: Enable pdf generation via reportlab. (default: True).
         :key output_file: Output filepath. (default: output.pdf).
@@ -156,7 +156,7 @@ class ESCParser:
         :type printable_area_margins_mm: tuple[int] | None
         :type single_sheets: bool
         :type automatic_linefeed: bool
-        :type dots_renderer: bool
+        :type dots_as_circles: bool
         :type pdf: bool
         :type output_file: io.TextIOWrapper | str
         """
@@ -173,7 +173,7 @@ class ESCParser:
         # Note: There are non-ESCP2 printers that have 24, 48 pins !
         self.pins = pins
         # Render dots as circles or rectangles
-        self.dots_renderer = dots_renderer
+        self.dots_as_circles = dots_as_circles
         self.current_pdf = None
 
         if automatic_linefeed:
@@ -3122,7 +3122,7 @@ class ESCParser:
         vertical_resolution = self.vertical_resolution
         cursor_x = self.cursor_x
         cursor_y = self.cursor_y
-        dots = self.dots_renderer
+        dots = self.dots_as_circles
 
         def chunk_this(iterable, length):
             """Split iterable in chunks of equal sizes"""
@@ -3472,7 +3472,7 @@ class ESCParser:
         vertical_resolution = self.vertical_resolution
         cursor_x = self.cursor_x
         cursor_y = self.cursor_y
-        dots = self.dots_renderer
+        dots = self.dots_as_circles
 
         def chunk_this(iterable, length):
             """Split iterable in chunks of equal sizes
