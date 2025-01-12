@@ -45,6 +45,7 @@ from escparser.commons import (
     CHARACTER_TABLE_MAPPING,
     LEFT_TO_RIGHT_LANGUAGES,
     RAM_CHARACTERS_TABLE,
+    USER_DEFINED_DB_FILE,
     DIR_USER_DEFINED_IMAGES,
 )
 from escparser.encodings.i18n_codecs import getregentry
@@ -121,6 +122,8 @@ class ESCParser:
         single_sheets=True,
         automatic_linefeed=False,
         dots_as_circles=True,
+        userdef_db_filepath=USER_DEFINED_DB_FILE,
+        userdef_images_path=DIR_USER_DEFINED_IMAGES,
         pdf=True,
         output_file="output.pdf",
         **_
@@ -334,7 +337,9 @@ class ESCParser:
         self.copied_font = {}
         self.ram_characters = False
         from escparser.user_defined_characters import RAMCharacters
-        self.user_defined = RAMCharacters(parent=self)
+        self.userdef_db_filepath = userdef_db_filepath
+        self.userdef_images_path = userdef_images_path
+        self.user_defined = RAMCharacters(parent=self, db_filepath=userdef_db_filepath)
         # Allow set operations on control codes
         # This attr store the current character points that MUST NOT be printed
         # About default config:
@@ -2133,7 +2138,7 @@ class ESCParser:
             data = Image.fromarray(array)
             # data = data.resize((34, int(24*1.5)))
             # TODO: check/create dir
-            data.save(f'{DIR_USER_DEFINED_IMAGES}/char_{md5_digest}.png')
+            data.save(f'{self.userdef_images_path}/char_{md5_digest}.png')
 
             self.user_defined.add_char(md5_digest, char_code)
 

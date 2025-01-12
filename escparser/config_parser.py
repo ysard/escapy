@@ -29,6 +29,8 @@ from escparser.commons import (
     DIR_FONTS,
     TYPEFACE_NAMES,
     PAGESIZE_MAPPING,
+    USER_DEFINED_DB_FILE,
+    DIR_USER_DEFINED_IMAGES
 )
 
 LOGGER = logger()
@@ -165,6 +167,17 @@ def parse_config(config: configparser.ConfigParser):
         misc_section["renderer"] = "dots"
 
 
+    ## User defined characters section
+    if not config.has_section("UserDefinedCharacters"):
+        config.add_section("UserDefinedCharacters")
+
+    ud_section = config["UserDefinedCharacters"]
+    if not ud_section.get("database_filepath"):
+        ud_section["database_filepath"] = USER_DEFINED_DB_FILE
+    if not ud_section.get("images_path"):
+        ud_section["images_path"] = DIR_USER_DEFINED_IMAGES
+
+
     ## Fonts sections
     mandatory_typefaces = ("Roman", "Sans serif")
     for typeface in TYPEFACE_NAMES.values():
@@ -234,6 +247,8 @@ def build_parser_params(config) -> dict:
     single_sheets = misc_section.getboolean("single_sheets", True)
     dots_as_circles = misc_section.get("renderer") == "dots"
 
+    ud_section = config["UserDefinedCharacters"]
+
     return {
         "pins": pins,
         "printable_area_margins_mm": printable_area_margins_mm,
@@ -241,4 +256,6 @@ def build_parser_params(config) -> dict:
         "page_size": page_size,
         "single_sheets": single_sheets,
         "dots_as_circles": dots_as_circles,
+        "userdef_db_filepath": ud_section["database_filepath"],
+        "userdef_images_path": ud_section["images_path"],
     }

@@ -30,6 +30,8 @@ from reportlab.lib import pagesizes
 DIR_LOGS = tempfile.gettempdir() + "/"
 CONFIG_FILE = "./escparser.conf"
 DIR_FONTS = "/usr/share/fonts/truetype/"
+USER_DEFINED_DB_FILE = "./user_defined_mapping.json"
+DIR_USER_DEFINED_IMAGES = "./user_defined_images/"
 
 # Page sizes should be in points (1/72 inch)
 # Custom sizes added to reportlab sizes
