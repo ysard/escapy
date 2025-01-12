@@ -246,9 +246,11 @@ class ESCParser:
 
         if pdf:
             # Init PDF render
-            if not isinstance(output_file, str):
-                # Support of argparse value vs default str
+            # Support of argparse file descriptor vs default str/Path used by tests
+            if not isinstance(output_file, (str, Path)):
                 output_file = output_file.buffer
+            else:
+                output_file = str(output_file)
             self.current_pdf = Canvas(output_file, pagesize=page_size, pageCompression=1)
             self.current_pdf.setLineWidth(0.3)
             self.current_pdf.setFillOverprint(True)
