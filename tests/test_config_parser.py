@@ -258,7 +258,7 @@ def test_specific_settings(sample_config, expected_settings):
                 "page_size": (595.2755905511812, 841.8897637795277),
                 "single_sheets": True,
                 "automatic_linefeed": False,
-                "dots_renderer": True,
+                "dots_as_circles": True,
             },
         ),
         # floats for printable_area_margins_mm & page_size
@@ -279,7 +279,7 @@ def test_specific_settings(sample_config, expected_settings):
                 "page_size": (595.0, 841.0),
                 "single_sheets": False,
                 "automatic_linefeed": False,
-                "dots_renderer": False,
+                "dots_as_circles": False,
             },
         ),
         # ints for printable_area_margins_mm, alias for page_size
@@ -299,7 +299,7 @@ def test_specific_settings(sample_config, expected_settings):
                 "page_size": (595.2755905511812, 841.8897637795277),
                 "single_sheets": True,
                 "automatic_linefeed": True,
-                "dots_renderer": True,
+                "dots_as_circles": True,
             },
         ),
     ],
