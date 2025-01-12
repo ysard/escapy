@@ -23,7 +23,13 @@ import configparser
 import pytest
 
 # Local imports
-from escparser.commons import log_level, LOG_LEVEL, DIR_FONTS
+from escparser.commons import (
+    log_level,
+    LOG_LEVEL,
+    DIR_FONTS,
+    USER_DEFINED_DB_FILE,
+    DIR_USER_DEFINED_IMAGES
+)
 from escparser.config_parser import parse_config, load_config, build_parser_params
 
 
@@ -43,7 +49,12 @@ def default_config():
         "fixed": "Courier",
         "proportional": "Times",
     }
-    return misc_section, roman_section
+
+    userdef_section = {
+        "database_filepath": USER_DEFINED_DB_FILE,
+        "images_path": DIR_USER_DEFINED_IMAGES,
+    }
+    return misc_section, roman_section, userdef_section
 
 
 @pytest.fixture()
@@ -65,7 +76,7 @@ def sample_config(request):
 
 
 def test_empty_file():
-    """Test empty config file"""
+    """Test empty config file, will raise an exception"""
     sample_config = ""
 
     config = configparser.ConfigParser()
@@ -79,16 +90,19 @@ def test_empty_file():
 def test_default_file():
     """Test the loading of the default config file embedded with the application"""
     sample_config = load_config()
-    expected_misc_section, expected_roman_section = default_config()
+    expected_misc_section, expected_roman_section, expected_userdef_section = default_config()
 
     # Transtype for easier debugging (original object has a different string rep)
     found_misc_section = dict(sample_config["misc"])
     found_roman_section = dict(sample_config["Roman"])
     found_sansserif_section = dict(sample_config["Sans serif"])
+    found_userdef_section = dict(sample_config["UserDefinedCharacters"])
 
     assert found_misc_section == expected_misc_section
     assert found_roman_section == expected_roman_section
     assert found_sansserif_section == expected_roman_section
+    assert found_userdef_section == expected_userdef_section
+
 
 
 @pytest.mark.parametrize(
@@ -250,6 +264,9 @@ def test_specific_settings(sample_config, expected_settings):
             single_sheets =
             automatic_linefeed =
             renderer =
+            [UserDefinedCharacters]
+            database_filepath =
+            images_path =
             """,
             {
                 "pins": None,
@@ -258,6 +275,8 @@ def test_specific_settings(sample_config, expected_settings):
                 "single_sheets": True,
                 "automatic_linefeed": False,
                 "dots_as_circles": True,
+                "userdef_db_filepath": USER_DEFINED_DB_FILE,
+                "userdef_images_path": DIR_USER_DEFINED_IMAGES,
             },
         ),
         # floats for printable_area_margins_mm & page_size
@@ -271,6 +290,9 @@ def test_specific_settings(sample_config, expected_settings):
             single_sheets = false
             automatic_linefeed = false
             renderer = rectangles
+            [UserDefinedCharacters]
+            database_filepath = xxx.json
+            images_path = ./xxx/
             """,
             {
                 "pins": 9,
@@ -279,6 +301,8 @@ def test_specific_settings(sample_config, expected_settings):
                 "single_sheets": False,
                 "automatic_linefeed": False,
                 "dots_as_circles": False,
+                "userdef_db_filepath": "xxx.json",
+                "userdef_images_path": "./xxx/",
             },
         ),
         # ints for printable_area_margins_mm, alias for page_size
@@ -299,6 +323,9 @@ def test_specific_settings(sample_config, expected_settings):
                 "single_sheets": True,
                 "automatic_linefeed": True,
                 "dots_as_circles": True,
+                # Missing section defaults
+                "userdef_db_filepath": USER_DEFINED_DB_FILE,
+                "userdef_images_path": DIR_USER_DEFINED_IMAGES,
             },
         ),
     ],
