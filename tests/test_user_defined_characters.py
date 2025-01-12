@@ -18,8 +18,7 @@
 # Standard imports
 from pathlib import Path
 import codecs
-from functools import partial, partialmethod
-from unittest.mock import patch
+from functools import partial
 
 # Custom imports
 import pytest
@@ -104,7 +103,7 @@ def script_char():
         "subscript_height",
     ],
 )
-def test_user_defined_chars(scripting, char_data):
+def test_user_defined_chars(tmp_path: Path, scripting, char_data):
     """Test the definition of RAM user characters in ESCP2 mode - ESC &
 
     Test mapping from scratch (no base encoding like in :meth:`test_copy_rom_to_ram`).
@@ -114,6 +113,8 @@ def test_user_defined_chars(scripting, char_data):
     Also tests that the RAM characters are erased if the settings
     (character traits) are modified.
     """
+    db_file = tmp_path / "file.json"
+
     define_user_char_cmd_prefix = b"\x1b&\x00"
     first_code_n = b"\x01"
     last_code_m = b"\x02"
@@ -126,7 +127,7 @@ def test_user_defined_chars(scripting, char_data):
         + char_data,
     ]
     code = esc_reset + b"".join(lines)
-    escparser = ESCParser(code, pdf=False)
+    escparser = ESCParser(code, userdef_db_filepath=db_file, pdf=False)
 
     # REPLACEMENT CHARACTER is used if the mapping is not found
     expected_mapping = {1: "\ufffd", 2: "\ufffd"}
@@ -150,7 +151,7 @@ def test_user_defined_chars(scripting, char_data):
         + char_data
     ]
     code = esc_reset + b"".join(lines)
-    escparser = ESCParser(code, pdf=False)
+    escparser = ESCParser(code, userdef_db_filepath=db_file, pdf=False)
 
     # 1 REPLACEMENT CHARACTER only
     expected = {1: "\ufffd"}
@@ -240,14 +241,12 @@ def test_database_file(
     ]
     code = esc_reset + b"".join(lines)
 
-    func = partialmethod(mocked_init, db_filepath=mocked_db_file)
-    with patch.object(RAMCharacters, "__init__", func):
-        escparser = ESCParser(code, pdf=False)
+    escparser = ESCParser(code, userdef_db_filepath=mocked_db_file, pdf=False)
 
-        # The code 3 must be a REPLACEMENT CHARACTER
-        expected_mapping |= {3: "\ufffd"}
-        found_charset = escparser.user_defined.charset_mapping
-        assert found_charset == expected_mapping
+    # The code 3 must be a REPLACEMENT CHARACTER
+    expected_mapping |= {3: "\ufffd"}
+    found_charset = escparser.user_defined.charset_mapping
+    assert found_charset == expected_mapping
 
     # A JSON mapping file should have been created
     assert mocked_db_file.exists()
@@ -274,7 +273,7 @@ def test_database_file(
         "ukn_typeface",
     ],
 )
-def test_copy_rom_to_ram(normal_char_data, multipoint, typeface_id):
+def test_copy_rom_to_ram(tmp_path: Path, normal_char_data, multipoint, typeface_id):
     """Test the encoding copy from ROM to RAM - ESC :
 
     The ROM table (current encoding) is used as a base from the user-defined
@@ -288,6 +287,8 @@ def test_copy_rom_to_ram(normal_char_data, multipoint, typeface_id):
         Characters copied from locations 0 to 255;
         TODO: locations from 128 to 255 are taken from the Italic table...
     """
+    db_file = tmp_path / "file.json"
+
     define_user_char_cmd_prefix = b"\x1b&\x00"
     first_code_n = b"\x01"
     last_code_m = b"\x02"
@@ -305,7 +306,7 @@ def test_copy_rom_to_ram(normal_char_data, multipoint, typeface_id):
         + normal_char_data,
     ]
     code = esc_reset + b"".join(lines)
-    escparser = ESCParser(code, pdf=False)
+    escparser = ESCParser(code, userdef_db_filepath=db_file, pdf=False)
 
     # Validate the encoding
     if is_cmd_ignored:
@@ -360,7 +361,7 @@ def test_copy_rom_to_ram_settings():
     assert escparser.user_defined.settings["scripting"] == PrintScripting.SUB
 
 
-def test_shift_upper_charset(normal_char_data):
+def test_shift_upper_charset(tmp_path: Path, normal_char_data):
     """Test select_character_table for table 2 in ESCP2,24/48 pins mode
 
     .. warning:: Only test shift user-defined characters
@@ -368,6 +369,8 @@ def test_shift_upper_charset(normal_char_data):
 
         See also :meth:`test_select_character_table`.
     """
+    db_file = tmp_path / "file.json"
+
     define_user_char_cmd_prefix = b"\x1b&\x00"
     first_code_n = b"\x01"
     last_code_m = b"\x02"
@@ -389,7 +392,7 @@ def test_shift_upper_charset(normal_char_data):
         + normal_char_data
     ]
     code = esc_reset + b"".join(lines)
-    escparser = ESCParser(code, pdf=False)
+    escparser = ESCParser(code, userdef_db_filepath=db_file, pdf=False)
 
     # User-defined chars should be moved to the upper part of the charset
     expected_mapping = {1: "\ufffd", 2: "☻", 129: "\ufffd", 130: "\ufffd"}
@@ -556,10 +559,12 @@ def test_select_user_defined_set(tmp_path: Path, normal_char_data: bytes):
     code = esc_reset + b"".join(lines)
 
     processed_file = tmp_path / "test_select_user_defined_set.pdf"
-    func = partialmethod(mocked_init, db_filepath=mocked_db_file)
-    with patch.object(RAMCharacters, "__init__", func):
-        _ = _ESCParser(
-            code, pins=None, available_fonts=fonts, output_file=processed_file
-        )
+    _ = _ESCParser(
+        code,
+        pins=None,
+        available_fonts=fonts,
+        userdef_db_filepath=mocked_db_file,
+        output_file=processed_file
+    )
 
     pdf_comparison(processed_file)
