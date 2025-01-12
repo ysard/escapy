@@ -36,6 +36,7 @@ def default_config():
         "page_size": "A4",
         "automatic_linefeed": "false",
         "single_sheets": "true",
+        "renderer": "dots",
     }
 
     roman_section = {
@@ -249,6 +250,7 @@ def test_specific_settings(sample_config, expected_settings):
             page_size =
             single_sheets =
             automatic_linefeed =
+            renderer =
             """,
             {
                 "pins": None,
@@ -256,6 +258,7 @@ def test_specific_settings(sample_config, expected_settings):
                 "page_size": (595.2755905511812, 841.8897637795277),
                 "single_sheets": True,
                 "automatic_linefeed": False,
+                "dots_renderer": True,
             },
         ),
         # floats for printable_area_margins_mm & page_size
@@ -268,6 +271,7 @@ def test_specific_settings(sample_config, expected_settings):
             page_size = 595.0,841.0
             single_sheets = false
             automatic_linefeed = false
+            renderer = rectangles
             """,
             {
                 "pins": 9,
@@ -275,6 +279,7 @@ def test_specific_settings(sample_config, expected_settings):
                 "page_size": (595.0, 841.0),
                 "single_sheets": False,
                 "automatic_linefeed": False,
+                "dots_renderer": False,
             },
         ),
         # ints for printable_area_margins_mm, alias for page_size
@@ -286,6 +291,7 @@ def test_specific_settings(sample_config, expected_settings):
             page_size = A4
             single_sheets = true
             automatic_linefeed = true
+            renderer = dots
             """,
             {
                 "pins": 48,
@@ -293,6 +299,7 @@ def test_specific_settings(sample_config, expected_settings):
                 "page_size": (595.2755905511812, 841.8897637795277),
                 "single_sheets": True,
                 "automatic_linefeed": True,
+                "dots_renderer": True,
             },
         ),
     ],
