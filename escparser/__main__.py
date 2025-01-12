@@ -74,7 +74,7 @@ def build_parser_params(config) -> dict:
         else cm.PAGESIZE_MAPPING[page_size]
     )
     single_sheets = misc_section.getboolean("single_sheets", True)
-    dots_renderer = misc_section.get("renderer") == "dots"
+    dots_as_circles = misc_section.get("renderer") == "dots"
 
     return {
         "pins": pins,
@@ -82,7 +82,7 @@ def build_parser_params(config) -> dict:
         "automatic_linefeed": automatic_linefeed,
         "page_size": page_size,
         "single_sheets": single_sheets,
-        "dots_renderer": dots_renderer,
+        "dots_as_circles": dots_as_circles,
     }
 
 
