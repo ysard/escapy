@@ -16,6 +16,7 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Test real-life file rendering"""
 # Standard imports
+import sys
 from pathlib import Path
 from functools import partial
 
@@ -87,6 +88,32 @@ def minimal_config() -> str:
         [Roman]
         fixed = FiraCode
         """
+
+def test_stdin_stdout(capsysbinary, tmp_path: Path, minimal_config: str):
+    """Test the produced data written on stdout
+
+    :param tmp_path: Path of temporary working dir returned by a pytest fixture.
+    :param minimal_config: Minimal configuration file content.
+    """
+    empty_config_file = tmp_path / "config.conf"
+    empty_config_file.write_text(minimal_config)
+
+    processed_file = tmp_path / "escp2_1.pdf"
+
+    cmdline_args = {
+        # Need to use a _io.TextIOWrapper object like the one given by argparse
+        "esc_prn": open(DIR_DATA + "escp2_1.prn", encoding="utf8"),
+        "config": empty_config_file,
+        "output": sys.stdout,
+    }
+
+    # Do magic
+    escparser_entry_point(**cmdline_args)
+
+    captured = capsysbinary.readouterr()
+    processed_file.write_bytes(captured.out)
+
+    pdf_comparison(processed_file)
 
 
 def test_argument_parser(tmp_path: Path, minimal_config: str):
