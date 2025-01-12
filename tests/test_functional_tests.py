@@ -100,7 +100,8 @@ def test_argument_parser(tmp_path: Path, minimal_config: str):
 
     processed_file = tmp_path / "escp2_1.pdf"
     cmdline_args = {
-        "esc_prn": Path(DIR_DATA + "escp2_1.prn"),
+        # Need to use a _io.TextIOWrapper object like the one given by argparse
+        "esc_prn": open(DIR_DATA + "escp2_1.prn", encoding="utf8"),
         "config": empty_config_file,
         "output": processed_file,
     }
@@ -125,7 +126,8 @@ def test_empty_input_file(tmp_path: Path, minimal_config: str):
 
     processed_file = tmp_path / "escp2_1.pdf"
     cmdline_args = {
-        "esc_prn": empty_input_file,
+        # Need to use a _io.TextIOWrapper object like the one given by argparse
+        "esc_prn": open(empty_input_file, encoding="utf8"),
         "config": empty_config_file,
         "output": processed_file,
     }
