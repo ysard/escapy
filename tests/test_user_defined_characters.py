@@ -258,6 +258,43 @@ def test_database_file(
 
 
 @pytest.mark.parametrize(
+    "create_userdef_images",
+    [
+        False,
+        True,
+    ],
+    ids=["default", "userdef_image"],
+)
+def test_image(tmp_path, normal_char_data, create_userdef_images):
+    """Test the creation of the images of user-defined characters
+
+    Default: Not created.
+    """
+    db_file = tmp_path / "file.json"
+    userdef_images_path = tmp_path if create_userdef_images else None
+
+    # Send 3 chars
+    define_user_char_cmd_prefix = b"\x1b&\x00"
+    first_code_n = b"\x01"
+
+    lines = [
+        define_user_char_cmd_prefix + first_code_n + first_code_n
+        + normal_char_data
+    ]
+    code = esc_reset + b"".join(lines)
+
+    _ = ESCParser(
+        code,
+        userdef_db_filepath=db_file,
+        userdef_images_path=userdef_images_path,
+        pdf=False
+    )
+
+    # Expect an image whose name is based on the md5 hash of the character's bytes
+    assert (tmp_path / "char_83e1a70.png").exists() == create_userdef_images
+
+
+@pytest.mark.parametrize(
     "multipoint, typeface_id",
     [
         # cmd ok
