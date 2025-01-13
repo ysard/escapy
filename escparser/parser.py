@@ -3153,7 +3153,7 @@ class ESCParser:
         else:
             h_res = "{:.2f}".format(horizontal_resolution * 72, 2).rstrip("0")
             v_res = "{:.2f}".format(vertical_resolution * 72, 2).rstrip("0")
-            rect_suffix = f" {h_res} {v_res} re f"
+            rect_suffix = f" {h_res} {v_res} re"
 
         # Iterate on bytes inside lines
         for line_idx, line_bytes in enumerate(chunk_this(data, self.bytes_per_line), 1):
@@ -3181,9 +3181,9 @@ class ESCParser:
             # Print the next line below
             y_pos -= vertical_resolution
 
-            if dots:
-                # Close and stroke path => can be at the upper level, but break 1dot_v_band test
-                code.append("S")
+            # Close path and stroke or fill
+            # => can be at the upper level, but breaks 1dot_v_band test
+            code.append("S" if dots else "f")
 
         # Get rid of the last bits of potentially, partially used last byte
         # (just use the number of expected dots).
@@ -3519,7 +3519,7 @@ class ESCParser:
             # We use a fill directive here.
             h_res = "{:.2f}".format(horizontal_resolution * 72, 2).rstrip("0")
             v_res = "{:.2f}".format(vertical_resolution * 72, 2).rstrip("0")
-            rect_suffix = f" {h_res} {v_res} re f"
+            rect_suffix = f" {h_res} {v_res} re"
 
         # Iterate on bytes inside columns
         for col_int in chunk_this(data, self.bytes_per_column):
@@ -3554,9 +3554,8 @@ class ESCParser:
             # Increment global cursor_x
             cursor_x += horizontal_resolution
 
-        if dots:
-            # Close and stroke path
-            code.append("S")
+        # Close path and stroke or fill
+        code.append("S" if dots else "f")
 
         self.cursor_x = cursor_x
 
