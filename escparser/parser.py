@@ -123,7 +123,7 @@ class ESCParser:
         automatic_linefeed=False,
         dots_as_circles=True,
         userdef_db_filepath=USER_DEFINED_DB_FILE,
-        userdef_images_path=DIR_USER_DEFINED_IMAGES,
+        userdef_images_path=None,
         pdf=True,
         output_file="output.pdf",
         **_
@@ -2114,7 +2114,12 @@ class ESCParser:
             # input("pause")
 
             md5_digest = md5(data).hexdigest()[:7]
+            self.user_defined.add_char(md5_digest, char_code)
 
+            LOGGER.debug("Received char; code %s (%d)", format(char_code, '#04x'), char_code)
+
+            if not self.userdef_images_path:
+                continue
             # Extract the pixels (dots) from the bits of every byte
             # 0: black color; 0xFF: white color
             # Flatten the 2D array we obtain (list of lists of dots for each byte)
@@ -2132,15 +2137,11 @@ class ESCParser:
             array = array.T
 
             LOGGER.debug("Received char; size: %s", array.shape)
-            LOGGER.debug("Received char; code %s (%d)", format(char_code, '#04x'), char_code)
 
             # Save the image for later investigations
             data = Image.fromarray(array)
             # data = data.resize((34, int(24*1.5)))
-            # TODO: check/create dir
             data.save(f'{self.userdef_images_path}/char_{md5_digest}.png')
-
-            self.user_defined.add_char(md5_digest, char_code)
 
         self.user_defined.update_encoding()
         self.user_defined.save()

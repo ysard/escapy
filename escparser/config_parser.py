@@ -17,6 +17,7 @@
 """Load configuration file, check and set default values"""
 
 # Standard imports
+from pathlib import Path
 import configparser
 from logging import DEBUG
 
@@ -174,8 +175,18 @@ def parse_config(config: configparser.ConfigParser):
     ud_section = config["UserDefinedCharacters"]
     if not ud_section.get("database_filepath"):
         ud_section["database_filepath"] = USER_DEFINED_DB_FILE
-    if not ud_section.get("images_path"):
-        ud_section["images_path"] = DIR_USER_DEFINED_IMAGES
+    # Default: images path export is disabled (if not defined or empty)
+    # If defined, the directory is created.
+    images_path = ud_section.get("images_path")
+    if images_path and not Path(images_path).exists():
+        try:
+            Path(images_path).mkdir(exist_ok=True)
+        except Exception as exc:
+            LOGGER.error(
+                "UserDefinedCharacters: error accessing images_path (%s)",
+                images_path
+            )
+            raise SystemExit from exc
 
 
     ## Fonts sections
@@ -247,7 +258,10 @@ def build_parser_params(config) -> dict:
     single_sheets = misc_section.getboolean("single_sheets", True)
     dots_as_circles = misc_section.get("renderer") == "dots"
 
+    # Default: images path export is disabled (if not defined or empty)
     ud_section = config["UserDefinedCharacters"]
+    images_path = ud_section.get("images_path")
+    userdef_images_path = None if not images_path else images_path
 
     return {
         "pins": pins,
@@ -257,5 +271,5 @@ def build_parser_params(config) -> dict:
         "single_sheets": single_sheets,
         "dots_as_circles": dots_as_circles,
         "userdef_db_filepath": ud_section["database_filepath"],
-        "userdef_images_path": ud_section["images_path"],
+        "userdef_images_path": userdef_images_path,
     }
