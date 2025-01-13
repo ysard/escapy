@@ -1395,3 +1395,60 @@ def test_text_enhancements(tmp_path: Path):
     _ = ESCParser(code, output_file=processed_file)
 
     pdf_comparison(processed_file)
+
+
+def test_select_line_score(tmp_path: Path):
+    """Test character scoring combinations - ESC ( -"""
+    cmd_prefix = b"\x1b(-\x03\x00\x01"
+
+    single_continuous = b"\x01"
+    double_continuous = b"\x02"
+
+    single_broken = b"\x05"
+    double_broken = b"\x06"
+
+    underline = cmd_prefix + b"\x01"
+    strike = cmd_prefix + b"\x02"
+    over = cmd_prefix + b"\x03"
+
+    turn_off_underline = underline + b"\x00"
+    turn_off_strike = strike + b"\x00"
+    turn_off_over = over + b"\x00"
+
+    tab = b"\x09"
+
+    all_single_continuous = single_continuous.join((underline, strike, over)) + single_continuous
+    all_double_continuous = double_continuous.join((underline, strike, over)) + double_continuous
+    all_single_broken = single_broken.join((underline, strike, over)) + single_broken
+    all_double_broken = double_broken.join((underline, strike, over)) + double_broken
+    all_turn_off = turn_off_underline + turn_off_strike + turn_off_over
+
+    lines = [
+        esc_reset,
+        b"Underline",
+        tab + underline + single_continuous + b"single continuous" + turn_off_underline,
+        tab + underline + double_continuous + b"double continuous" + turn_off_underline,
+        tab + underline + single_broken + b"single broken" + turn_off_underline,
+        tab + underline + double_broken + b"double broken" + turn_off_underline,
+        b"Striketrough",
+        tab + strike + single_continuous + b"single continuous" + turn_off_strike,
+        tab + strike + double_continuous + b"double continuous" + turn_off_strike,
+        tab + strike + single_broken + b"single broken" + turn_off_strike,
+        tab + strike + double_broken + b"double broken" + turn_off_strike,
+        b"Overscore",
+        tab + over + single_continuous + b"single continuous" + turn_off_over,
+        tab + over + double_continuous + b"double continuous" + turn_off_over,
+        tab + over + single_broken + b"single broken" + turn_off_over,
+        tab + over + double_broken + b"double broken" + turn_off_over,
+        b"All",
+        tab + all_single_continuous + b"single continuous Underline Striketrough Overscore" + all_turn_off,
+        tab + all_double_continuous + b"double continuous Underline Striketrough Overscore" + all_turn_off,
+        tab + all_single_broken + b"single broken Underline Striketrough Overscore" + all_turn_off,
+        tab + all_double_broken + b"double broken Underline Striketrough Overscore" + all_turn_off,
+    ]
+
+    code = b"\r\n".join(lines)
+    processed_file = tmp_path / "test_line_scores.pdf"
+    _ = ESCParser(code, output_file=processed_file)
+
+    pdf_comparison(processed_file)
