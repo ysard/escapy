@@ -161,7 +161,7 @@ class ESCParser:
         :type automatic_linefeed: bool
         :type dots_as_circles: bool
         :type pdf: bool
-        :type output_file: io.TextIOWrapper | str
+        :type output_file: io.TextIOWrapper | str | Path
         """
         # Misc #################################################################
         # Prepare for methods search in run_esc_instruction()
@@ -340,6 +340,7 @@ class ESCParser:
         self.userdef_db_filepath = userdef_db_filepath
         self.userdef_images_path = userdef_images_path
         self.user_defined = RAMCharacters(parent=self, db_filepath=userdef_db_filepath)
+
         # Allow set operations on control codes
         # This attr store the current character points that MUST NOT be printed
         # About default config:
@@ -1520,7 +1521,7 @@ class ESCParser:
             Character scoring (underline, overscore, and strikethrough) is not
             printed between the current print position and the next tab when this
             command is sent.
-            => temp disable
+            => temp disable before cursor_x set and enabled after
         """
         # Guess the tab position
         # We search the first tab pos AFTER the current cursor_x
