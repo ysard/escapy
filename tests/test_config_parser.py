@@ -18,6 +18,7 @@
 
 # Standard imports
 import configparser
+from pathlib import Path
 
 # Custom imports
 import pytest
@@ -28,7 +29,6 @@ from escparser.commons import (
     LOG_LEVEL,
     DIR_FONTS,
     USER_DEFINED_DB_FILE,
-    DIR_USER_DEFINED_IMAGES
 )
 from escparser.config_parser import parse_config, load_config, build_parser_params
 
@@ -52,7 +52,8 @@ def default_config():
 
     userdef_section = {
         "database_filepath": USER_DEFINED_DB_FILE,
-        "images_path": DIR_USER_DEFINED_IMAGES,
+        # Default: image creation is disabled
+        # "images_path": "",
     }
     return misc_section, roman_section, userdef_section
 
@@ -179,8 +180,16 @@ def test_default_file():
             automatic_linefeed = xxx
             """
         ),
+        (
+            # sample10:
+            """
+            [misc]
+            [UserDefinedCharacters]
+            images_path = /usr/bin/xxx
+            """
+        ),
     ],
-    ids=[""] * 10,
+    ids=[""] * 11,
 )
 def test_erroneous_settings(sample_config):
     """Test settings that should raise a SystemExit exception with an error msg
@@ -276,7 +285,7 @@ def test_specific_settings(sample_config, expected_settings):
                 "automatic_linefeed": False,
                 "dots_as_circles": True,
                 "userdef_db_filepath": USER_DEFINED_DB_FILE,
-                "userdef_images_path": DIR_USER_DEFINED_IMAGES,
+                "userdef_images_path": None,
             },
         ),
         # floats for printable_area_margins_mm & page_size
@@ -292,7 +301,7 @@ def test_specific_settings(sample_config, expected_settings):
             renderer = rectangles
             [UserDefinedCharacters]
             database_filepath = xxx.json
-            images_path = ./xxx/
+            images_path = /tmp/xxx/
             """,
             {
                 "pins": 9,
@@ -302,7 +311,7 @@ def test_specific_settings(sample_config, expected_settings):
                 "automatic_linefeed": False,
                 "dots_as_circles": False,
                 "userdef_db_filepath": "xxx.json",
-                "userdef_images_path": "./xxx/",
+                "userdef_images_path": "/tmp/xxx/",
             },
         ),
         # ints for printable_area_margins_mm, alias for page_size
@@ -325,7 +334,7 @@ def test_specific_settings(sample_config, expected_settings):
                 "dots_as_circles": True,
                 # Missing section defaults
                 "userdef_db_filepath": USER_DEFINED_DB_FILE,
-                "userdef_images_path": DIR_USER_DEFINED_IMAGES,
+                "userdef_images_path": None,
             },
         ),
     ],
@@ -339,3 +348,7 @@ def test_build_parser_params(sample_config, expected):
     """
     found = build_parser_params(sample_config)
     assert found == expected
+
+    # Directory cleaning
+    if dirpath := expected.get("userdef_images_path"):
+        Path(dirpath).rmdir()
