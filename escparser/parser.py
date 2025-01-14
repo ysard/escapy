@@ -51,18 +51,6 @@ from escparser.commons import (
 from escparser.encodings.i18n_codecs import getregentry
 from escparser.commons import logger
 
-# Debug imports
-from pycallgraph import PyCallGraph
-from pycallgraph.output import GraphvizOutput
-from pycallgraph import Config
-from pycallgraph import GlobbingFilter
-
-config = Config(max_depth=10)
-config.trace_filter = GlobbingFilter(include=[
-    "escparser.*",
-    "reportlab.*",
-])
-
 
 class PrintMode(Enum):
     """Printing modes enumeration
@@ -3918,8 +3906,6 @@ class ESCParser:
         This function is the entry point of the parser.
         """
         parse_tree = init_parser(program) # ambiguity='explicit'
-
-        # with PyCallGraph(output=GraphvizOutput(), config=config):
 
         # Parse the tree (Note: The first tree token is Token('RULE', 'start'))
         self.run_esc_instruction(parse_tree)
