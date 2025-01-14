@@ -32,6 +32,7 @@ esc_grammar = r"""
 
     instruction:  tiff_compressed_rule
         | ANYTHING               -> binary_blob
+        | TRASH
         | INIT                   -> reset_printer
 
         # Useless: do not implement
@@ -211,11 +212,30 @@ esc_grammar = r"""
         | MOVX_HEADER DATA+ -> set_relative_horizontal_position
         | MOVY_HEADER DATA+ -> set_relative_vertical_position
 
-    # Everything but ESC
-    # TODO exclude control codes
-    ANYTHING.-1: /[^\x1b\t\n\r\x08\x09\x0b\x0c\x0e\x0f\x12\x14\x18\x7f]+/
 
-    # For user defined characters handling in ESCP2 mode
+    # Text/printable bytes: Everything but ESC or solo control codes
+    # As a reminder, here are the ranges of codes that can be switched as
+    # printable character codes 0-6, 16, 17, 21-23, 25, 26, 28-31, and 128-159:
+    # - 0-6, 16: None of them are used alone in ESC commands;
+    # - 17 (DC1: 0x11): Select printer command!!
+    # - 21-23 (NAK: 0x15, SYN: 0x16, ETB: 0x17): None of them are used alone
+    #     in ESC commands;
+    # - 25, 26, 28-31: None of them are used alone in ESC commands.
+    #
+    # Text bytes are the opposite set of bytes: i.e: everything but the characters
+    # used in commands.
+    # Note: Upper control codes are not mentioned here; it's a deliberate choice,
+    # as they are not mentioned as possible commands in the documentation
+    # (ranges: 80 87-8f 91-94 98 99 9B).
+    ANYTHING.-1: /[^\x00\x07-\x0f\x11-\x14\x18\x1b\x7f]+/
+
+    # Used for extra codes that can be inserted without any meaning, not printable,
+    # or without belonging to a command (NUL bytes for example).
+    # PS: see the lowest priority assigned
+    TRASH.-2: /[\x00-\xff]/
+
+    # For user defined characters handling in ESCP2 mode, we need to check
+    # the scripting status with the help of these tokens.
     _SCRIPT: "S"
     _UNSCRIPT: "T"
 
