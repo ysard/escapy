@@ -46,7 +46,6 @@ from escparser.commons import (
     LEFT_TO_RIGHT_LANGUAGES,
     RAM_CHARACTERS_TABLE,
     USER_DEFINED_DB_FILE,
-    DIR_USER_DEFINED_IMAGES,
 )
 from escparser.encodings.i18n_codecs import getregentry
 from escparser.commons import logger
