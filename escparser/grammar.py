@@ -64,14 +64,14 @@ esc_grammar = r"""
 
         # Page format
         # TODO: see extended standard with nl = 4
-        | ESC "(C\x02\x00" /[\x00-\xff]{2}/   -> set_page_length_defined_unit
-        | ESC "(c\x04\x00" /[\x00-\xff]{4}/   -> set_page_format
-        | ESC "C" HALF_BYTE_ARG     -> set_page_length_lines
-        | ESC "C\x00" /[\x01-\x16]/ -> set_page_length_inches
-        | ESC "N" HALF_BYTE_ARG     -> set_bottom_margin
-        | ESC "O"                   -> cancel_top_bottom_margins
-        | ESC "l" BYTE_ARG          -> set_left_margin
-        | ESC "Q" BYTE_ARG          -> set_right_margin
+        | ESC "(C\x02\x00" /[\x00-\xff]{2}/ -> set_page_length_defined_unit
+        | ESC "(c\x04\x00" /[\x00-\xff]{4}/ -> set_page_format
+        | ESC "C" HALF_BYTE_ARG             -> set_page_length_lines
+        | ESC "C\x00" /[\x01-\x16]/         -> set_page_length_inches
+        | ESC "N" HALF_BYTE_ARG             -> set_bottom_margin
+        | ESC "O"                           -> cancel_top_bottom_margins
+        | ESC "l" BYTE_ARG                  -> set_left_margin
+        | ESC "Q" BYTE_ARG                  -> set_right_margin
 
         # Print position motion
         | ESC "$" BYTE_ARG HALF_BYTE_ARG            -> set_absolute_horizontal_print_position
@@ -111,6 +111,7 @@ esc_grammar = r"""
 
         # Spacing
         | ESC SP HALF_BYTE_ARG              -> set_intercharacter_space
+        # TODO: see extended standard with nl = 4
         # 5, 10, 20, 30, 40, 50, 60
         | ESC "(U\x01\x00" /[\x05\x0a\x14\x1e\x28\x32\x3c]/ -> set_unit
 
