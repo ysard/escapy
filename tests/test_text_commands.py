@@ -1217,6 +1217,7 @@ def test_print_data_as_characters(tmp_path: Path, control_codes, expected_filena
 
     # No disable = control codes printable
     lines = [] if control_codes else [disable_control_printing]
+    lines.append(b"cp437 table\r\n")
     counter = 0
     # Chunk the table into lines of 16 characters
     for chunk in chunk_this(full_table, 16):
