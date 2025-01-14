@@ -26,7 +26,6 @@ from escparser.commons import logger
 
 LOGGER = logger()
 
-# TODO : order by Command List by Function p9
 esc_grammar = r"""
     start: instruction+
 
