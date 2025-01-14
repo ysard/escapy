@@ -1188,7 +1188,7 @@ class ESCParser:
         return horizontal_scale_coef
 
     def apply_text_scoring(self, cursor_y, horizontal_scale_coef, text):
-        """Apply scoring on top of the given text
+        """Apply scoring on top of the given text (internal use)
 
         For now common characters (EQUALS SIGN, EM DASH (cadratin), HYPHEN-MINUS
         (quarter cadratin) are used for scoring instead of real lines.
@@ -1197,6 +1197,14 @@ class ESCParser:
         That may change later.
 
         .. seealso:: :meth:`binary_blob`.
+
+        :param cursor_y: Vertical position of the text (the baseline offset is included).
+        :param horizontal_scale_coef: Numeric value used in the `setHorizScale`
+            methods of the reportlab textobjects.
+        :param text: Text that will be scored across its entire width.
+        :type cursor_y: float
+        :type horizontal_scale_coef: float
+        :type text: str
         """
         scoring_types = {
             1: cursor_y - self.point_size / 3 / 72 - 1 / 72,  # below
