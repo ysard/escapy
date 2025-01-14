@@ -1232,6 +1232,51 @@ class ESCParser:
             textobject.setHorizScale(100)
             self.current_pdf.drawText(textobject)
 
+    def apply_text_style(self, cursor_y, horizontal_scale_coef, text_object, text):
+        """Add outline & shadow styles to the given textobject (internal use)
+
+        Basically adding shadow consists of adding one text on top of the
+        other with a slight offset.
+
+        .. note:: The linewidth for strokes due to outline style is fixed
+            in :meth:`__init__` during the pdf object initialization.
+            Should be ~0.3 for normal text, ~0.1 for scripting text.
+
+        .. seealso:: :meth:`binary_blob`.
+
+        :param cursor_y: Vertical position of the text (the baseline offset is included).
+        :param horizontal_scale_coef: Numeric value used in the `setHorizScale`
+            methods of the reportlab textobjects.
+        :param text_object: The text object that will be modified.
+        :param text: Decoded text that will be written.
+        :type cursor_y: float
+        :type horizontal_scale_coef: float
+        :type text_object: reportlab.pdfgen.textobject.PDFTextObject
+        :type text: str
+        """
+        match self.character_style:
+            # Fill only, Shadow only
+            # Fill then stroke, Outline and shadow
+            case PrintCharacterStyle.FILL | PrintCharacterStyle.SHADOW:
+                text_object.textOut(text)
+                text_object.setTextRenderMode(self.character_style.value)
+                text_object.setFillColorRGB(1, 1, 1)  # Fill with white
+                # Empirical offset value (~1 to 1.2 at 10.5 point size)
+                offset = horizontal_scale_coef * self.point_size * 0.5 / 10
+                # The white text will be on top and above the legit text
+                text_object.setTextOrigin(
+                    self.cursor_x * 72 - offset,
+                    cursor_y * 72 + offset
+                )
+                text_object.textOut(text)
+                text_object.setFillColorRGB(0, 0, 0)
+            # Stroke only, Outline only
+            case PrintCharacterStyle.OUTLINE:
+                text_object.setTextRenderMode(self.character_style.value)
+                text_object.textOut(text)
+
+        text_object.setTextRenderMode(0)
+
     def binary_blob(self, arg):
         """Print text characters
 
@@ -1288,43 +1333,6 @@ class ESCParser:
         if not text:
             return
 
-        def apply_character_style(text_object, text):
-            """Add outline & shadow styles to the current textobject
-
-            Basically adding shadow consists of adding one text on top of the
-            other with a slight offset.
-
-            .. note:: The linewidth for strokes due to outline style is fixed
-                in :meth:`__init__` during the pdf object initialization.
-                Should be ~0.3.
-
-            :param text_object: The text object that will be modified.
-            :param text: Decoded text that will be written.
-            :type text_object: reportlab.pdfgen.textobject.PDFTextObject
-            :type text: str
-            """
-            match self.character_style:
-                # Fill only, Shadow only
-                # Fill then stroke, Outline and shadow
-                case PrintCharacterStyle.FILL | PrintCharacterStyle.SHADOW:
-                    text_object.textOut(text)
-                    text_object.setTextRenderMode(self.character_style.value)
-                    text_object.setFillColorRGB(1, 1, 1)  # Fill with white
-                    # Empirical offset value (~1 to 1.2 at 10.5 point size)
-                    offset = horizontal_scale_coef * self.point_size * 0.5/ 10
-                    # The white text will be on top and above the legit text
-                    text_object.setTextOrigin(self.cursor_x * 72 - offset,
-                                              cursor_y * 72 + offset)
-                    text_object.textOut(text)
-                    text_object.setFillColorRGB(0, 0, 0)
-                # Stroke only, Outline only
-                case PrintCharacterStyle.OUTLINE:
-                    text_object.setTextRenderMode(self.character_style.value)
-                    text_object.textOut(text)
-
-            text_object.setTextRenderMode(0)
-
-
         if self.scripting:
             # See ESC S command for more documentation of what is done here
             # Compute the position of the scripting text
@@ -1350,7 +1358,7 @@ class ESCParser:
 
                 if self.character_style is not None:
                     self.current_pdf.setLineWidth(0.1)
-                    apply_character_style(textobject, text)
+                    self.apply_text_style(cursor_y, horizontal_scale_coef, textobject, text)
                 else:
                     textobject.textOut(text)
 
@@ -1374,7 +1382,7 @@ class ESCParser:
                     textobject.setHorizScale(horizontal_scale_coef * 100)
 
                     if self.character_style is not None:
-                        apply_character_style(textobject, text)
+                        self.apply_text_style(cursor_y, horizontal_scale_coef, textobject, text)
                     else:
                         textobject.textOut(text)
 
