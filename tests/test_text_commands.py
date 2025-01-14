@@ -1416,6 +1416,7 @@ def test_select_line_score(tmp_path: Path):
     turn_off_over = over + b"\x00"
 
     tab = b"\x09"
+    reset_double_width = b"\x1bW\x00"
 
     all_single_continuous = single_continuous.join((underline, strike, over)) + single_continuous
     all_double_continuous = double_continuous.join((underline, strike, over)) + double_continuous
@@ -1423,28 +1424,57 @@ def test_select_line_score(tmp_path: Path):
     all_double_broken = double_broken.join((underline, strike, over)) + double_broken
     all_turn_off = turn_off_underline + turn_off_strike + turn_off_over
 
+    font_1 = b""
+    # font_1 = b"\x1bk\x01"  # excelsior
     lines = [
-        esc_reset,
+        esc_reset + font_1,
         b"Underline",
         tab + underline + single_continuous + b"single continuous" + turn_off_underline,
         tab + underline + double_continuous + b"double continuous" + turn_off_underline,
         tab + underline + single_broken + b"single broken" + turn_off_underline,
         tab + underline + double_broken + b"double broken" + turn_off_underline,
+        b"\r\n",
         b"Striketrough",
         tab + strike + single_continuous + b"single continuous" + turn_off_strike,
         tab + strike + double_continuous + b"double continuous" + turn_off_strike,
         tab + strike + single_broken + b"single broken" + turn_off_strike,
         tab + strike + double_broken + b"double broken" + turn_off_strike,
+        b"\r\n",
         b"Overscore",
         tab + over + single_continuous + b"single continuous" + turn_off_over,
         tab + over + double_continuous + b"double continuous" + turn_off_over,
         tab + over + single_broken + b"single broken" + turn_off_over,
         tab + over + double_broken + b"double broken" + turn_off_over,
+        b"\r\n",
         b"All",
         tab + all_single_continuous + b"single continuous Underline Striketrough Overscore" + all_turn_off,
         tab + all_double_continuous + b"double continuous Underline Striketrough Overscore" + all_turn_off,
         tab + all_single_broken + b"single broken Underline Striketrough Overscore" + all_turn_off,
         tab + all_double_broken + b"double broken Underline Striketrough Overscore" + all_turn_off,
+        b"\r\n",
+        b"Underline + double-height",  # \r\n",
+        tab + double_height + underline + single_continuous + b"single continuous" + turn_off_underline + reset_double_height + b"\r\n",
+        tab + double_height + underline + double_continuous + b"double continuous" + turn_off_underline + reset_double_height + b"\r\n",
+        tab + double_height + underline + single_broken + b"single broken" + turn_off_underline + reset_double_height + b"\r\n",
+        tab + double_height + underline + double_broken + b"double broken" + turn_off_underline + reset_double_height,
+        b"\r\n",
+        b"Striketrough + double-height", #\r\n",
+        tab + double_height + strike + single_continuous + b"single continuous" + turn_off_strike + reset_double_height + b"\r\n",
+        tab + double_height + strike + double_continuous + b"double continuous" + turn_off_strike + reset_double_height + b"\r\n",
+        tab + double_height + strike + single_broken + b"single broken" + turn_off_strike + reset_double_height + b"\r\n",
+        tab + double_height + strike + double_broken + b"double broken" + turn_off_strike + reset_double_height,
+        b"\r\n",
+        b"Overscore + double-height",  # \r\n",
+        tab + double_height + over + single_continuous + b"single continuous" + turn_off_over + reset_double_height + b"\r\n",
+        tab + double_height + over + double_continuous + b"double continuous" + turn_off_over + reset_double_height + b"\r\n",
+        tab + double_height + over + single_broken + b"single broken" + turn_off_over + reset_double_height + b"\r\n",
+        tab + double_height + over + double_broken + b"double broken" + turn_off_over + reset_double_height,
+        b"\r\n",
+        b"Striketrough + double-width",  # \r\n",
+        tab + double_width + strike + single_continuous + b"single continuous" + turn_off_strike + reset_double_width,
+        tab + double_width + strike + double_continuous + b"double continuous" + turn_off_strike + reset_double_width,
+        tab + double_width + strike + single_broken + b"single broken" + turn_off_strike + reset_double_width,
+        tab + double_width + strike + double_broken + b"double broken" + turn_off_strike + reset_double_width,
     ]
 
     code = b"\r\n".join(lines)
