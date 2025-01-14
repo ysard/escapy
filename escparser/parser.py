@@ -189,6 +189,8 @@ class ESCParser:
         self.italic = False
         self.bold = False
         self._underline = False
+        # Dict of scoring types as values, styles as keys
+        self.scoring_types = {}
         self.scripting: None | PrintScripting = None
         # Used to postpone or suspend the scripting status
         self.previous_scripting: None | PrintScripting = None
@@ -1191,6 +1193,43 @@ class ESCParser:
 
         return horizontal_scale_coef
 
+    def apply_text_scoring(self, cursor_y, horizontal_scale_coef, text):
+        """Apply scoring on top of the given text
+
+        For now common characters (EQUALS SIGN, EM DASH (cadratin), HYPHEN-MINUS
+        (quarter cadratin) are used for scoring instead of real lines.
+        That allows to use the current point size and bold settings instead of
+        modifying linewidth locally.
+        That may change later.
+
+        .. seealso:: :meth:`binary_blob`.
+        """
+        scoring_types = {
+            1: cursor_y - self.point_size / 3 / 72 - 1 / 72,  # below
+            2: cursor_y,  # middle
+            3: cursor_y + self.point_size / 3 / 72,  # above
+        }
+        scoring_styles = {
+            1: "—",
+            2: "=",  # "＝", FULLWIDTH EQUALS SIGN, not available on various fonts
+            5: "-",
+            6: "=",
+        }
+        g = (
+            (scoring_type, style) for scoring_type, style in self.scoring_types.items()
+            if style  # Skip 0 (turn off the scoring)
+        )
+        for scoring_type, style in g:
+            offset_y = scoring_types[scoring_type]
+            char = scoring_styles[style]
+            textobject = self.current_pdf.beginText()
+            textobject.setTextOrigin(self.cursor_x * 72, offset_y * 72)
+            textobject.setCharSpace(self.extra_intercharacter_space)
+            textobject.setHorizScale(horizontal_scale_coef * 100)
+            textobject.textOut(char * len(text))
+            textobject.setHorizScale(100)
+            self.current_pdf.drawText(textobject)
+
     def binary_blob(self, arg):
         """Print text characters
 
@@ -1343,6 +1382,8 @@ class ESCParser:
                     # col, row are in 1/72 inch
                     # distance from the left edge, distance from the bottom edge
                     self.current_pdf.drawString(self.cursor_x * 72, cursor_y * 72, text, charSpace=self.extra_intercharacter_space)
+
+        self.apply_text_scoring(cursor_y, horizontal_scale_coef, text)
 
         # Actualize the x cursor with the apparent width of the written text
         if not self.current_pdf:
@@ -2527,24 +2568,26 @@ class ESCParser:
         self.unset_bold()
 
     def select_line_score(self, *args):
-        r"""Turns on/off scoring of all characters and spaces following this command - ESC ( -
+        r"""Turn on/off scoring of all characters and spaces following this command - ESC ( -
 
-        TODO: ESCP2 only
-        TODO: Each type of scoring is independent of other types; any combination of scoring methods
-            may be set simultaneously.
-        TODO: The position and thickness of scoring depends on the current point size setting.
-        TODO: printed with the following characteristics: draft, LQ, bold, or double-strike.
-        TODO: not printed across the distance the horizontal print position is moved
-            ESC $, ESC \ (when the print position is moved to the left), HT
-        TODO: Graphics characters are not underlined.
+        - Only ESCP2/ESCP 24/48 pins
+        - TODO: does not affect graphics characters
+        - Each type of scoring is independent of other types; any combination of
+          scoring methods may be set simultaneously.
+        - The position and thickness of scoring depends on the current point
+          size setting.
+        - Printed with the following characteristics: draft, LQ, bold, or
+          double-strike.
+          => We assume that double-height and double-width are also followed!!!
+        - Not printed across the distance the horizontal print position is moved
+          ESC $, ESC \ (when the print position is moved to the left), HT.
+          => only printed with characters.
 
-        TODO: Character scoring (underline, overscore, and strikethrough) is not performed
-        between the current and final print positions when the ESC $ command is
-        used. Scoring is also not performed if the ESC \ command moves the print
-        position in the negative direction.
+        .. note:: For now, it's not the same scoring as the underline obtained
+            with ESC - which is traced with a line.
+            This should be; and may be implemented later.
 
-        Character scoring (underline, overscore, and strikethrough) is not performed
-        between the current and final print positions when the HT command is sent.
+            See :meth:`apply_text_scoring`.
         """
         scoring_type_d1, scoring_style_d2 = args[1].value
         scoring_types = {
@@ -2552,7 +2595,6 @@ class ESCParser:
             2: "Strikethrough",  # middle
             3: "Overscore",  # above
         }
-
         scoring_styles = {
             0: "Turn off scoring",
             1: "Single continuous line",
@@ -2560,13 +2602,12 @@ class ESCParser:
             5: "Single broken line",
             6: "Double broken line",
         }
-
         LOGGER.debug("Scoring: %s, %s", scoring_types[scoring_type_d1], scoring_styles[scoring_style_d2])
-        if scoring_type_d1 == 1:
-            # Handle underline
-            self.underline = scoring_style_d2 == 1
-        else:
-            LOGGER.error("Scoring: NotImplemented")
+
+        # if scoring_type_d1 == 1:
+        #     # Handle underline
+        #     self.underline = scoring_style_d2 == 1
+        self.scoring_types[scoring_type_d1] = scoring_style_d2
 
     def set_script_printing(self, *args):
         """Print characters that follow at about 2/3 their normal height - ESC S
