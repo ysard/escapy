@@ -87,7 +87,12 @@ class PrintScripting(Enum):
 
 
 class PrintControlCodes(Enum):
-    """Sections of control codes enumeration & definitions as values"""
+    """Sections of control codes enumeration & definitions as values
+
+    .. seealso: :meth:`set_upper_control_codes_printing`,
+        :meth:`unset_upper_control_codes_printing`,
+        :meth:`switch_control_codes_printing`.
+    """
     UPPER = frozenset(range(128, 160))
     SELECTED = frozenset(
         it.chain(
@@ -2951,12 +2956,12 @@ class ESCParser:
         self.control_codes_filter |= PrintControlCodes.UPPER.value
 
     def switch_control_codes_printing(self, *args):
-        """Treat codes 0–6, 16, 17, 21–23, 25, 26, 28–31, and 128–159 as printable
+        """Treat codes 0-6, 16, 17, 21-23, 25, 26, 28-31, and 128-159 as printable
          characters according to the given setting - ESC I
 
         Intervals: shaded codes in table in manual (A-30).
 
-        - 0–6, 16: None of them are used alone in ESC commands;
+        - 0-6, 16: None of them are used alone in ESC commands;
         - 17 (DC1: 0x11): Select printer command!! See :meth:`select_printer`;
         - 21-23 (NAK: 0x15, SYN: 0x16, ETB: 0x17): None of them are used alone
             in ESC commands;
@@ -2971,8 +2976,8 @@ class ESCParser:
             Codes are treated as control codes
 
         :param args: Value at index 1:
-            If 1: codes are processed as printable characters
-            If 0: codes are not processed as printable characters => discarded
+            If 1: process codes as printable characters
+            If 0: do NOT process codes as printable characters => discarded
         """
         value = args[1].value[0]
 
