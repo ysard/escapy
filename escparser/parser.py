@@ -1165,11 +1165,13 @@ class ESCParser:
 
     def compute_horizontal_scale_coef(self) -> float:
         """Get a scale coefficient used to simulate double-width, double-height
-         and condensed printing.
+         and condensed printing (internal use).
 
          Since that only the point-size is modifiable on modern fonts, we must
          play with this parameter and with a horizontal scale coefficient
          to stretch the text and obtain the rendering of ancient days.
+
+         .. seealso:: :meth:`binary_blob`, :meth:`backspace`.
 
          :return: A numeric value used in the `setHorizScale` methods of the
             reportlab textobjects.
