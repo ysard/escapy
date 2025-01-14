@@ -64,8 +64,8 @@ esc_grammar = r"""
 
         # Page format
         # TODO: see extended standard with nl = 4
-        | ESC "(C\x02\x00" /.{2}/   -> set_page_length_defined_unit
-        | ESC "(c\x04\x00" /.{4}/   -> set_page_format
+        | ESC "(C\x02\x00" /[\x00-\xff]{2}/   -> set_page_length_defined_unit
+        | ESC "(c\x04\x00" /[\x00-\xff]{4}/   -> set_page_format
         | ESC "C" HALF_BYTE_ARG     -> set_page_length_lines
         | ESC "C\x00" /[\x01-\x16]/ -> set_page_length_inches
         | ESC "N" HALF_BYTE_ARG     -> set_bottom_margin
@@ -102,12 +102,12 @@ esc_grammar = r"""
         # Font selection
         # 0-9 10 11 30 31; add 12 (0x0c) for tests purpose
         | ESC "k" /[\x00-\x0c\x1e\x1f]/     -> select_typeface
-        | ESC "X" /[\x00\x01\x05-\x7f].{2}/ -> select_font_by_pitch_and_point
+        | ESC "X" /[\x00\x01\x05-\x7f][\x00-\xff]{2}/ -> select_font_by_pitch_and_point
         # P: 10cpi, M: 12cpi, g: 15cpi
         | ESC /[PMg]/                       -> select_cpi
         | ESC "p" BIN_ARG_EX                -> switch_proportional_mode
         | ESC "x" BIN_ARG_EX                -> select_letter_quality_or_draft
-        | ESC "c" /.[\x00-\x04]/            -> set_horizontal_motion_index
+        | ESC "c" /[\x00-\xff][\x00-\x04]/  -> set_horizontal_motion_index
 
         # Spacing
         | ESC SP HALF_BYTE_ARG              -> set_intercharacter_space
