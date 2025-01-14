@@ -1194,9 +1194,10 @@ def test_select_character_style(tmp_path: Path):
     ],
 )
 def test_print_data_as_characters(tmp_path: Path, control_codes, expected_filename):
-    """Test the printability of the full table from 0x00 to 0xFF
+    """Test the printability of the full CP437 table from 0x00 to 0xFF
 
-    Cover: Mainly ESC ( ^, then ESC I
+    Cover: Mainly ESC ( ^ (all the given codes are printable),
+    and ESC I (to disable ALL the control codes printing ranges).
 
     .. warning:: The test is NOT in 9pins mode, control codes ARE printable by
         default.
@@ -1209,8 +1210,8 @@ def test_print_data_as_characters(tmp_path: Path, control_codes, expected_filena
             yield bytes(it.islice(iterator, length))
 
     data_as_chr_cmd = b"\x1b(^"
-    switch_control_printing = b"\x1bI"
-    disable_control_printing = switch_control_printing + b"\x00"
+    switch_control_printing_prefix = b"\x1bI"
+    disable_control_printing = switch_control_printing_prefix + b"\x00"
     # Generate all 8 bits bytes
     full_table = bytes(range(256))
 
@@ -1236,11 +1237,9 @@ def test_print_data_as_characters(tmp_path: Path, control_codes, expected_filena
 def test_control_codes_printing(tmp_path: Path):
     """Test all commands that configure the printing of control codes
 
-    Cover: ESC ( ^, ESC 6, ESC 7, ESC m, ESC I commands.
+    Cover: ESC 6, ESC 7, ESC m, ESC I
 
-    Default: Control-code data treated as control codes
-
-    ESC ( ^: All given codes are printable.
+    Default: Control-code data treated as control codes (9pins).
 
     ESC 6, ESC 7, ESC m 0, ESC m 4: 0x80-0x9f
 
@@ -1261,9 +1260,9 @@ def test_control_codes_printing(tmp_path: Path):
     unset_upper_print_cmd = b"\x1b7"
     set_upper_print_cmd2 = b"\x1bm\x00"
     unset_upper_print_cmd2 = b"\x1bm\x04"
-    switch_control_printing = b"\x1bI"
-    enable_control_printing = switch_control_printing + b"\x01"
-    disable_control_printing = switch_control_printing + b"\x00"
+    switch_control_printing_prefix = b"\x1bI"
+    enable_control_printing = switch_control_printing_prefix + b"\x01"
+    disable_control_printing = switch_control_printing_prefix + b"\x00"
 
     filter_table = bytes(sorted(PrintControlCodes.SELECTED.value))
 
