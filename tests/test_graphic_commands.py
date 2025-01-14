@@ -114,7 +114,7 @@ def test_reassign_bit_image_mode():
         bytearray(cmd_density) for cmd_density in zip(cmd_letters, dot_density_m)
     )
 
-    escparser = ESCParser(esc_reset + code)
+    escparser = ESCParser(esc_reset + code, pdf=False)
 
     assert escparser.klyz_densities == dot_density_m
 
