@@ -139,9 +139,7 @@ esc_grammar = r"""
         | ESC "r" /[\x00-\x06]/             -> set_printing_color
 
 
-        # check
         # Not implemented
-        # TODO: use save/restore state at each LF to be able to purge buffer ?
         | CAN                               -> cancel_line
         # Not implemented
         | DEL                               -> delete_last_char_in_buffer
