@@ -1129,13 +1129,17 @@ class ESCParser:
         .. warning:: Italic is currently not supported.
         """
         if self.ram_characters:
+            # See ESC %
             encoding = RAM_CHARACTERS_TABLE
         else:
             # Decode the text according to the current character table
             encoding = self.character_tables[self.character_table]
 
         if encoding in (None, "italic"):
-            # Encoding not supported, fall back to cp437; See select_character_table()
+            # Encoding not supported (yet), fall back to cp437;
+            # See select_character_table()
+            # PS: This has nothing to do with user-defined characters!
+            # Their table can't be selected like that.
             return "cp437"
         if self.international_charset == 0:
             return encoding
