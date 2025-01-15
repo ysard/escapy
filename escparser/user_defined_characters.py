@@ -94,9 +94,14 @@ class RAMCharacters:
             self.register_codec_func = None
 
     def extract_settings(self, parent):
-        """Sync current settings and reset RAM characters if necessary,
+        """Sync current settings and reset RAM characters if necessary
+
         i.e. if the settings of the parser do not coincide with the previous
         settings used to build user-defined characters.
+
+        .. warning:: The encoding IS NOT updated (thus, NOT effective),
+            for performance reasons, you HAVE TO call
+            :meth:`update_encoding` manually after this function.
 
         :param parent: Instance of the ESCParser from which settings will be
             extracted and compared to decide on the reset of RAM memory.
@@ -178,6 +183,8 @@ class RAMCharacters:
 
         Erase any characters that are currently stored in RAM.
 
+        .. warning:: Do not forget to call :meth:`extract_settings` before.
+
         :param encoding: Current ROM table used (encoding).
         :param typeface: Typeface id from wich the characters are "copied".
             In this implementation, this setting IS NOT used!
@@ -255,6 +262,12 @@ class RAMCharacters:
         If the code is not already in the database, it will be added alongside
         the REPLACEMENT unicode character.
         See :meth:`RAMCharacters.load_manual_mapping`.
+
+        .. warning:: The encoding IS NOT updated (thus, NOT effective),
+            for performance reasons, you HAVE TO call
+            :meth:`update_encoding` manually after this function.
+
+        .. warning:: Do not forget to call :meth:`extract_settings` before.
 
         :param chr_hash: Hash of the bytes defining the dots of the character.
         :param code: Character code in the charset table.
