@@ -3074,8 +3074,8 @@ class ESCParser:
         self.horizontal_tabulations = [0] * 32
         self.vertical_tabulations = [0] * 16
 
-        # clear all user-defined characters
-        self.character_tables[2] = None
+        # Clear all user-defined characters
+        self.user_defined.clear()
 
     def switch_microweave_mode(self, *args):
         """Turn MicroWeave print mode off and on - ESC ( i
@@ -3887,6 +3887,8 @@ class ESCParser:
         Should be called at the beginning and at the end of each print job.
 
         TODO: call it in the constructor to lighten it?
+
+        - does not affect user-defined characters
         """
         self.graphics_mode = False
         self.microweave_mode = False
