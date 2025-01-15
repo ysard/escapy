@@ -169,6 +169,16 @@ class RAMCharacters:
 
         self._settings = settings
 
+    def clear(self):
+        """Do an explicit reset of RAM characters AND encoding
+
+        The reset is effective right now and the "user_defined" codec is not
+        available anymore.
+        """
+        self.settings = None
+        self.unregister()
+        LOGGER.debug("Explicit clear of RAM characters + user_defined codec")
+
     def from_rom(self, encoding: str | None, typeface: int, pins: int | None):
         """Copy the data from the ROM characters to RAM - ESC :
 
