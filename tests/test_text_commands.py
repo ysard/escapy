@@ -1193,20 +1193,23 @@ def test_select_character_style(tmp_path: Path):
 
 
 @pytest.mark.parametrize(
-    "control_codes, expected_filename",
+    "encoding, control_codes, expected_filename",
     [
-        (True, "test_print_data_as_characters.pdf"),
+        ("cp437", True, "test_print_data_as_characters.pdf"),
+        # Test specific injection of mappings for this encoding
+        ("cp864", True, "test_print_data_as_characters_cp864.pdf"),
         # Test the full table minus the control codes
         # Can be redundant with test_control_codes_printing(), but it's another
         # and more global presentation of the data
-        (False, "test_print_data_as_characters_without_control_codes.pdf"),
+        ("cp437", False, "test_print_data_as_characters_without_control_codes.pdf"),
     ],
     ids=[
         "full_table",
+        "full_table_cp864",
         "without_ccodes",
     ],
 )
-def test_print_data_as_characters(tmp_path: Path, control_codes, expected_filename):
+def test_print_data_as_characters(tmp_path: Path, encoding, control_codes, expected_filename):
     """Test the printability of the full CP437 table from 0x00 to 0xFF
 
     Cover: Mainly ESC ( ^ (all the given codes are printable),
@@ -1214,6 +1217,8 @@ def test_print_data_as_characters(tmp_path: Path, control_codes, expected_filena
 
     .. warning:: The test is NOT in 9pins mode, control codes ARE printable by
         default.
+
+    :param encoding: Pay attention: current support is for cp864 or cp437 only!
     """
 
     def chunk_this(iterable, length):
@@ -1232,7 +1237,8 @@ def test_print_data_as_characters(tmp_path: Path, control_codes, expected_filena
     lines = [] if control_codes else [disable_control_printing]
     # Add title
     title_status = b"printed" if control_codes else b"NOT printed"
-    lines.append(b"cp437 table - control codes " + title_status + b"\r\n")
+    lines.append(encoding.encode() + b" table - control codes " + title_status + b"\r\n")
+
     counter = 0
     # Chunk the table into lines of 16 characters
     for chunk in chunk_this(full_table, 16):
@@ -1243,7 +1249,9 @@ def test_print_data_as_characters(tmp_path: Path, control_codes, expected_filena
         )
         counter += 16
 
-    code = b"\r\n".join(lines)
+    # Load cp864 in table 1
+    code = b"\x1b(t\x03\x00\x01\x0d\x00" if encoding == "cp864" else b""
+    code += b"\r\n".join(lines)
     processed_file = tmp_path / expected_filename
     _ = ESCParser(esc_reset + code, output_file=processed_file)
 
