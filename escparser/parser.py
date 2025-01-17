@@ -16,6 +16,7 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Main ESC parser routines used to build PDF files"""
 # Standard imports
+import importlib
 from pathlib import Path
 from enum import Enum
 import itertools as it
@@ -40,12 +41,15 @@ from escparser import __version__
 from escparser.grammar import init_parser
 from escparser.commons import (
     TYPEFACE_NAMES,
-    CHARSET_MAPPING,
+    CHARSET_NAMES_MAPPING,
     INTERNATIONAL_CHARSETS,
     CHARACTER_TABLE_MAPPING,
     LEFT_TO_RIGHT_LANGUAGES,
     RAM_CHARACTERS_TABLE,
     USER_DEFINED_DB_FILE,
+    MISSING_CONTROL_CODES_MAPPING,
+    CP864_MISSING_CONTROL_CODES_MAPPING,
+    COMPLETE_ENCODINGS,
 )
 from escparser.encodings.i18n_codecs import getregentry
 from escparser.commons import logger
@@ -1121,19 +1125,29 @@ class ESCParser:
     @property
     def encoding(self) -> str:
         """Get the encoding in use according to the current character table and
-        international_charset loaded.
+        international charset (National Replacement Character Set) loaded.
 
         Whatever the encoding, if the RAM characters are activated,
         "user_defined" is returned.
+
+        This function ensures that the correct encoding is loaded in the cache
+        of codecs and built on the fly if necessary.
+
+        Some Python character mapping codecs need to be patched to embed the
+        first 32 characters points and the character point 0x0f of the table as
+        printable characters.
+
+        See:
+        https://stackoverflow.com/questions/46942721/is-cp437-decoding-broken-for-control-characters
 
         .. warning:: Italic is currently not supported.
         """
         if self.ram_characters:
             # See ESC %
-            encoding = RAM_CHARACTERS_TABLE
-        else:
-            # Decode the text according to the current character table
-            encoding = self.character_tables[self.character_table]
+            return RAM_CHARACTERS_TABLE
+
+        # Decode the text according to the current character table
+        encoding = self.character_tables[self.character_table]
 
         if encoding in (None, "italic"):
             # Encoding not supported (yet), fall back to cp437;
@@ -1141,11 +1155,46 @@ class ESCParser:
             # PS: This has nothing to do with user-defined characters!
             # Their table can't be selected like that.
             return "cp437"
-        if self.international_charset == 0:
+
+        # Try to load the base encoding;
+        # First from Python, then from the local package.
+        try:
+            codecs.lookup(encoding)
+        except LookupError:
+            LOGGER.debug("Load local encoding: %s", encoding)
+            try:
+                importlib.import_module(f"escparser.encodings.{encoding}")
+            except ModuleNotFoundError as exc:  # pragma: no cover
+                # For developpers only: CHARACTER_TABLE_MAPPING is updated
+                # with a missing/bad encoding
+                LOGGER.error(
+                    "Encoding <%s> was not found in Python stdlib nor in current project."
+                )
+                raise ModuleNotFoundError from exc
+
+        if self.international_charset == 0 and encoding in COMPLETE_ENCODINGS:
+            # Nothing to do
             return encoding
 
-        # Build a new codec if the variant has never been encountered
-        encoding_variant = f"{encoding}_{CHARSET_MAPPING[self.international_charset]}"
+        charset = {}
+        encoding_variant = encoding
+        if encoding not in COMPLETE_ENCODINGS:
+            # Inject the first 32 characters of the table + 0x7f (127)
+            # Tables embedded in Python encodings are incomplete for these points
+            encoding_variant += "_mod"
+            charset.update(
+                MISSING_CONTROL_CODES_MAPPING
+                # Specific patch for this encoding. May move in future update...
+                if encoding != "cp864" else
+                CP864_MISSING_CONTROL_CODES_MAPPING
+            )
+
+        if self.international_charset:
+            # i18n variant is required
+            encoding_variant += f"_{CHARSET_NAMES_MAPPING[self.international_charset]}"
+            charset.update(INTERNATIONAL_CHARSETS[self.international_charset])
+
+        # Build a new codec
         try:
             codecs.lookup(encoding_variant)
         except LookupError:
@@ -1153,7 +1202,7 @@ class ESCParser:
                 getregentry,
                 effective_encoding=encoding_variant,
                 base_encoding=encoding,
-                intl_charset=INTERNATIONAL_CHARSETS[self.international_charset]
+                intl_charset=charset
             )
             codecs.register(register_codec_func)
 
@@ -1985,7 +2034,7 @@ class ESCParser:
         value = args[1].value[0]
         self.international_charset = value
 
-        LOGGER.debug("Select international charset variant %s (%s)", value, CHARSET_MAPPING[value])
+        LOGGER.debug("Select international charset variant %s (%s)", value, CHARSET_NAMES_MAPPING[value])
 
     def select_letter_quality_or_draft(self, *args):
         """Select either LQ or draft printing - ESC x

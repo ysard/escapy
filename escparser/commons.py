@@ -191,9 +191,111 @@ CHARACTER_TABLE_MAPPING = {
 
 LEFT_TO_RIGHT_LANGUAGES = ("cp720", "cp862")
 
+# Code pages for which printable character codes should not be defined, thus, not
+# modified at runtime (see MISSING_CONTROL_CODES_MAPPING).
+COMPLETE_TABLES = (
+    (14, 16),  # Bulgaria
+    (25, 0),  # BRASCII
+    (26, 0),  # Abicomp
+    (27, 0),  # MAZOWIA
+    (28, 0),  # MJK
+    (30, 0),  # TSM/WIN
+    (31, 0),  # ISO Latin 1T
+    (31, 0),  # ISO Latin 1
+    (32, 0),  # Bulgaria
+    (35, 0),  # Roman 8
+    (127, 1),  # ISO Latin 1
+    (127, 2),  # ISO 8859-2
+)
+
+# Get the corresponding encodings
+# Ex: 'brascii', 'hp_roman8', 'iso8859_2', 'iso8859_9', 'latin_1', etc.
+COMPLETE_ENCODINGS = {CHARACTER_TABLE_MAPPING[key] for key in COMPLETE_TABLES}
+
+
+# Printable character codes that should be defined but not present in
+# some of the Python's tables.
+# First 32 characters + 0x0f code points.
+# If necessary, this mapping is injected on the fly on the loaded encoding.
+# See :meth:`ESCParser.encoding`.
+# PS: For cp864 (Arabic): other characters are defined (see specific module).
+MISSING_CONTROL_CODES_MAPPING = {
+    0x01: "\u263A",  # WHITE SMILING FACE
+    0x02: "\u263B",  # BLACK SMILING FACE
+    0x03: "\u2665",  # BLACK HEART SUIT
+    0x04: "\u2666",  # BLACK DIAMOND SUIT
+    0x05: "\u2663",  # BLACK CLUB SUIT
+    0x06: "\u2660",  # BLACK SPADE SUIT
+    0x07: "\u2022",  # BULLET
+    0x08: "\u25D8",  # INVERSE BULLET
+    0x09: "\u25CB",  # WHITE CIRCLE
+    0x0a: "\u25D9",  # INVERSE WHITE CIRCLE
+    0x0b: "\u2642",  # MALE SIGN
+    0x0c: "\u2640",  # FEMALE SIGN
+    0x0d: "\u266A",  # EIGHTH NOTE
+    0x0e: "\u266B",  # BEAMED EIGHTH NOTES
+    0x0f: "\u263C",  # WHITE SUN WITH RAYS
+
+    0x10: "\u25BA",  # BLACK RIGHT-POINTING POINTER
+    0x11: "\u25C4",  # BLACK LEFT-POINTING POINTER
+    0x12: "\u2195",  # UP DOWN ARROW
+    0x13: "\u203C",  # DOUBLE EXCLAMATION MARK
+    0x14: "\u00B6",  # PILCROW SIGN
+    0x15: "\u00A7",  # SECTION SIGN
+    0x16: "\u25AC",  # BLACK RECTANGLE
+    0x17: "\u21A8",  # UP DOWN ARROW WITH BASE
+    0x18: "\u2191",  # UPWARDS ARROW
+    0x19: "\u2193",  # DOWNWARDS ARROW
+    0x1a: "\u2192",  # RIGHTWARDS ARROW
+    0x1b: "\u2190",  # LEFTWARDS ARROW
+    0x1c: "\u221F",  # RIGHT ANGLE
+    0x1d: "\u2194",  # LEFT RIGHT ARROW
+    0x1e: "\u25B2",  # BLACK UP-POINTING TRIANGLE
+    0x1f: "\u25BC",  # BLACK DOWN-POINTING TRIANGLE
+
+    0x7f: "\u2302",  # HOUSE
+}
+
+CP864_MISSING_CONTROL_CODES_MAPPING={
+    0x01: "\u263A",  # WHITE SMILING FACE
+    0x02: "\u266A",  # EIGHTH NOTE
+    0x03: "\u266B",  # BEAMED EIGHTH NOTES
+    0x04: "\u263C",  # WHITE SUN WITH RAYS
+    0x05: "\u2550",  # BOX DRAWINGS DOUBLE HORIZONTAL
+    0x06: "\u2551",  # BOX DRAWINGS DOUBLE VERTICAL
+    0x07: "\u256c",  # BOX DRAWINGS DOUBLE VERTICAL AND HORIZONTAL
+    0x08: "\u2563",  # BOX DRAWINGS DOUBLE VERTICAL AND LEFT
+    0x09: "\u2566",  # BOX DRAWINGS DOUBLE DOWN AND HORIZONTAL
+    0x0a: "\u2560",  # BOX DRAWINGS DOUBLE VERTICAL AND RIGHT
+    0x0b: "\u2569",  # BOX DRAWINGS DOUBLE UP AND HORIZONTAL
+    0x0c: "\u2557",  # BOX DRAWINGS DOUBLE DOWN AND LEFT
+    0x0d: "\u2554",  # BOX DRAWINGS DOUBLE DOWN AND RIGHT
+    0x0e: "\u255a",  # BOX DRAWINGS DOUBLE UP AND RIGHT
+    0x0f: "\u255d",  # BOX DRAWINGS DOUBLE UP AND LEFT
+
+    0x10: "\u25BA",  # BLACK RIGHT-POINTING POINTER
+    0x11: "\u25C4",  # BLACK LEFT-POINTING POINTER
+    0x12: "\u2195",  # UP DOWN ARROW
+    0x13: "\u203C",  # DOUBLE EXCLAMATION MARK
+    0x14: "\u00B6",  # PILCROW SIGN
+    0x15: "\u00A7",  # SECTION SIGN
+    0x16: "\u25AC",  # BLACK RECTANGLE
+    0x17: "\u21A8",  # UP DOWN ARROW WITH BASE
+    0x18: "\u2191",  # UPWARDS ARROW
+    0x19: "\u2193",  # DOWNWARDS ARROW
+    0x1a: "\u2192",  # RIGHTWARDS ARROW
+    0x1b: "\u2190",  # LEFTWARDS ARROW
+    0x1c: "\u221F",  # RIGHT ANGLE
+    0x1d: "\u2194",  # LEFT RIGHT ARROW
+    0x1e: "\u25B2",  # BLACK UP-POINTING TRIANGLE
+    0x1f: "\u25BC",  # BLACK DOWN-POINTING TRIANGLE
+
+    0x7f: "\u2302",  # HOUSE
+}
+
 # set of up to 12 particular characters that corresponds to symbols used
 # in various countries
-CHARSET_MAPPING = {
+CHARSET_NAMES_MAPPING = {
     0 : "us",  # "USA",
     1 : "fr",  # "France",
     2 : "de",  # "Germany",
