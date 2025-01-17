@@ -164,9 +164,9 @@ CHARACTER_TABLE_MAPPING = {
     (22, 0): None,  # "TIS13 (IBM STD. Thai)",
     (23, 0): None,  # "TIS16 (SIC OLD Thai)",
     (24, 0): "cp861",
-    (25, 0): "brascii",  # https://en.wikipedia.org/wiki/BraSCII almost 8859-1 except 2 chars
-    (26, 0): None,  # "Abicomp",
-    (27, 0): None,  # "MAZOWIA (Poland)",
+    (25, 0): "brascii",  # local, https://en.wikipedia.org/wiki/BraSCII
+    (26, 0): "abicomp",  # local, https://en.wikipedia.org/wiki/ABICOMP_character_set
+    (27, 0): "mazovia",  # local, https://en.wikipedia.org/wiki/Mazovia_encoding
     (28, 0): None,  # "Code MJK (CSFR)",
     (29, 7): "iso8859_7",
     (29, 16): "latin_1",
