@@ -118,14 +118,3 @@ def getregentry(
     )
     codec_info.basename = base_encoding
     return codec_info
-
-
-# Add brascii codec
-# https://en.wikipedia.org/wiki/BraSCII almost 8859-1 except 2 chars
-register_codec_func = partial(
-    getregentry,
-    effective_encoding="brascii",
-    base_encoding="iso8859_1",
-    intl_charset={0xD7: "Œ", 0xF7: "œ"},
-)
-codecs.register(register_codec_func)
