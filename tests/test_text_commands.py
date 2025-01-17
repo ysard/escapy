@@ -179,7 +179,7 @@ def test_select_international_charset(format_databytes):
 
     escparser = ESCParser(format_databytes, pdf=False)
     expected = format_databytes[2 + 2]
-    charset_name = cm.CHARSET_MAPPING[expected]
+    charset_name = cm.CHARSET_NAMES_MAPPING[expected]
 
     assert (
         escparser.international_charset == expected
@@ -621,7 +621,7 @@ def test_international_charsets(tmp_path: Path, assign_table_cmd, encoding):
     # Select intl
     for intl_id, charset in cm.INTERNATIONAL_CHARSETS.items():
         print(intl_id)
-        lines.append((cm.CHARSET_MAPPING[intl_id] + ":").encode(encoding))
+        lines.append((cm.CHARSET_NAMES_MAPPING[intl_id] + ":").encode(encoding))
         # Send the ESC command + the bytes to be encoded
         lines.append(select_international_charset_prefix + intl_id.to_bytes() + bytes(bytearray(charset.keys())))
         # lines.append(select_international_charset_prefix + b"\x00")
