@@ -150,7 +150,7 @@ CHARACTER_TABLE_MAPPING = {
     (11, 0): "cp857",
     (12, 0): "cp862",
     (13, 0): "cp864",
-    (13, 32): None,  # "PC AR864",
+    (13, 32): "cp864",
     (14, 0): "cp866",
     (14, 16): None,  # "(Bulgarian ASCII****)",
     (14, 32): None,  # "PC866 LAT. (Latvian)", # code page 3012, https://en.wikipedia.org/wiki/Code_page_866#Latvian_variant
