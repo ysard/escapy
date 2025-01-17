@@ -54,8 +54,9 @@ class Codec(codecs.Codec):
 
         module = importlib.import_module(f"encodings.{base_encoding}")
         if "decoding_table" not in dir(module):
-            LOGGER.warning(
-                "Encoding <%s> not compatible with international charset injection"
+            LOGGER.debug(
+                "Encoding <%s> not compatible with international charset injection;"
+                " Fallback: dump the table."
             )
             # /!\ Errors will be masked with a '?' symbol !!
             decoding_table = list(bytes(range(256)).decode(base_encoding, errors="replace"))
