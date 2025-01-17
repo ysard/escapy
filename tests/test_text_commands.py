@@ -493,9 +493,10 @@ def test_charset_tables(tmp_path: Path):
         - Select character table, ESC t
 
     .. note:: Pangrams source: https://en.wikipedia.org/wiki/Pangram
-
-    .. todo:: Support more (custom) encodings.
     """
+    # Support custom encodings
+    from escparser.encodings import brascii, mazovia
+
     english_pangram = "The quick brown fox jumps over the lazy dog.".encode("cp437")
     # The Italic table is symmetric, all italic characters are in the upper part
     english_italic_pangram = bytearray(i + 0x80 for i in english_pangram)
@@ -527,6 +528,12 @@ def test_charset_tables(tmp_path: Path):
     hebrew_pangram = "איש עם זקן טס לצרפת ודג בחכה".encode("cp862")
     # 25, 0
     portuguese_pangram = "Ré só que vê galã sexy pôr kiwi talhado à força em baú põe juíza má em pânico. Œœ".encode("brascii")
+    # 26, 0; portuguese_pangram encoded with abicomp
+    # Passing raw bytes allows to test the dynamic loading of the module
+    # in the parser, not in the tests (a module can't be easyly loaded 2 times)
+    raw_portuguese_pangram = b"R\xc8 s\xd1 que v\xc9 gal\xc4 sexy p\xd2r kiwi talhado \xc1 for\xc6a em ba\xd7 p\xd3e ju\xccza m\xc2 em p\xc3nico. \xb5\xd5"
+    # 27, 0
+    polish_pangram = "Zażółć gęślą jaźń. Pchnąć w tę łódź jeża lub ośm skrzyń fig. Stróż pchnął kość w quiz gędźb vel fax myjń.".encode("mazovia")
 
     # ESC ( t d1 d2 d3
     table_0 = b"\x1bt\x00"  # ESC t 0 Italic
@@ -577,6 +584,10 @@ def test_charset_tables(tmp_path: Path):
         table_1 + b"\x1b(t\x03\x00\x01\x0c\x00" + hebrew_pangram,
         table_3 + b"Portuguese, brascii",
         table_1 + b"\x1b(t\x03\x00\x01\x19\x00" + portuguese_pangram,
+        table_3 + b"Portuguese, abicomp",
+        table_1 + b"\x1b(t\x03\x00\x01\x1a\x00" + raw_portuguese_pangram,
+        table_3 + b"Polish, mazovia",
+        table_1 + b"\x1b(t\x03\x00\x01\x1b\x00" + polish_pangram,
         table_3 + b"Greek - Not supported charset 4,0 (should not crash)",
         # Double table selection to cover the two logger error outputs (assign + select)
         table_1 + b"\x1b(t\x03\x00\x01\x04\x00" + table_1 + greek_pangram,
