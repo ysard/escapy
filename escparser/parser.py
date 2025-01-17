@@ -44,7 +44,7 @@ from escparser.commons import (
     CHARSET_NAMES_MAPPING,
     INTERNATIONAL_CHARSETS,
     CHARACTER_TABLE_MAPPING,
-    LEFT_TO_RIGHT_LANGUAGES,
+    LEFT_TO_RIGHT_ENCODINGS,
     RAM_CHARACTERS_TABLE,
     USER_DEFINED_DB_FILE,
     MISSING_CONTROL_CODES_MAPPING,
@@ -1378,7 +1378,7 @@ class ESCParser:
         # Use any of: replace, backslashreplace, ignore
         text = raw_text.decode(encoding_variant, errors="replace")
 
-        if encoding in LEFT_TO_RIGHT_LANGUAGES:
+        if encoding in LEFT_TO_RIGHT_ENCODINGS:
             text = text[::-1]
 
         # print(raw_text)

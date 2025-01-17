@@ -189,7 +189,7 @@ CHARACTER_TABLE_MAPPING = {
     (127, 7): "iso8859_7",
 }
 
-LEFT_TO_RIGHT_LANGUAGES = ("cp720", "cp862")
+LEFT_TO_RIGHT_ENCODINGS = ("cp720", "cp862")
 
 # Code pages for which printable character codes should not be defined, thus, not
 # modified at runtime (see MISSING_CONTROL_CODES_MAPPING).
