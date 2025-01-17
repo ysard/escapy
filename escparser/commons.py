@@ -181,9 +181,9 @@ CHARACTER_TABLE_MAPPING = {
     (38, 0): None,  # "ISCII", # https://en.wikipedia.org/wiki/Indian_Script_Code_for_Information_Interchange
     (39, 0): None,  # "PC-ISCII",
     (40, 0): None,  # "PC APTEC", # cp715
-    (41, 0): None,  # "PC708", # https://en.wikipedia.org/wiki/Code_page_708
+    (41, 0): None,  # "PC708", # https://en.wikibooks.org/wiki/Character_Encodings/Code_Tables/MS-DOS/Code_page_708
     (42, 0): "cp720",
-    (112, 0): None,  # "OCR-B", # code page 877 https://en.wikipedia.org/wiki/OCR-B
+    (112, 0): None,  # "OCR-B", # code page 877 https://en.wikibooks.org/wiki/Character_Encodings/Code_Tables/MS-DOS/Code_page_877
     (127, 1): "latin_1",
     (127, 2): "iso8859_2",
     (127, 7): "iso8859_7",
