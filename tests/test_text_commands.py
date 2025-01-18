@@ -35,7 +35,7 @@ from escparser.parser import (
 )
 from escparser.fonts import rptlab_times
 # Support custom encodings; DO NOT import abicomp, see test_charset_tables
-from escparser.encodings import brascii, mazovia, iscii
+from escparser.encodings import brascii, mazovia, iscii, cp774
 from .misc import format_databytes, pdf_comparison
 from .misc import (
     esc_reset,
@@ -531,6 +531,8 @@ def test_charset_tables(tmp_path: Path):
     # Passing raw bytes allows to test the dynamic loading of the module
     # in the parser, not in the tests (a module can't be easyly loaded 2 times)
     raw_portuguese_pangram = b"R\xc8 s\xd1 que v\xc9 gal\xc4 sexy p\xd2r kiwi talhado \xc1 for\xc6a em ba\xd7 p\xd3e ju\xccza m\xc2 em p\xc3nico. \xb5\xd5"
+    # 36, 0
+    lithuanian_pangram = "Įlinkdama fechtuotojo špaga sublykčiojusi pragręžė apvalų arbūzą".encode("cp774")
     # 27, 0
     polish_pangram = "Zażółć gęślą jaźń. Pchnąć w tę łódź jeża lub ośm skrzyń fig. Stróż pchnął kość w quiz gędźb vel fax myjń.".encode("mazovia")
 
@@ -587,6 +589,8 @@ def test_charset_tables(tmp_path: Path):
         table_1 + b"\x1b(t\x03\x00\x01\x1a\x00" + raw_portuguese_pangram,
         table_3 + b"Polish, mazovia",
         table_1 + b"\x1b(t\x03\x00\x01\x1b\x00" + polish_pangram,
+        table_3 + b"Lithuanian, cp774",
+        table_1 + b"\x1b(t\x03\x00\x01\x24\x00" + lithuanian_pangram,
         table_3 + b"Greek - Not supported charset 4,0 (should not crash)",
         # Double table selection to cover the two logger error outputs (assign + select)
         table_1 + b"\x1b(t\x03\x00\x01\x04\x00" + table_1 + greek_pangram,
