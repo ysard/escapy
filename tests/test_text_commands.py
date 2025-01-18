@@ -34,6 +34,8 @@ from escparser.parser import (
     PrintControlCodes,
 )
 from escparser.fonts import rptlab_times
+# Support custom encodings; DO NOT import abicomp, see test_charset_tables
+from escparser.encodings import brascii, mazovia, iscii
 from .misc import format_databytes, pdf_comparison
 from .misc import (
     esc_reset,
@@ -494,9 +496,6 @@ def test_charset_tables(tmp_path: Path):
 
     .. note:: Pangrams source: https://en.wikipedia.org/wiki/Pangram
     """
-    # Support custom encodings
-    from escparser.encodings import brascii, mazovia
-
     english_pangram = "The quick brown fox jumps over the lazy dog.".encode("cp437")
     # The Italic table is symmetric, all italic characters are in the upper part
     english_italic_pangram = bytearray(i + 0x80 for i in english_pangram)
