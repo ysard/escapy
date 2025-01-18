@@ -204,6 +204,8 @@ COMPLETE_TABLES = (
     (31, 0),  # ISO Latin 1
     (32, 0),  # Bulgaria
     (35, 0),  # Roman 8
+    (38, 0),  # ISCII
+    (39, 0),  # ISCII
     (127, 1),  # ISO Latin 1
     (127, 2),  # ISO 8859-2
 )
