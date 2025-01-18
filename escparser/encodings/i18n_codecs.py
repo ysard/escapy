@@ -52,8 +52,13 @@ class Codec(codecs.Codec):
             # => switch to iso8859_1 to get the decoding table
             base_encoding = "iso8859_1"
 
-        module = importlib.import_module(f"encodings.{base_encoding}")
-        if "decoding_table" not in dir(module):
+        try:
+            module = importlib.import_module(f"encodings.{base_encoding}")
+        except ModuleNotFoundError:
+            # Handle local encodings (they have not decoding_table variable)
+            module = None
+
+        if module is None or "decoding_table" not in dir(module):
             LOGGER.debug(
                 "Encoding <%s> not compatible with international charset injection;"
                 " Fallback: dump the table."
