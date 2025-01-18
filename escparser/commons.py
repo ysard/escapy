@@ -175,11 +175,11 @@ CHARACTER_TABLE_MAPPING = {
     (32, 0): None,  # "Bulgaria",
     (33, 0): None,  # "Hebrew 7",
     (34, 0): None,  # "Hebrew 8",
-    (35, 0): "hp_roman8",  # https://github.com/python/cpython/blob/main/Lib/encodings/hp_roman8.py
-    (36, 0): None,  # "PC774 (Lithuania)", # https://en.wikipedia.org/wiki/Code_page_1118
+    (35, 0): "hp_roman8",
+    (36, 0): "cp774",  # local, https://en.wikipedia.org/wiki/Code_page_1118
     (37, 0): None,  # "Estonia (Estonia)",
-    (38, 0): None,  # "ISCII", # https://en.wikipedia.org/wiki/Indian_Script_Code_for_Information_Interchange
-    (39, 0): None,  # "PC-ISCII",
+    (38, 0): "iscii",  # local, https://en.wikipedia.org/wiki/Indian_Script_Code_for_Information_Interchange
+    (39, 0): "iscii",  # local
     (40, 0): None,  # "PC APTEC", # cp715
     (41, 0): None,  # "PC708", # https://en.wikibooks.org/wiki/Character_Encodings/Code_Tables/MS-DOS/Code_page_708
     (42, 0): "cp720",
