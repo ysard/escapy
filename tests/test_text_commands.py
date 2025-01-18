@@ -610,10 +610,13 @@ def test_charset_tables(tmp_path: Path):
         # This encoding is implemented in C without a pure Python alternative.
         # Here, we test the fallback process that rebuilds the decoding table on the fly
         (b"\x1b(t\x03\x00\x01\x02\x00", "cp932"),
+        # Local encodings should also support international injection
+        (b"\x1b(t\x03\x00\x01\x19\x00", "brascii"),
     ],
     ids=[
         "latin_1",
         "cp932",
+        "brascii",
     ],
 )
 def test_international_charsets(tmp_path: Path, assign_table_cmd, encoding):
