@@ -49,6 +49,7 @@ from .misc import (
     double_height,
     reset_double_height,
     typefaces,
+    noto_devanagari_font_def,
 )
 
 # Inject test typefaces
@@ -533,6 +534,9 @@ def test_charset_tables(tmp_path: Path):
     raw_portuguese_pangram = b"R\xc8 s\xd1 que v\xc9 gal\xc4 sexy p\xd2r kiwi talhado \xc1 for\xc6a em ba\xd7 p\xd3e ju\xccza m\xc2 em p\xc3nico. \xb5\xd5"
     # 36, 0
     lithuanian_pangram = "Įlinkdama fechtuotojo špaga sublykčiojusi pragręžė apvalų arbūzą".encode("cp774")
+    # 38, 0; AVAGRAHA replaced with '; DOUBLE DANDA replaced with 2 DANDA
+    # https://linguistics.stackexchange.com/questions/20782/sanskrit-pangram-joke
+    sanskrit_pangram = "कः खगौघाङचिच्छौजा झाञ्ज्ञो'टौठीडडण्ढणः। तथोदधीन् पफर्बाभीर्मयो'रिल्वाशिषां सहः।।".encode("iscii")
     # 27, 0
     polish_pangram = "Zażółć gęślą jaźń. Pchnąć w tę łódź jeża lub ośm skrzyń fig. Stróż pchnął kość w quiz gędźb vel fax myjń.".encode("mazovia")
 
@@ -544,13 +548,17 @@ def test_charset_tables(tmp_path: Path):
     # left_margin = b"\x1bl\x03"  # ESC l
     cancel_left_margin = b"\x1bl\x00"  # ESC l
 
+    # Fonts
+    sans_serif = b"\x1bk\x01"  # Sans Serif
+    devanagari = b"\x1bk\x1f"  # Noto Devanagari font (see below)
+    # roman = b"\x1bk\x00",  # Roman (default)
+    # courier = b"\x1bk\x02",  # Courier
+
     lines = [
         esc_reset,
         cancel_left_margin,
         point_8,
-        # b"\x1bk\x00", # Roman (default)
-        # b"\x1bk\x02", # Courier
-        b"\x1bk\x01",  # Sans Serif
+        sans_serif,
         b"English, cp437 (default)",
         english_pangram,
         table_3 + b"English table 2, cp437 (default)",
@@ -591,6 +599,8 @@ def test_charset_tables(tmp_path: Path):
         table_1 + b"\x1b(t\x03\x00\x01\x1b\x00" + polish_pangram,
         table_3 + b"Lithuanian, cp774",
         table_1 + b"\x1b(t\x03\x00\x01\x24\x00" + lithuanian_pangram,
+        table_3 + b"Sanskrit, iscii",
+        devanagari + table_1 + b"\x1b(t\x03\x00\x01\x26\x00" + sanskrit_pangram + sans_serif,
         table_3 + b"Greek - Not supported charset 4,0 (should not crash)",
         # Double table selection to cover the two logger error outputs (assign + select)
         table_1 + b"\x1b(t\x03\x00\x01\x04\x00" + table_1 + greek_pangram,
@@ -598,8 +608,12 @@ def test_charset_tables(tmp_path: Path):
 
     code = b"\r\n".join(lines)
     processed_file = tmp_path / "test_charset_tables.pdf"
-    _ = ESCParser(code, output_file=processed_file)
 
+    # Inject devanagari font in slot 31
+    available_fonts = dict(typefaces)
+    available_fonts[31] = noto_devanagari_font_def
+
+    _ESCParser(code, output_file=processed_file, available_fonts=available_fonts)
     pdf_comparison(processed_file)
 
 

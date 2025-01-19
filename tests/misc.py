@@ -89,7 +89,7 @@ typefaces = {
 }
 
 
-# Extra fonts ready to be inserted in typefaces at any position
+# Extra fonts ready to be inserted in typefaces at any slot
 noto_font_def = {
     # Noto should allow all languages but the base name should be adapted.
     # Ex: NotoSansThai-*
@@ -101,6 +101,12 @@ noto_font_def = {
     ),
 }
 
+noto_devanagari_font_def = {
+    "fixed": partial(
+        find_font, "NotoSansDevanagari-", path="/usr/share/fonts/truetype/noto/"
+    ),
+    "proportional": lambda *_: None,
+}
 
 liberation_font_def = {
     "fixed": partial(
