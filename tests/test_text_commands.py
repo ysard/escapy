@@ -673,8 +673,6 @@ def test_custom_codec():
 
     Test brascii codec: https://en.wikipedia.org/wiki/BraSCII almost 8859-1 except 2 chars
     """
-    from escparser.encodings import brascii
-
     expected_text = "BRASCII: Œ, œ"
     binary = expected_text.encode("brascii")
     found = binary.decode("brascii")
