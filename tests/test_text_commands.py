@@ -1003,7 +1003,7 @@ def test_set_intercharacter_space(tmp_path: Path):
         "set_18_line_spacing",
         "set_18_line_spacing_9pins",
         "set_772_line_spacing_9pins",
-        "unset_18_line_spacing",
+        "set_16_line_spacing",
         "set_n180_line_spacing",
         "set_n180_line_spacing_9pins",
         "set_n360_line_spacing",
@@ -1017,7 +1017,7 @@ def test_linespacing(format_databytes, pins: int | None, expected: float):
     Cover:
 
         - set_18_line_spacing, ESC 0
-        - unset_18_line_spacing, ESC 2
+        - set_16_line_spacing, ESC 2
         - set_n180_line_spacing, ESC 3
         - set_n360_line_spacing, ESC +
         - set_n60_line_spacing, ESC A
