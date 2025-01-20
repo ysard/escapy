@@ -1023,7 +1023,7 @@ class ESCParser:
         """
         self.current_line_spacing = 1 / 8
 
-    def unset_18_line_spacing(self, *_):
+    def set_16_line_spacing(self, *_):
         """Set the line spacing to 1/6 inch - ESC 2
         default: 1/6
         """

@@ -55,7 +55,7 @@ esc_grammar = r"""
         | VT                    -> v_tab
         | ESC "0"               -> set_18_line_spacing
         | ESC "1"               -> set_772_line_spacing
-        | ESC "2"               -> unset_18_line_spacing
+        | ESC "2"               -> set_16_line_spacing
         | ESC "3" DATA          -> set_n180_line_spacing
         | ESC "+" DATA          -> set_n360_line_spacing
         | ESC "A" /[\x00-\x55]/ -> set_n60_line_spacing
