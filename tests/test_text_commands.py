@@ -1249,7 +1249,7 @@ def test_print_data_as_characters(tmp_path: Path, encoding, control_codes, expec
     switch_control_printing_prefix = b"\x1bI"
     disable_control_printing = switch_control_printing_prefix + b"\x00"
     table_1 = b"\x1bt\x01"  # ESC t 1 cp437 (default table)
-    table_3 = b"\x1bt\x03"  # ESC t 3 cp437/?
+    table_3 = b"\x1bt\x03"  # ESC t 3 cp437 (default but can be modified)
     # Generate all 8 bits bytes
     full_table = bytes(range(256))
 
