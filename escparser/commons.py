@@ -584,7 +584,7 @@ def log_level(level):
     if level == "NONE":
         # Override all severity levels under CRITICAL
         logging.disable()
-        level = 49
+        level = logging.CRITICAL
     else:
         # Remove the overriding level
         logging.disable(logging.NOTSET)
