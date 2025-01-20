@@ -1248,6 +1248,8 @@ def test_print_data_as_characters(tmp_path: Path, encoding, control_codes, expec
     data_as_chr_cmd = b"\x1b(^"
     switch_control_printing_prefix = b"\x1bI"
     disable_control_printing = switch_control_printing_prefix + b"\x00"
+    table_1 = b"\x1bt\x01"  # ESC t 1 cp437 (default table)
+    table_3 = b"\x1bt\x03"  # ESC t 3 cp437/?
     # Generate all 8 bits bytes
     full_table = bytes(range(256))
 
@@ -1260,15 +1262,23 @@ def test_print_data_as_characters(tmp_path: Path, encoding, control_codes, expec
     counter = 0
     # Chunk the table into lines of 16 characters
     for chunk in chunk_this(full_table, 16):
-        data_length = struct.pack("<h", 16)
+        # Print char by char to support left-to-right encodings
+        # and keep presentation as a table.
+        data_length = struct.pack("<h", 1)  # \x01\x00
+        char_as_cmd_sep = data_as_chr_cmd + data_length
+        line = char_as_cmd_sep + char_as_cmd_sep.join(
+            [i.to_bytes(1, byteorder="big") for i in chunk]
+        )
         lines.append(
+            table_1
             # Prepend the hex index
-            format(counter, '#04x').encode("cp437") + b"  " + data_as_chr_cmd + data_length + chunk
+            + format(counter, '#04x').encode("cp437") + b"  "
+            + table_3 + line
         )
         counter += 16
 
-    # Load cp864 in table 1
-    code = b"\x1b(t\x03\x00\x01\x0d\x00" if encoding == "cp864" else b""
+    # Load cp864 in table 3
+    code = b"\x1b(t\x03\x00\x03\x0d\x00" if encoding == "cp864" else b""
     code += b"\r\n".join(lines)
     processed_file = tmp_path / expected_filename
     _ = ESCParser(esc_reset + code, output_file=processed_file)
