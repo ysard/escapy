@@ -33,8 +33,6 @@ LOGGER = cm.logger()
 
 def escparser_entry_point(**kwargs):
     """The main routine."""
-    LOGGER.info("Libreprinter start; %s", __version__)
-
     # Open input file
     esc_prn_file_content = kwargs["esc_prn"].buffer.read()
     if not esc_prn_file_content:
@@ -45,6 +43,7 @@ def escparser_entry_point(**kwargs):
     config = load_config(config_file=kwargs["config"])
     configured_fonts = setup_fonts(config)
 
+    LOGGER.info("EscaPy start; %s", __version__)
     ESCParser(
         esc_prn_file_content,
         available_fonts=configured_fonts,
