@@ -1,0 +1,16 @@
+exclude *.ipynb
+exclude *.py
+exclude *.txt
+exclude *.yml
+exclude *.yaml
+exclude Makefile
+prune debian
+prune images
+prune .idea
+prune doc
+prune poc
+prune tests
+prune test_data
+include setup.py
+include *.conf
+recursive-include escparser *.py
