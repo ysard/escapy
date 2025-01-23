@@ -385,6 +385,54 @@ gs -dBATCH -dNOPAUSE -dSAFER \
 -sOutputFile=out-%d.tiff -
 ```
 
+### Fonts
+
+For reasons of licensing and personal preference, EscaPy does not embed fonts
+(except for a minimal version of Courier and Helvetica).
+
+<details>
+<summary><b>List of fonts that can be embedded in Epson printers</b></summary>
+
+* Roman
+* Sans serif
+* Courier
+* Prestige
+* Script
+* OCR-B
+* OCR-A
+* Orator
+* Orator-S
+* Script C
+</details>
+
+Free fonts a proprietary equivalents :
+
+| Proprietary     | Free ->          |                                                 |                                                        |                                                            |                                                                |
+|-----------------|------------------|-------------------------------------------------|--------------------------------------------------------|------------------------------------------------------------|----------------------------------------------------------------|
+| Courier New     | Liberation Mono  | [Noto Sans Mono](https://fonts.google.com/noto) | [FreeMono](https://en.wikipedia.org/wiki/GNU_FreeFont) | [Fira Mono, Fira Code](https://github.com/tonsky/FiraCode) | [Roboto Mono](https://fonts.google.com/specimen/Roboto+Mono)   |
+| Times New Roman | Liberation Serif | Noto Serif                                      | FreeSerif                                              | [FiraGO](https://github.com/bBoxType/FiraGO)               | [Roboto Serif](https://fonts.google.com/specimen/Roboto+Serif) |
+| Arial           | Liberation Sans  | Noto Sans                                       | FreeSans                                               | [Fira Sans](https://fonts.google.com/specimen/Fira+Sans)   | [Roboto](https://fonts.google.com/specimen/Roboto)             |
+
+See also Recursive free font :
+
+- [Recursive Mono](https://github.com/arrowtype/recursive)
+- [Recursive Sans](https://github.com/arrowtype/recursive)
+
+Free bitmap-style fonts :
+
+- [Fixedsys Excelsior](https://github.com/kika/fixedsys)
+- [Orp-Font](https://github.com/MicahElliott/Orp-Font)
+- [~390 Atari fonts](https://github.com/a8bit/EightBit-Atari-Fonts)
+
+Non-free fonts or fonts with restrictive licenses, often with a very limited
+character set, but close to the embedded fonts on Epson printers :
+
+- [Script C](https://online-fonts.com/fonts/scriptc)
+- [Romant](https://online-fonts.com/fonts/romant)
+- [Prestige](https://online-fonts.com/fonts/prestige)
+- [OCR-A](https://online-fonts.com/fonts/ocrarus-lyajka)
+- [OCR-B](https://www.freefontdownload.org/en/ocr-b-regular.font)
+
 ### User-defined characters
 
 A JSON file is created and updated when custom characters are found.
