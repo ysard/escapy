@@ -142,7 +142,7 @@ class RAMCharacters:
 
     @property
     def settings(self):
-        """Get the settings (traits) that define the characters in RAM
+        """Get the traits that define the characters in RAM
 
         For now: print mode, proportional spacing, scripting mode.
         """
@@ -150,7 +150,7 @@ class RAMCharacters:
 
     @settings.setter
     def settings(self, settings: dict):
-        """Maintain the settings (traits) that define the characters in RAM
+        """Maintain the traits that define the characters in RAM
 
         If user-defined characters are defined with different traits,
         the printer erases all previous characters in RAM memory.
@@ -285,7 +285,7 @@ class RAMCharacters:
         key = f"{chr_hash}_{code}"
         # REPLACEMENT CHARACTER is used if the mapping is not found
 
-        if not key in self.database:
+        if key not in self.database:
             # Fill the database (context + default mapping)
             self.database[key] = self.settings | {code: "\uFFFD"}
             char = "\uFFFD"
@@ -303,4 +303,7 @@ class RAMCharacters:
         to the printer.
         See :meth:`RAMCharacters.load_manual_mapping`.
         """
-        self.db_filepath.write_text(json.dumps(self.database, indent=4, cls=EnumsEncoder))
+        self.db_filepath.write_text(
+            json.dumps(self.database, indent=4, cls=EnumsEncoder),
+            encoding="utf8"
+        )
