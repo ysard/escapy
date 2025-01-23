@@ -433,6 +433,28 @@ character set, but close to the embedded fonts on Epson printers :
 - [OCR-A](https://online-fonts.com/fonts/ocrarus-lyajka)
 - [OCR-B](https://www.freefontdownload.org/en/ocr-b-regular.font)
 
+---
+
+Noto, Free and Fira fonts are normally installed on most systems, but can also be
+installed manually with the following command (on Debian systems and derivatives):
+
+```bash
+$ apt install fonts-noto fonts-freefont-ttf fonts-firacode
+```
+
+The same goes for Liberation fonts:
+```bash
+$ apt install fonts-liberation
+```
+
+Windows proprietary fonts can be installed with the following command:
+```bash
+$ apt install ttf-mscorefonts-installer
+```
+
+More generally, think of the `fnt` tool as a package manager for managing and
+installing fonts.
+
 ### User-defined characters
 
 A JSON file is created and updated when custom characters are found.
