@@ -423,6 +423,18 @@ By default, the JSON file (`user_defined_mapping.json`) is created in the curren
 folder, but this can be changed in the configuration file.
 A folder containing the image of the bitmap character received can also be created.
 
+### Unsupported encodings (Chinese, Japanese, etc.)
+
+The ESC/P and ESC/P2 standards do not seem to support Chinese or Japanese
+languages (encodings were apparently not provided for). However, some language
+evolutions (ESC/POS, ESC/P-K, ESC/P J84) and printers do support this.
+While in theory these languages can be implemented, their documentation remains
+hard to find and is beyond the scope of the current project.
+See [Wikipedia - ESC variants](https://en.wikipedia.org/wiki/ESC/P#Variants).
+
+The easiest way to achieve this is to use the printer in graphics mode
+(raster or bitimage) instead of text mode.
+
 
 ## Acknowledgements
 
