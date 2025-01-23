@@ -66,7 +66,7 @@ def main():  # pragma: no cover
 
     parser.add_argument(
         "esc_prn",
-        help="ESC raw printer file.",
+        help="ESC raw printer file. - to read from stdin.",
         type=argparse.FileType("r"),
         default=sys.stdin
     )
@@ -74,7 +74,7 @@ def main():  # pragma: no cover
     parser.add_argument(
         "-o",
         "--output",
-        help="PDF output file.",
+        help="PDF output file. - to write on stdout.",
         type=argparse.FileType("w"),
         nargs="?",
         default="output.pdf",
