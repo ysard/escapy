@@ -202,8 +202,8 @@ to be a printer compatible with older hardware.
     Text enhancements (strikethrough, underline, highlight, etc.) are supported.
 
     <div align="center"><figure>
-      <img src="./images/fonts.png">
-      <img src="./images/character_styles.png">
+      <img src="./images/fonts.webp">
+      <img src="./images/character_styles.webp">
       <figcaption>Fonts examples & character style implementations.</figcaption>
     </figure></div>
 
@@ -214,9 +214,9 @@ to be a printer compatible with older hardware.
     In all cases, the file is vectorized (infinitely scalable).
 
     <div align="center"><figure>
-      <img src="./images/graphism_render_1.png">
-      <img src="./images/graphism_render_2.png">
-      <img src="./images/graphism_render_2_details.png">
+      <img src="./images/graphism_render_1.webp">
+      <img src="./images/graphism_render_2.webp">
+      <img src="./images/graphism_render_2_details.webp">
       <figcaption>Graphic element magnifications. Two ways of rendering.</figcaption>
     </figure></div>
 
@@ -241,7 +241,7 @@ to be a printer compatible with older hardware.
  Character Set) are also injected into the encoding tables.
 
     <div align="center"><figure>
-      <img src="./images/encodings.png">
+      <img src="./images/encodings.webp">
       <figcaption>Support for many common encodings.</figcaption>
     </figure></div>
 
