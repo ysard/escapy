@@ -1,10 +1,10 @@
-[![tests status](./images/tests.svg)](https://github.com/ysard/escapy/actions)
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/ysard/escapy)](https://github.com/ysard/escapy/releases/latest/)
+[![tests status](./images/tests.svg)](https://github.com/ysard/escapy/actions)
 [![python docstring coverage](./images/interrogate_badge.svg)](https://interrogate.readthedocs.io/en/latest/)
 [![python test coverage](./images/coverage.svg)](https://docs.pytest.org/en/latest/)
-[![version on pypi](https://img.shields.io/pypi/v/escapy.svg)](https://pypi.python.org/pypi/escapy)
-[![documentation](https://readthedocs.org/projects/escapy/badge/)](https://escapy.readthedocs.io/en/latest/)
-[![licence](https://img.shields.io/pypi/l/escapy.svg)](https://github.com/ysard/escapy/blob/main/LICENCE)
+[![version on pypi](https://img.shields.io/pypi/v/esca-py.svg)](https://pypi.python.org/pypi/esca-py)
+[![licence](https://img.shields.io/pypi/l/esca-py.svg)](https://github.com/ysard/escapy/blob/main/LICENCE)
+<!--[![documentation](https://readthedocs.org/projects/escapy/badge/)](https://escapy.readthedocs.io/en/latest/)-->
 
 
 EscaPy is a tool that **reliably** and almost **exhaustively** interprets the
