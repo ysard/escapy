@@ -321,6 +321,31 @@ to be a printer compatible with older hardware.
 
 ## Setup
 
+### Installation
+
+All operating systems should be supported, although this project is mainly
+developed for a GNU-Linux system as an everyday computer.
+
+Simple installation from PyPi :
+```bash
+$ pip install esca-py
+```
+
+Installation from sources :
+```bash
+$ pip install .
+```
+
+Install the project in editable mode for developpers :
+```bash
+$ make install
+# Or
+$ pip install -e .[dev]
+```
+
+Installation on Debian : (coming soon)
+
+
 ### Usage
 
 ```bash
