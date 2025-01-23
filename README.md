@@ -208,6 +208,22 @@ to be a printer compatible with older hardware.
     </figure></div>
 
 
+-[x] **Several rendering modes for graphic commands**
+
+    Points can be rendered as dots or rectangles.
+    In all cases, the file is vectorized (infinitely scalable).
+
+    <div align="center"><figure>
+      <img src="./images/graphism_render_1.png">
+      <img src="./images/graphism_render_2.png">
+      <img src="./images/graphism_render_2_details.png">
+      <figcaption>Graphic element magnifications. Two ways of rendering.</figcaption>
+    </figure></div>
+
+    NB: Rendering as an image is not yet available, but such a result can be
+    obtained with GhostScript for this task (see examples).
+
+
 -[x] **Searchable text**
 
     Text remains as text, not as images.
