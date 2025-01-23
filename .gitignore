@@ -6,6 +6,9 @@ poc/
 *.pbm
 *.json
 
+# Readme illustrations/assets
+!images/*
+
 # PyCharm
 .idea/
 
