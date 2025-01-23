@@ -203,7 +203,7 @@ to be a printer compatible with older hardware.
 
     <div align="center"><figure>
       <img src="./images/fonts.png">
-      <img src="./images/Screenshot_4.png">
+      <img src="./images/character_styles.png">
       <figcaption>Fonts examples & character style implementations.</figcaption>
     </figure></div>
 
