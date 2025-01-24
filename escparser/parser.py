@@ -1,4 +1,4 @@
-#  ESCParser is a software allowing to convert EPSON ESC/P, ESC/P2
+#  EscaPy is a software allowing to convert EPSON ESC/P, ESC/P2
 #  printer control language files into PDF files.
 #  Copyright (C) 2024-2025  Ysard
 #
@@ -257,7 +257,7 @@ class ESCParser:
             self.current_pdf.setFillOverprint(True)
             self.current_pdf.setStrokeOverprint(True)
             self.current_pdf.setProducer(
-                f"ESCParser {__version__} - https://github.com/ysard/escparser"
+                f"EscaPy {__version__} - https://github.com/ysard/escparser"
             )
 
         # Page configuration ###################################################
