@@ -31,7 +31,6 @@ from escparser.commons import (
     TYPEFACE_NAMES,
     PAGESIZE_MAPPING,
     USER_DEFINED_DB_FILE,
-    DIR_USER_DEFINED_IMAGES
 )
 
 LOGGER = logger()
