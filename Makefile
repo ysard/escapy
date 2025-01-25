@@ -32,7 +32,8 @@ run:
 	python -m escparser
 
 clean:
-	rm -rf eps pcl pdf png raw txt txt_jobs hpgl ps txt_stream dist csv escparser.egg-info
+	rm -rf *.egg-info
+	python setup.py clean --all
 	-$(MAKE) -C ./doc clean
 
 doc:
@@ -48,12 +49,15 @@ install:
 uninstall:
 	pip escparser uninstall
 
-sdist:
+sdist: clean
 	@echo Building the distribution package...
 	python setup.py sdist
 
-upload: clean sdist
+wheel: clean
+	@echo Building the wheel package...
 	python setup.py bdist_wheel
+
+upload: sdist wheel
 	twine upload dist/* -r pypi
 
 check_setups:
