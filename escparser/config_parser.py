@@ -25,7 +25,7 @@ from logging import DEBUG
 from escparser.commons import (
     logger,
     log_level,
-    CONFIG_FILE,
+    EMBEDDED_CONFIG_FILE,
     LOG_LEVEL,
     DIR_FONTS,
     TYPEFACE_NAMES,
@@ -36,11 +36,11 @@ from escparser.commons import (
 LOGGER = logger()
 
 
-def load_config(config_file=CONFIG_FILE):
+def load_config(config_file=EMBEDDED_CONFIG_FILE):
     """Load configuration file and set default settings
 
-    :param config_file: Path of the configuration file to load.
-        Default: CONFIG_FILE from commons module.
+    :key config_file: Path of the configuration file to load.
+        Default: EMBEDDED_CONFIG_FILE from commons module.
     :type config_file: Path
     :return: Configuration updated object.
     :rtype: configparser.ConfigParser
