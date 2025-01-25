@@ -3,6 +3,7 @@ exclude *.py
 exclude *.txt
 exclude *.yml
 exclude *.yaml
+exclude *.conf
 exclude Makefile
 prune debian
 prune images
@@ -12,5 +13,5 @@ prune poc
 prune tests
 prune test_data
 include setup.py
-include *.conf
+recursive-include escparser *.conf
 recursive-include escparser *.py
