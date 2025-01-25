@@ -48,7 +48,9 @@ def choose_config_file(config_file: [Path | None]) -> Path:
     """
     if isinstance(config_file, Path):
         # Config file from command line
-        assert config_file.exists(), f"Configuration file <{config_file}> not found!"
+        if not config_file.exists():
+            LOGGER.critical(f"Configuration file <%s> not found!", config_file)
+            raise SystemExit
         return config_file
 
     # Search the config file in the current directory, then in ~/.local/share/
