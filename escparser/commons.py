@@ -59,8 +59,8 @@ PAGESIZE_MAPPING |= IMPORTED_PAPERSIZES | IMPORTED_LANDSCAPE_PAPERSIZES
 
 # Typefaces / fonts
 TYPEFACE_NAMES = {
-    0: "Roman",  # Times New Roman
-    1: "Sans serif",  # /usr/share/fonts/truetype/freefont/FreeSans*
+    0: "Roman",
+    1: "Sans serif",
     2: "Courier",
     3: "Prestige",  # https://en.wikipedia.org/wiki/Prestige_Elite
     4: "Script",
