@@ -73,7 +73,7 @@ def escparser_entry_point(**kwargs):
     # Open input file
     esc_prn_file_content = kwargs["esc_prn"].buffer.read()
     if not esc_prn_file_content:
-        LOGGER.error("File is empty!")
+        LOGGER.critical("Input file is empty!")
         raise SystemExit
 
     # Parse the config file and preload fonts search routines
