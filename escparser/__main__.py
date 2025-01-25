@@ -28,6 +28,7 @@ from escparser.config_parser import load_config, build_parser_params
 from escparser.fonts import setup_fonts
 from escparser.parser import ESCParser
 import escparser.commons as cm
+from escparser.commons import CONFIG_FILES, USER_CONFIG_FILE, EMBEDDED_CONFIG_FILE
 
 LOGGER = cm.logger()
 
@@ -51,15 +52,13 @@ def choose_config_file(config_file: [Path | None]) -> Path:
         return config_file
 
     # Search the config file in the current directory, then in ~/.local/share/
-    g = [path for path in cm.CONFIG_FILES if path.exists()]
+    g = [path for path in CONFIG_FILES if path.exists()]
     if not g:
         # If none has been found: create the config file from the embedded one
-        LOGGER.info("Initialize new default config at <%s>", cm.USER_CONFIG_FILE)
-        dest_file = Path(cm.USER_CONFIG_FILE)
-        if not dest_file.exists():
-            dest_file.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy(cm.EMBEDDED_CONFIG_FILE, cm.USER_CONFIG_FILE)
-        return cm.USER_CONFIG_FILE
+        LOGGER.info("Initialize new default config at <%s>", USER_CONFIG_FILE)
+        USER_CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(EMBEDDED_CONFIG_FILE, USER_CONFIG_FILE)
+        return USER_CONFIG_FILE
     else:
         # Use the first file found
         config_file = g[0]
