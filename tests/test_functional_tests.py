@@ -19,6 +19,7 @@
 import sys
 from pathlib import Path
 from functools import partial
+from unittest.mock import patch
 
 # Custom imports
 import pytest
@@ -27,7 +28,7 @@ from reportlab.lib.pagesizes import landscape
 
 # Local imports
 from escparser.parser import ESCParser as _ESCParser
-from escparser.__main__ import escparser_entry_point
+from escparser.__main__ import escparser_entry_point, choose_config_file
 from .misc import DIR_DATA, pdf_comparison, typefaces
 
 # Inject test typefaces
@@ -162,3 +163,59 @@ def test_empty_input_file(tmp_path: Path, minimal_config: str):
     # Do magic
     with pytest.raises(SystemExit):
         escparser_entry_point(**cmdline_args)
+
+
+def test_choose_config_file(mocker, tmp_path: Path, minimal_config: str):
+    """Test CONFIG_FILES, USER_CONFIG_FILE, EMBEDDED_CONFIG_FILE variables
+    from :meth:`escparser.commons` and their usage during the program start phase.
+    """
+    # Block similar to the one found in escparser.commons
+    config_file = Path("config.conf")
+    user_config_file = tmp_path / "user" / config_file
+    embedded_config_file = tmp_path / "embedded" / config_file
+    config_files = [tmp_path / config_file, user_config_file]
+
+    # Setup files
+    for file in config_files + [embedded_config_file]:
+        print("created file:", file)
+        file.parent.mkdir(parents=True, exist_ok=True)
+        file.write_text(minimal_config)
+
+    with patch.multiple(
+        "escparser.__main__",
+        CONFIG_FILES=config_files,
+        USER_CONFIG_FILE=user_config_file,
+        EMBEDDED_CONFIG_FILE=embedded_config_file,
+    ):
+        # Expect the file passed as an argument from the cli
+        found = choose_config_file(tmp_path / config_file)
+        assert found == tmp_path / config_file
+
+        # Expect the file in the current directory (CONFIG_FILE)
+        found = choose_config_file(None)
+        assert found == tmp_path / config_file
+
+        # Delete the file in the current directory
+        (tmp_path / config_file).unlink()
+        # Expect the user file (USER_CONFIG_FILE)
+        found = choose_config_file(None)
+        assert found == user_config_file
+
+        # Delete the user file
+        user_config_file.unlink()
+        # Expect the user file copied from the embedded file (EMBEDDED_CONFIG_FILE)
+        found = choose_config_file(None)
+        assert found == user_config_file
+
+        # Test deletion of ALL files, that should not happen...
+        with pytest.raises(FileNotFoundError):
+            # Delete the user AND the embedded files
+            user_config_file.unlink()
+            embedded_config_file.unlink()
+            # Expect the user file copied from the embedded file (EMBEDDED_CONFIG_FILE)
+            _ = choose_config_file(None)
+
+        # Test not existing input file from cli
+        with pytest.raises(SystemExit):
+            # Expect the user file copied from the embedded file (EMBEDDED_CONFIG_FILE)
+            _ = choose_config_file(tmp_path / "xxx.conf")
