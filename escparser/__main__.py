@@ -80,12 +80,15 @@ def escparser_entry_point(**kwargs):
     config = load_config(config_file=kwargs["config"])
     configured_fonts = setup_fonts(config)
 
+    params = build_parser_params(config)
+    params.update(kwargs)
+
     LOGGER.info("EscaPy start; %s", __version__)
     ESCParser(
         esc_prn_file_content,
         available_fonts=configured_fonts,
         output_file=kwargs["output"],
-        **build_parser_params(config),
+        **params,
     )
 
 
@@ -109,6 +112,22 @@ def main():  # pragma: no cover
     )
 
     parser.add_argument(
+        "--pins",
+        nargs="?",
+        help="Number of needles of the print head (9, 24, 48). "
+            "Leave it unset for ESCP2 modern printers. (default: unset)",
+        default=argparse.SUPPRESS,  # Absent by default (handled later)
+        type=int,
+    )
+
+    parser.add_argument(
+        "--single_sheets",
+        help="Single-sheets or continuous paper. (default: single-sheets)",
+        default=argparse.SUPPRESS,  # Absent by default (handled later)
+        action=argparse.BooleanOptionalAction
+    )
+
+    parser.add_argument(
         "-o",
         "--output",
         help="PDF output file. - to write on stdout.",
@@ -123,7 +142,17 @@ def main():  # pragma: no cover
         nargs="?",
         help="Configuration file to use. "
             "(default: ./escapy.conf, ~/.local/share/escapy/escapy.conf)",
-        default=argparse.SUPPRESS,  # None by default (handled later)
+        default=argparse.SUPPRESS,  # Absent by default (handled later)
+        type=Path,
+    )
+
+    parser.add_argument(
+        "-db",
+        "--userdef_db_filepath",
+        nargs="?",
+        help="Mappings between user-defined chararacter codes and unicode. "
+            "(default: ./user_defined_mapping.json)",
+        default=argparse.SUPPRESS,  # Absent by default (handled later)
         type=Path,
     )
 
