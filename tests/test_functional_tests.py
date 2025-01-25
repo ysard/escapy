@@ -165,7 +165,7 @@ def test_empty_input_file(tmp_path: Path, minimal_config: str):
         escparser_entry_point(**cmdline_args)
 
 
-def test_choose_config_file(mocker, tmp_path: Path, minimal_config: str):
+def test_choose_config_file(tmp_path: Path, minimal_config: str):
     """Test CONFIG_FILES, USER_CONFIG_FILE, EMBEDDED_CONFIG_FILE variables
     from :meth:`escparser.commons` and their usage during the program start phase.
     """
