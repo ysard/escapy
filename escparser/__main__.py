@@ -20,6 +20,7 @@
 import argparse
 from pathlib import Path
 import sys
+import shutil
 
 # Custom imports
 from escparser import __version__
@@ -29,6 +30,41 @@ from escparser.parser import ESCParser
 import escparser.commons as cm
 
 LOGGER = cm.logger()
+
+
+def choose_config_file(config_file: [Path | None]) -> Path:
+    """Get an existing configuration file
+
+    Search the config file in the current directory, then in `~/.local/share/escapy`.
+    If none has been found: create a config file from the embedded one, in the
+    user configuration folder and use it.
+    The filename is defined in :meth:`escparser.commons.CONFIG_FILE`.
+
+    :param config_file: Configuration file path from the cli. Can be None if the
+        argument is not used.
+    :return: A Path for a valid configuration file, ready to be loaded in the
+        ConfigParser.
+    """
+    if isinstance(config_file, Path):
+        # Config file from command line
+        assert config_file.exists(), f"Configuration file <{config_file}> not found!"
+        return config_file
+
+    # Search the config file in the current directory, then in ~/.local/share/
+    g = [path for path in cm.CONFIG_FILES if path.exists()]
+    if not g:
+        # If none has been found: create the config file from the embedded one
+        LOGGER.info("Initialize new default config at <%s>", cm.USER_CONFIG_FILE)
+        dest_file = Path(cm.USER_CONFIG_FILE)
+        if not dest_file.exists():
+            dest_file.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(cm.EMBEDDED_CONFIG_FILE, cm.USER_CONFIG_FILE)
+        return cm.USER_CONFIG_FILE
+    else:
+        # Use the first file found
+        config_file = g[0]
+        LOGGER.info("Use config at <%s>", config_file)
+        return config_file
 
 
 def escparser_entry_point(**kwargs):
@@ -84,8 +120,9 @@ def main():  # pragma: no cover
         "-c",
         "--config",
         nargs="?",
-        help="Configuration file to use.",
-        default=cm.CONFIG_FILE,
+        help="Configuration file to use. "
+            "(default: ./escapy.conf, ~/.local/share/escapy/escapy.conf)",
+        default=argparse.SUPPRESS,  # None by default (handled later)
         type=Path,
     )
 
@@ -97,9 +134,9 @@ def main():  # pragma: no cover
     args = parser.parse_args()
 
     params = args_to_params(args)
-    # Quick check
-    assert params["config"].exists(), \
-        f"Configuration file <{params['config']}> not found!"
+
+    # Handle configuration file
+    params["config"] = choose_config_file(params.get("config"))
 
     # Do magic
     escparser_entry_point(**params)

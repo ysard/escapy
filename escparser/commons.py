@@ -17,18 +17,24 @@
 """Logger settings and project constants"""
 
 # Standard imports
+from importlib import resources
 from logging.handlers import RotatingFileHandler
 import logging
 import datetime as dt
 import tempfile
+from pathlib import Path
 
 # Custom imports
 from reportlab.lib import pagesizes
-
+from platformdirs import user_data_dir
 
 # Paths
 DIR_LOGS = tempfile.gettempdir() + "/"
-CONFIG_FILE = "./escparser.conf"
+CONFIG_FILE = "escparser.conf"
+EMBEDDED_CONFIG_FILE = resources.files(__package__) / "data" / CONFIG_FILE
+USER_CONFIG_FILE = Path(user_data_dir('escapy')) / CONFIG_FILE
+CONFIG_FILES = [Path(CONFIG_FILE), USER_CONFIG_FILE]
+
 DIR_FONTS = "/usr/share/fonts/truetype/"
 USER_DEFINED_DB_FILE = "./user_defined_mapping.json"
 DIR_USER_DEFINED_IMAGES = "./user_defined_images/"
