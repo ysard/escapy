@@ -425,6 +425,26 @@ gs -dBATCH -dNOPAUSE -dSAFER \
 -sOutputFile=out-%d.tiff -
 ```
 
+### Configuration file
+
+The configuration file supplied by the application contains all the information
+needed to configure the virtual printer (margins, page formats, etc.),
+fonts and folders.
+
+By default, the `escapy.conf` file is searched for in the current folder.
+If it doesn't exist, it is searched for in the standard software configuration
+folder on your system (see below).
+This folder is created if it doesn't already exist.
+
+On GNU/Linux systems:
+`~/.local/share/escapy/`
+
+On Windows systems:
+`C:\\Users\\<YOUR_USERNAME>\\AppData\\Local\\escapy`
+
+On MacOS systems:
+`/Users/<YOUR_USERNAME>/Library/Application Support/escapy`
+
 ### Fonts
 
 For reasons of licensing and personal preference, EscaPy does not embed fonts
