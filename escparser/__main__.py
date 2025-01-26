@@ -99,9 +99,14 @@ def args_to_params(args):  # pragma: no cover
 
 def main():  # pragma: no cover
     """Entry point and argument parser"""
+
+    def get_formatter_class(prog):
+        """Limit help width"""
+        return argparse.ArgumentDefaultsHelpFormatter(prog, max_help_position=25, width=90)
+
     parser = argparse.ArgumentParser(
         prog="",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        formatter_class=get_formatter_class
     )
 
     parser.add_argument(
