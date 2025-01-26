@@ -119,7 +119,7 @@ def main():  # pragma: no cover
     parser.add_argument(
         "--pins",
         nargs="?",
-        help="Number of needles of the print head (9, 24, 48). "
+        help="number of needles of the print head (9, 24, 48). "
             "Leave it unset for ESCP2 modern printers. (default: unset)",
         default=argparse.SUPPRESS,  # Absent by default (handled later)
         type=int,
@@ -127,7 +127,7 @@ def main():  # pragma: no cover
 
     parser.add_argument(
         "--single_sheets",
-        help="Single-sheets or continuous paper. (default: single-sheets)",
+        help="single-sheets or continuous paper. (default: single-sheets)",
         default=argparse.SUPPRESS,  # Absent by default (handled later)
         action=argparse.BooleanOptionalAction
     )
@@ -145,7 +145,7 @@ def main():  # pragma: no cover
         "-c",
         "--config",
         nargs="?",
-        help="Configuration file to use. "
+        help="configuration file to use. "
             "(default: ./escapy.conf, ~/.local/share/escapy/escapy.conf)",
         default=argparse.SUPPRESS,  # Absent by default (handled later)
         type=Path,
@@ -155,7 +155,7 @@ def main():  # pragma: no cover
         "-db",
         "--userdef_db_filepath",
         nargs="?",
-        help="Mappings between user-defined chararacter codes and unicode. "
+        help="mappings between user-defined chararacter codes and unicode. "
             "(default: ./user_defined_mapping.json)",
         default=argparse.SUPPRESS,  # Absent by default (handled later)
         type=Path,
