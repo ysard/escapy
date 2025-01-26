@@ -4,6 +4,7 @@
 [![python test coverage](./images/coverage.svg)](https://docs.pytest.org/en/latest/)
 [![version on pypi](https://img.shields.io/pypi/v/esca-py.svg)](https://pypi.python.org/pypi/esca-py)
 [![licence](https://img.shields.io/pypi/l/esca-py.svg)](https://github.com/ysard/escapy/blob/main/LICENCE)
+[![Donate](./images/liberapay.svg)](https://liberapay.com/Ysard/donate)
 <!--[![documentation](https://readthedocs.org/projects/escapy/badge/)](https://escapy.readthedocs.io/en/latest/)-->
 
 
@@ -35,6 +36,19 @@ Note that data destined for the printer must be captured in some way.
 The [Libre Printer](https://github.com/ysard/libre-printer) project accomplishes
 exactly this task by providing a software and hardware interface pretending
 to be a printer compatible with older hardware.
+
+
+## Donations
+
+EscaPy is a project that took ~2 months of full-time work for its first version.
+If it has been useful to you in any way and you would like to contribute to its
+development, please follow the link below, with all thanks :
+
+[![Donate](https://liberapay.com/assets/widgets/donate.svg)](https://liberapay.com/Ysard/donate)
+
+![](https://img.shields.io/badge/Bitcoin-000000?style=for-the-badge&logo=bitcoin&logoColor=yellow)
+
+1EB6dc6YULzHR4TMqLi5fomZ6wmdP3N5cW
 
 
 ## Features
