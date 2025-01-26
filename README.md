@@ -366,18 +366,28 @@ Installation on Debian : (coming soon)
 
 ```bash
 $ escapy -h
-usage: [-h] [-o [OUTPUT]] [-c [CONFIG]] [-v] esc_prn
+usage:  [-h] [--pins [PINS]] [--single_sheets | --no-single_sheets] [-o [OUTPUT]]
+        [-c [CONFIG]] [-db [USERDEF_DB_FILEPATH]] [-v]
+        esc_prn
 
 positional arguments:
-esc_prn               ESC raw printer file.
+  esc_prn                ESC raw printer file. - to read from stdin.
 
 options:
--h, --help            show this help message and exit
--o [OUTPUT], --output [OUTPUT]
-                        PDF output file. (default: output.pdf)
--c [CONFIG], --config [CONFIG]
-                        Configuration file to use. (default: ./escparser.conf)
--v, --version         show program's version number and exit
+  -h, --help             show this help message and exit
+  --pins [PINS]          number of needles of the print head (9, 24, 48). Leave it unset
+                         for ESCP2 modern printers. (default: unset)
+  --single_sheets, --no-single_sheets
+                         single-sheets or continuous paper. (default: single-sheets)
+  -o [OUTPUT], --output [OUTPUT]
+                         PDF output file. - to write on stdout. (default: output.pdf)
+  -c [CONFIG], --config [CONFIG]
+                         configuration file to use. (default: ./escapy.conf,
+                         ~/.local/share/escapy/escapy.conf)
+  -db [USERDEF_DB_FILEPATH], --userdef_db_filepath [USERDEF_DB_FILEPATH]
+                         mappings between user-defined chararacter codes and unicode.
+                         (default: ./user_defined_mapping.json)
+  -v, --version          show program's version number and exit
 ```
 
 NB : The configuration file supplied by the application contains all the
