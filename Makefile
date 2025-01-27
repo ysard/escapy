@@ -6,11 +6,9 @@ PROJECT_VERSION=$(shell python setup.py --version)
 # Tests
 tests:
 	pytest tests
-	@#python setup.py test --addopts "tests escparser -vv"
 
 coverage:
 	pytest --cov=escparser --cov-report term-missing -vv
-	@#python setup.py test --addopts "--cov escparser tests"
 	@-coverage-badge -f -o images/coverage.svg
 
 branch_coverage:
@@ -43,7 +41,6 @@ doc:
 fullrelease:
 	fullrelease
 install:
-	@# Replacement for python setup.py develop which doesn't support extra_require keyword.
 	@# Install a project in editable mode.
 	pip install -e .[dev]
 uninstall:
@@ -51,12 +48,12 @@ uninstall:
 
 sdist: clean
 	@echo Building the distribution package...
-	cp escparser.conf escparser/data/
-	python setup.py sdist
+	cp escparser.conf escparser/data/ # TODO delete this & move file
+	python -m build --sdist
 
 wheel: clean
 	@echo Building the wheel package...
-	python setup.py bdist_wheel
+	python -m build --wheel
 
 upload: sdist wheel
 	twine upload dist/* -r pypi
