@@ -55,7 +55,9 @@ wheel: clean
 	@echo Building the wheel package...
 	python -m build --wheel
 
-upload: sdist wheel
+upload:
+	@echo Building the distribution + wheel packages...
+	python -m build
 	twine upload dist/* -r pypi
 
 check_setups:
