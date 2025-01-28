@@ -46,6 +46,9 @@ from .misc import (
     select_condensed_printing,
     unset_condensed_printing,
     double_width,
+    reset_double_width,
+    double_width_m,
+    reset_double_width_m,
     double_height,
     reset_double_height,
     typefaces,
@@ -1072,7 +1075,7 @@ def test_double_width_height(tmp_path: Path, pins: int, expected_filename: str):
     point_21 = b"\x1bX\x00\x2a\x00"  # ESC X: 0x2a => 42 / 2 = 21 points
     # double-width
     # double_width = b"\x1BW\x01"
-    reset_double_width = b"\x1bW\x00"
+    # reset_double_width = b"\x1bW\x00"
     # double-height
     # double_height = b"\x1Bw\x01"
     # reset_double_height = b"\x1Bw\x00"
@@ -1086,12 +1089,12 @@ def test_double_width_height(tmp_path: Path, pins: int, expected_filename: str):
         point_8 + b"Double point-size (21 cpi)" + reset_intercharacter_space,
         point_21 + pangram,
         point_8 + b"Double width (ESC W) (horizontal scale * 2)" + reset_intercharacter_space,
-        double_width + pangram + reset_double_width,
+        double_width_m + pangram + reset_double_width_m,
         point_8 + b"Double height (ESC w) (point-size * 2 + horizontal scale / 2)" + reset_intercharacter_space,
         double_height + pangram + reset_double_height,
         # Should more or less correspond to 2 x 10.5 cpi
         point_8 + b"Double height + width (point-size * 2 + horizontal scale * 2)" + reset_intercharacter_space,
-        double_width + double_height + pangram + reset_double_height + reset_double_width,
+        double_width_m + double_height + pangram + reset_double_height + reset_double_width_m,
         point_8 + b"Back to normal width (10.5 cpi)" + reset_intercharacter_space,
         pangram,
         b"\r\n"
@@ -1144,7 +1147,7 @@ def test_select_character_style(tmp_path: Path):
     reset_intercharacter_space = b"\x1bp\x00"
     # double-width
     # double_width = b"\x1BW\x01"
-    reset_double_width = b"\x1bW\x00"
+    # reset_double_width = b"\x1bW\x00"
     # double-height
     # double_height = b"\x1Bw\x01"
     # reset_double_height = b"\x1Bw\x00"
@@ -1182,13 +1185,13 @@ def test_select_character_style(tmp_path: Path):
         disable_upperscripting + b"\r\n",
 
         point_8 + b'Double-width + Character style - outline - ESC q 1' + reset_intercharacter_space,
-        double_width + esc_q1 + pangram + esc_q0 + reset_double_width,
+        double_width_m + esc_q1 + pangram + esc_q0 + reset_double_width_m,
         point_8 + b'Double-width + Character style - shadow - ESC q 2' + reset_intercharacter_space,
-        double_width + esc_q2 + pangram + esc_q0 + reset_double_width,
+        double_width_m + esc_q2 + pangram + esc_q0 + reset_double_width_m,
         point_8 + b'Double-width + Character style - outline + shadow - ESC q 3' + reset_intercharacter_space,
-        double_width + esc_q3 + pangram + esc_q0 + reset_double_width,
+        double_width_m + esc_q3 + pangram + esc_q0 + reset_double_width_m,
         point_8 + b'Double-width + Character style - off - ESC q 0' + reset_intercharacter_space,
-        double_width + esc_q0 + pangram + esc_q0 + reset_double_width,
+        double_width_m + esc_q0 + pangram + esc_q0 + reset_double_width_m,
         b"\r\n",
 
         point_8 + b'Double-height + Character style - outline - ESC q 1' + reset_intercharacter_space,
@@ -1467,7 +1470,6 @@ def test_select_line_score(tmp_path: Path):
     turn_off_over = over + b"\x00"
 
     tab = b"\x09"
-    reset_double_width = b"\x1bW\x00"
 
     all_single_continuous = single_continuous.join((underline, strike, over)) + single_continuous
     all_double_continuous = double_continuous.join((underline, strike, over)) + double_continuous
