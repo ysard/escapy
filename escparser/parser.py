@@ -1214,7 +1214,7 @@ class ESCParser:
 
          Since that only the point-size is modifiable on modern fonts, we must
          play with this parameter and with a horizontal scale coefficient
-         to stretch the text and obtain the rendering of ancient days.
+         to stretch the text and obtain the rendering of the old days.
 
          .. seealso:: :meth:`binary_blob`, :meth:`backspace`.
 
@@ -2309,6 +2309,7 @@ class ESCParser:
             return
 
         # Use the original ROM encoding, including an eventual international charset
+        # (using the property "encoding" is mandatory).
         # We need to bypass RAM encoding (user_defined) if already set;
         # the encoding property must be fooled temporary to return it.
         # => Use the encoding property but temporary disable ram_characters attr.
