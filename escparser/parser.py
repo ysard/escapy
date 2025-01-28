@@ -1259,6 +1259,9 @@ class ESCParser:
         :type horizontal_scale_coef: float
         :type text: str
         """
+        if not self.current_pdf:
+            return
+
         scoring_types = {
             1: cursor_y - self.point_size / 3 / 72 - 1 / 72,  # below
             2: cursor_y,  # middle
