@@ -835,6 +835,9 @@ def test_character_pitch_changes(
     """Test character pitch in NON-multipoint mode
 
     Cover: ESC P, ESC M, ESC g (select 10, 12, 15 cpi), double width, condensed, ESC X (pitch)
+
+    .. seealso:: :meth:`test_character_pitch` for graphical tests on the
+        character_pitch value.
     """
     escparser = ESCParser(format_databytes, pdf=False, pins=pins)
 
