@@ -42,6 +42,7 @@ def default_config():
         "automatic_linefeed": "false",
         "single_sheets": "true",
         "renderer": "dots",
+        "condensed_fallback": "auto",
     }
 
     roman_section = {
@@ -273,6 +274,7 @@ def test_specific_settings(sample_config, expected_settings):
             single_sheets =
             automatic_linefeed =
             renderer =
+            condensed_fallback =
             [UserDefinedCharacters]
             database_filepath =
             images_path =
@@ -284,6 +286,7 @@ def test_specific_settings(sample_config, expected_settings):
                 "single_sheets": True,
                 "automatic_linefeed": False,
                 "dots_as_circles": True,
+                "condensed_fallback": None,
                 "userdef_db_filepath": USER_DEFINED_DB_FILE,
                 "userdef_images_path": None,
             },
@@ -299,6 +302,7 @@ def test_specific_settings(sample_config, expected_settings):
             single_sheets = false
             automatic_linefeed = false
             renderer = rectangles
+            condensed_fallback = yes
             [UserDefinedCharacters]
             database_filepath = xxx.json
             images_path = /tmp/xxx/
@@ -310,6 +314,7 @@ def test_specific_settings(sample_config, expected_settings):
                 "single_sheets": False,
                 "automatic_linefeed": False,
                 "dots_as_circles": False,
+                "condensed_fallback": True,
                 "userdef_db_filepath": "xxx.json",
                 "userdef_images_path": "/tmp/xxx/",
             },
@@ -324,6 +329,7 @@ def test_specific_settings(sample_config, expected_settings):
             single_sheets = true
             automatic_linefeed = true
             renderer = dots
+            condensed_fallback = auto
             """,
             {
                 "pins": 48,
@@ -332,6 +338,7 @@ def test_specific_settings(sample_config, expected_settings):
                 "single_sheets": True,
                 "automatic_linefeed": True,
                 "dots_as_circles": True,
+                "condensed_fallback": None,
                 # Missing section defaults
                 "userdef_db_filepath": USER_DEFINED_DB_FILE,
                 "userdef_images_path": None,
