@@ -1406,8 +1406,7 @@ class ESCParser:
                 line_width_backup = self.current_pdf._lineWidth
 
                 # Print text
-                textobject = self.current_pdf.beginText()
-                textobject.setTextOrigin(self.cursor_x * 72, cursor_y * 72)
+                textobject = self.current_pdf.beginText(self.cursor_x * 72, cursor_y * 72)
                 textobject.setRise(rise)
                 textobject.setCharSpace(self.extra_intercharacter_space)
                 textobject.setHorizScale(horizontal_scale_coef * 100)
@@ -1426,28 +1425,21 @@ class ESCParser:
             # Restore original point size
             self.point_size = point_size
 
-        else:
-            if self.current_pdf:
-                text_width = self.current_pdf.stringWidth(text)
+        elif self.current_pdf:
+            text_width = self.current_pdf.stringWidth(text)
 
-                # Print text
-                if self.double_width or self.double_height or self.character_style is not None:
-                    textobject = self.current_pdf.beginText()
-                    textobject.setTextOrigin(self.cursor_x * 72, cursor_y * 72)
-                    textobject.setCharSpace(self.extra_intercharacter_space)
-                    textobject.setHorizScale(horizontal_scale_coef * 100)
+            # Print text
+            textobject = self.current_pdf.beginText(self.cursor_x * 72, cursor_y * 72)
+            textobject.setCharSpace(self.extra_intercharacter_space)
+            textobject.setHorizScale(horizontal_scale_coef * 100)
 
-                    if self.character_style is not None:
-                        self.apply_text_style(cursor_y, horizontal_scale_coef, textobject, text)
-                    else:
-                        textobject.textOut(text)
+            if self.character_style is not None:
+                self.apply_text_style(cursor_y, horizontal_scale_coef, textobject, text)
+            else:
+                textobject.textOut(text)
 
-                    textobject.setHorizScale(100)
-                    self.current_pdf.drawText(textobject)
-                else:
-                    # col, row are in 1/72 inch
-                    # distance from the left edge, distance from the bottom edge
-                    self.current_pdf.drawString(self.cursor_x * 72, cursor_y * 72, text, charSpace=self.extra_intercharacter_space)
+            textobject.setHorizScale(100)
+            self.current_pdf.drawText(textobject)
 
         self.apply_text_scoring(cursor_y, horizontal_scale_coef, text)
 
@@ -1457,8 +1449,10 @@ class ESCParser:
             text_width = len(text) / self.character_pitch
         # use inches: convert pixels to inch
         text_width /= 72
-        if self.double_width or self.double_height:
-            text_width *= horizontal_scale_coef
+
+        # Handle all character pitch changes
+        # (double width/height, condensed, select_*_cpi)
+        text_width *= horizontal_scale_coef
         self.cursor_x += text_width
 
     def carriage_return(self, *_):
