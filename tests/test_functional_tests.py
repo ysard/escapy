@@ -39,8 +39,9 @@ ESCParser = partial(_ESCParser, available_fonts=typefaces)
     "code_file, expected_pdf, args",
     [
         ("test_Graphics_invoice.CP850.prn", "test_Graphics_invoice.CP850.pdf", {"pins": None}),
-        ("test2.KEYBCS2.prn", "test2.KEYBCS2.pdf", {"page_size": landscape(A4)}),
+        ("test2.KEYBCS2.prn", "test2.KEYBCS2.pdf", {}),
         ("Test2_badcommand.prn", "Test2_badcommand.pdf", {"pins": 9}),
+        ("Test2_badcommand.prn", "Test2_badcommand_landscape.pdf", {"pins": 9, "page_size": landscape(A4)}),
         ("escp2_1.prn", "escp2_1.pdf", {}),
         ("escp2_1.prn", "escp2_1_9pins.pdf", {"pins": 9}),
         ("escp2_1.prn", "escp2_1.pdf", {"automatic_linefeed": True}),
@@ -50,6 +51,7 @@ ESCParser = partial(_ESCParser, available_fonts=typefaces)
         "test_Graphics_invoice.CP850",
         "test2.KEYBCS2",
         "Test2_badcommand",
+        "Test2_badcommand_landscape",
         "escp2_1",
         "escp2_1_9pins",
         "escp2_1_auto_linefeed",
