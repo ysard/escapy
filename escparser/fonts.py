@@ -130,6 +130,21 @@ def setup_fonts(config: configparser.ConfigParser) -> dict:
 
 
 @lru_cache
+def open_font(filepath) -> tuple[str, str] | tuple[None, None]:
+    """Get the font attributes (family and styles) from the given font file.
+
+    :return: Tuple of font_family, styles. Can return None for the 2 variables
+        if an error occurred during the file opening.
+    """
+    try:
+        font_family, styles = ImageFont.truetype(str(filepath)).getname()
+        return font_family, styles
+    except OSError:
+        LOGGER.error("Error while opening <%s>", filepath)
+        return None, None
+
+
+@lru_cache
 def find_font(
     name, condensed, italic, bold, best=True, path=DIR_FONTS
 ) -> list[Path] | Path | None:
@@ -172,12 +187,10 @@ def find_font(
     for filepath in it.chain(
         Path(path).rglob(f"{name}*.ttf"), Path(path).rglob(f"{name}*.otf")
     ):
-        try:
-            font = ImageFont.truetype(str(filepath))
-        except OSError:  # pragma: no cover
-            LOGGER.error("Error while opening <%s>", filepath)
+
+        font_family, styles = open_font(filepath)
+        if styles is None:  # pragma: no cover
             continue
-        font_family, styles = font.getname()
 
         # Filter unwanted font names
         # Assume that the searched name doesn't have spaces and is similar
@@ -185,9 +198,8 @@ def find_font(
         # if clean_font_name(font_family) != clean_font_name(name):
         #     continue
 
-        styles = frozenset(styles.lower().replace("-", "").split())
-
         # Extract styles from the current font
+        styles = frozenset(styles.lower().replace("-", "").split())
         stretch_found = STRETCH_DICT.keys() & styles
         stretch_found = None if not stretch_found else stretch_found.pop()
 
