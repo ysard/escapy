@@ -445,6 +445,8 @@ On Windows systems:
 On MacOS systems:
 `/Users/<YOUR_USERNAME>/Library/Application Support/escapy`
 
+The default file is in the repository folder: [data](./escparser/data/).
+
 ### Fonts
 
 For reasons of licensing and personal preference, EscaPy does not embed fonts
