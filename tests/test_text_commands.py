@@ -53,6 +53,7 @@ from .misc import (
     reset_double_height,
     typefaces,
     noto_devanagari_font_def,
+    noto_font_def,
 )
 
 # Inject test typefaces
@@ -1536,5 +1537,69 @@ def test_select_line_score(tmp_path: Path):
     code = b"\r\n".join(lines)
     processed_file = tmp_path / "test_line_scores.pdf"
     _ = ESCParser(code, output_file=processed_file)
+
+    pdf_comparison(processed_file)
+
+
+@pytest.mark.parametrize(
+    "condensed_fallback, expected_filename",
+    [
+        # None is synonym of "auto" (unconfigured)
+        (None, "test_character_pitch_autoscaling_auto.pdf"),
+        # True is synonym of "yes" (always enabled)
+        (True, "test_character_pitch_autoscaling_forced.pdf"),
+
+    ],
+    ids=[
+        "autoscaling_auto",
+        "autoscaling_forced",
+    ],
+)
+def test_character_pitch(tmp_path: Path, condensed_fallback, expected_filename):
+    """Test graphical effect of character pitch in NON-multipoint mode
+
+    Cover: ESC P, ESC M, ESC g (select 10, 12, 15 cpi), double width, condensed, ESC X (pitch)
+
+    We inject the NotoSansMono font since it exists with condensed variants.
+    By forcing autoscaling activation we choose to use & scale the not condensed
+    font variant instead of just using it without applying a horizontal scale
+    coeffcient.
+
+    .. seealso:: :meth:`test_character_pitch_changes` for numeric tests on the
+        character_pitch value.
+    """
+    lorem = b"Lorem ipsum dolor sit amet, consectetur adipiscing elit.\nSed non risus. Suspendisse..."
+
+    lines= [
+        b"select_10cpi+double_width_5cpi",
+        select_10cpi + double_width_m + lorem + reset_double_width_m,
+        b"", b"select_12cpi+double_width_6cpi",
+        select_12cpi + double_width_m + lorem + reset_double_width_m + select_10cpi,
+        b"", b"select_15cpi+double_width_7.5cpi",
+        select_15cpi + double_width_m + lorem + reset_double_width_m + select_10cpi,
+        b"", b"select_10cpi_10cpi",
+        select_10cpi + lorem,
+        b"", b"select_12cpi_12cpi",
+        select_12cpi + lorem + select_10cpi,
+        b"", b"select_15cpi_15cpi",
+        select_15cpi + lorem + select_10cpi,
+        b"", b"select_10cpi+condensed_17.14cpi",
+        select_10cpi + select_condensed_printing + lorem + unset_condensed_printing,
+        b"", b"select_12cpi+condensed_20cpi",
+        select_12cpi + select_condensed_printing + lorem,
+    ]
+
+    code = b"\r\n".join(lines)
+    processed_file = tmp_path / expected_filename
+    # Inject Noto font in the default slot 0 => This font has a condensed version
+    available_fonts = dict(typefaces)
+    available_fonts[0] = noto_font_def
+
+    _ESCParser(
+        code,
+        condensed_fallback=condensed_fallback,
+        output_file=processed_file,
+        available_fonts=available_fonts
+    )
 
     pdf_comparison(processed_file)
