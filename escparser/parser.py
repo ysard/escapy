@@ -52,6 +52,7 @@ from escparser.commons import (
     COMPLETE_ENCODINGS,
 )
 from escparser.encodings.i18n_codecs import getregentry
+from escparser.fonts import open_font
 from escparser.commons import logger
 
 
@@ -117,6 +118,7 @@ class ESCParser:
         page_size=A4,
         single_sheets=True,
         automatic_linefeed=False,
+        condensed_fallback=None,
         dots_as_circles=True,
         userdef_db_filepath=USER_DEFINED_DB_FILE,
         userdef_images_path=None,
@@ -147,6 +149,10 @@ class ESCParser:
             by a LF command.
         :key dots_as_circles: Ink dots will be drawn as circles if True, or as
             rectangles otherwise. (default: True).
+        :key condensed_fallback: True to force autoscaling for condensed text.
+            By forcing autoscaling fallback we choose to use & scale the not
+            condensed font variant instead of just using it (if it exists) without
+            applying a horizontal scale coeffcient.
         :key pdf: Enable pdf generation via reportlab. (default: True).
         :key output_file: Output filepath. (default: output.pdf).
         :type code: bytes
@@ -194,6 +200,8 @@ class ESCParser:
         self._condensed = False
         # Used to postpone or suspend the condensed status
         self.previous_condensed = False
+        self.condensed_fallback: None | bool = condensed_fallback
+        self.condensed_autoscaling = False
         self.double_strike = False
         self._double_width = False
         self._double_width_multi = False
@@ -1229,7 +1237,7 @@ class ESCParser:
 
         # Get the coefficient currently applied on the default character pitch;
         # which is 1/10 by default (condensed mode applies a variable coef).
-        if self.condensed_autoscaling and self.condensed:
+        if self.condensed and not self.condensed_autoscaling:
             # Prefer to use an already condensed ttf font version;
             # => disable the character_pitch change related to this mode
             character_pitch = 1 / 10
@@ -1880,7 +1888,7 @@ class ESCParser:
         font_type = "proportional" if self.proportional_spacing else "fixed"
         # Get typefaces definitions
         func = self.typefaces[self.typeface][font_type]
-        font = func(self.condensed, self.italic, self.bold)
+        font = func(self.condensed and not self.condensed_fallback, self.italic, self.bold)
         if font is None:
             # Font is not found
             LOGGER.warning(
@@ -1897,12 +1905,22 @@ class ESCParser:
             # Not a font embedded in reportlab
             fontname = font.stem
             self.register_fonts(fontname, fontpath=font)
+
+            # Enable autoscaling only if forced or if auto and the current font
+            # is not a condensed variant.
+            if self.condensed_fallback:
+                self.condensed_autoscaling = True
+            else:
+                styles = open_font(font)[1]
+                self.condensed_autoscaling = not (styles and "condensed" in styles.lower())
+
             self.current_fontpath = font
             LOGGER.debug("Loaded & used system font: %s", fontname)
         else:
             fontname = font
             self.current_fontpath = None
             LOGGER.debug("Loaded & used reportlab font: %s", fontname)
+            self.condensed_autoscaling = True
 
         self.current_pdf.setFont(fontname, self.point_size)
         return True
