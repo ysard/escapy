@@ -36,7 +36,7 @@ from escparser.config_parser import parse_config, load_config, build_parser_para
 def default_config():
     """Get default settings for different sections of the expected config file"""
     misc_section = {
-        "loglevel": LOG_LEVEL,
+        "loglevel": LOG_LEVEL.lower(),
         "default_font_path": DIR_FONTS,
         "page_size": "A4",
         "automatic_linefeed": "false",
