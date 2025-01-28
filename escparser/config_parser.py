@@ -163,7 +163,7 @@ def parse_config(config: configparser.ConfigParser):
 
 
     renderer = misc_section.get("renderer")
-    if not renderer or renderer not in ("dots", "rectangles"):
+    if renderer not in ("dots", "rectangles"):
         misc_section["renderer"] = "dots"
 
 
