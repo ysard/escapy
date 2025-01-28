@@ -7,7 +7,7 @@ import pytest
 # Local imports
 from escparser.parser import ESCParser
 from .misc import format_databytes
-from escparser.fonts import find_font, setup_fonts, rptlab_times, rptlab_courier
+from escparser.fonts import open_font, find_font, setup_fonts, rptlab_times, rptlab_courier
 from .test_config_parser import sample_config
 from escparser.commons import TYPEFACE_NAMES
 
@@ -103,6 +103,29 @@ def test_find_font(arguments, expected):
         assert len(found) >= 1
     else:
         assert found == expected
+
+
+@pytest.mark.parametrize(
+    "font_path, expected_attrs",
+    [   # args order: condensed, italic, bold
+        (
+                Path("/usr/share/fonts/truetype/noto/NotoSans-CondensedBoldItalic.ttf"),
+                ("Noto Sans", "Condensed Bold Italic")
+        ),
+        (Path("/usr/share/fonts/truetype/noto/NONE_FAKE"), (None, None)),
+    ],
+    ids=[
+        "NotoSans-CondensedBoldItalic",
+        "not_found",
+    ],
+)
+def test_open_font(font_path, expected_attrs):
+    """Test font file opening and family & styles attributes return"""
+    expected_family, expected_styles = expected_attrs
+    found_family, found_styles = open_font(font_path)
+
+    assert found_family == expected_family
+    assert found_styles == expected_styles
 
 
 @pytest.mark.parametrize(
