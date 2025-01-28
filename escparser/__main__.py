@@ -57,14 +57,14 @@ def choose_config_file(config_file: [Path | None]) -> Path:
     g = [path for path in CONFIG_FILES if path.exists()]
     if not g:
         # If none has been found: create the config file from the embedded one
-        LOGGER.debug("Initialize new default config at <%s>", USER_CONFIG_FILE)
+        # LOGGER.debug("Initialize new default config at <%s>", USER_CONFIG_FILE)
         USER_CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy(EMBEDDED_CONFIG_FILE, USER_CONFIG_FILE)
         return USER_CONFIG_FILE
     else:
         # Use the first file found
         config_file = g[0]
-        LOGGER.debug("Use config at <%s>", config_file)
+        # LOGGER.debug("Use config at <%s>", config_file)
         return config_file
 
 

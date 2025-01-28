@@ -536,7 +536,7 @@ INTERNATIONAL_CHARSETS = {
 
 # Logging
 LOGGER_NAME = "src"
-LOG_LEVEL = "INFO"
+LOG_LEVEL = "DEBUG"
 
 ################################################################################
 
