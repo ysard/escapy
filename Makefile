@@ -48,7 +48,6 @@ uninstall:
 
 sdist: clean
 	@echo Building the distribution package...
-	cp escparser.conf escparser/data/ # TODO delete this & move file
 	python -m build --sdist
 
 wheel: clean
