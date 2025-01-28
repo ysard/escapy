@@ -817,7 +817,7 @@ def test_select_font_by_pitch_and_point(tmp_path: Path):
         "select_10cpi_10cpi",
         "select_12cpi_12cpi",
         "select_15cpi_15cpi",
-        "select_10cpi+condensed_17.12cpi",
+        "select_10cpi+condensed_17.14cpi",
         "select_12cpi+condensed_20cpi",
         "select_12cpi+condensed_switch_back_12cpi",
         "select_15cpi+condensed_ignored_15cpi",
