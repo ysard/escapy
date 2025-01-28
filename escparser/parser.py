@@ -1210,7 +1210,7 @@ class ESCParser:
 
     def compute_horizontal_scale_coef(self) -> float:
         """Get a scale coefficient used to simulate double-width, double-height
-         and condensed printing (internal use).
+         condensed printing and all character pitch changes (internal use).
 
          Since that only the point-size is modifiable on modern fonts, we must
          play with this parameter and with a horizontal scale coefficient
@@ -1221,22 +1221,22 @@ class ESCParser:
          :return: A numeric value used in the `setHorizScale` methods of the
             reportlab textobjects.
          """
-        if self.double_height and self.double_width:
-            # The point size is already multiplied by 2
-            # roughly equivalent to x2 point size: do not change horizontal scale
-            horizontal_scale_coef = 1
-        elif self.double_width:
-            horizontal_scale_coef = 2
-        elif self.double_height:
+        if self.double_height:
             # The point size is already multiplied by 2, we must reduce the pitch
             horizontal_scale_coef = 0.5
         else:
             horizontal_scale_coef = 1
 
-        # if self.condensed:
-        #     # Try to get the coefficient currently applied on the default
-        #     # character pitch 1/10 (condensed mode applies a variable coef).
-        #     horizontal_scale_coef *= self.character_pitch / (1 / 10)
+        # Get the coefficient currently applied on the default character pitch;
+        # which is 1/10 by default (condensed mode applies a variable coef).
+        if self.condensed_autoscaling and self.condensed:
+            # Prefer to use an already condensed ttf font version;
+            # => disable the character_pitch change related to this mode
+            character_pitch = 1 / 10
+        else:
+            character_pitch = self.character_pitch
+
+        horizontal_scale_coef *= 10 * character_pitch
 
         return horizontal_scale_coef
 
