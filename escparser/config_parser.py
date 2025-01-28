@@ -167,6 +167,11 @@ def parse_config(config: configparser.ConfigParser):
         misc_section["renderer"] = "dots"
 
 
+    condensed_fallback = misc_section.get("condensed_fallback")
+    if condensed_fallback not in ("auto", "yes"):
+        misc_section["condensed_fallback"] = "auto"
+
+
     ## User defined characters section
     if not config.has_section("UserDefinedCharacters"):
         config.add_section("UserDefinedCharacters")
@@ -257,6 +262,9 @@ def build_parser_params(config) -> dict:
     single_sheets = misc_section.getboolean("single_sheets", True)
     dots_as_circles = misc_section.get("renderer") == "dots"
 
+    # None is synonym of "auto" (unconfigured)
+    condensed_fallback = True if misc_section.get("condensed_fallback") == "yes" else None
+
     # Default: images path export is disabled (if not defined or empty)
     ud_section = config["UserDefinedCharacters"]
     images_path = ud_section.get("images_path")
@@ -269,6 +277,7 @@ def build_parser_params(config) -> dict:
         "page_size": page_size,
         "single_sheets": single_sheets,
         "dots_as_circles": dots_as_circles,
+        "condensed_fallback": condensed_fallback,
         "userdef_db_filepath": ud_section["database_filepath"],
         "userdef_images_path": userdef_images_path,
     }
