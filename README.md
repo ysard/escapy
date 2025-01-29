@@ -7,11 +7,45 @@
 [![Donate](./images/liberapay.svg)](https://liberapay.com/Ysard/donate)
 <!--[![documentation](https://readthedocs.org/projects/escapy/badge/)](https://escapy.readthedocs.io/en/latest/)-->
 
+<a name="readme-top"></a>
+
+<div align="center">
+
+# EscaPy
 
 EscaPy is a tool that **reliably** and almost **exhaustively** interprets the
 ESC/P and ESC/P2 command sets defined by Epson
 ([Wikipedia - Epson ESC/P](https://en.wikipedia.org/wiki/ESC/P)), then converts
 the data formerly intended for printers into a modern PDF file.
+
+</div>
+
+
+## Table of Contents
+ <details>
+<summary>Open Contents</summary>
+
+- [EscaPy](#title)
+   - [:information_source: About the Project](#information_source-about-the-project)
+   - [:book: Foreword](#book-foreword)
+   - [:bank: Donations](#bank-donations)
+   - [:star: Features](#star-features)
+   - [⚙ Setup](#-setup)
+     - [Installation](#installation)
+     - [Usage](#usage)
+     - [Examples](#examples)
+   - [:newspaper: Configuration file](#newspaper-configuration-file)
+   - [:abc: Fonts](#abc-fonts)
+   - [:a: User-defined characters](#a-user-defined-characters)
+   - [:u7a7a: Unsupported encodings (Chinese, Japanese, etc.)](#u7a7a-unsupported-encodings-chinese-japanese-etc)
+   - [:trophy: Acknowledgements](#trophy-acknowledgements)
+   - [Absence of acknowledgements](#absence-of-acknowledgements)
+   - [👏🏻 Contributions](#-contributions)
+   - [:book: License](#book-license)
+</details>
+
+
+## :information_source: About the Project
 
 **TL;DR**: Your DOS system or emulator will be able to produce searchable
 PDF files.
@@ -19,7 +53,7 @@ This tool is compatible with files produced by the
 [Libre Printer](https://github.com/ysard/libre-printer) interface discussed below.
 
 
-## Foreword
+## :book: Foreword
 
 Nowadays, older equipment may still be in use in sectors such as medical or
 industrial (machine tools). While the software of the old days were often
@@ -38,7 +72,7 @@ exactly this task by providing a software and hardware interface pretending
 to be a printer compatible with older hardware.
 
 
-## Donations
+## :bank: Donations
 
 EscaPy is a project that took ~2 months of full-time work and 12k+ lines
 including documentation & tests, for its first version.
@@ -52,9 +86,9 @@ development, please follow the link below, with all thanks :
 1EB6dc6YULzHR4TMqLi5fomZ6wmdP3N5cW
 
 
-## Features
+## :star: Features
 
--[x] **Advanced ESC/P ESC/P2 command set support**
+- [x] **Advanced ESC/P ESC/P2 command set support**
 
     Nearly all commands are supported (text, graphics and barcodes).
 
@@ -211,7 +245,7 @@ development, please follow the link below, with all thanks :
     </details>
 
 
--[x] **Advanced font support**
+- [x] **Advanced font support**
 
     Specify in advance the fonts you wish to use. 14 different fonts can be
     specified, each in 2 versions (fixed and proportional fonts), for a total of 28 fonts.
@@ -227,7 +261,7 @@ development, please follow the link below, with all thanks :
     </figure></div>
 
 
--[x] **Several rendering modes for graphic commands**
+- [x] **Several rendering modes for graphic commands**
 
     Points can be rendered as dots or rectangles.
     In all cases, the file is vectorized (infinitely scalable).
@@ -243,13 +277,13 @@ development, please follow the link below, with all thanks :
     obtained with GhostScript for this task (see examples).
 
 
--[x] **Searchable text**
+- [x] **Searchable text**
 
     Text remains as text, not as images.
    This makes content search and indexing possible.
 
 
--[x] **Wide range of encodings available**
+- [x] **Wide range of encodings available**
 
     A major effort has been made to ensure that the essential encodings of this
  era and more, are also supported by EscaPy. It's easy to add to this list.
@@ -324,20 +358,20 @@ development, please follow the link below, with all thanks :
  </details>
 
 
--[x] **Page formats**
+- [x] **Page formats**
 
     47 portrait formats and their landscape equivalents are predefined.
     Custom sizes are also available.
 
 
--[x] **User-defined characters support (ESC/P2 only)**
+- [x] **User-defined characters support (ESC/P2 only)**
 
     A user can send customized bitmap characters to the printer.
     A mapping file will be generated to map the received characters to modern
     unicode codes (see examples).
 
 
--[x] **Enhanced reliability thanks to testing (~100%)**
+- [x] **Enhanced reliability thanks to testing (~100%)**
 
     EscaPy is an implementation of a standard made up of over 600 pages.
 
@@ -349,12 +383,12 @@ development, please follow the link below, with all thanks :
     with what the developer expected when he designed it.
 
 
--[x] **Facilitated development**
+- [x] **Facilitated development**
 
     The code is fully documented to facilitate maintenance and enhancements.
 
 
-## Setup
+## ⚙ Setup
 
 ### Installation
 
@@ -430,7 +464,7 @@ gs -dBATCH -dNOPAUSE -dSAFER \
 -sOutputFile=out-%d.tiff -
 ```
 
-### Configuration file
+## :newspaper: Configuration file
 
 The configuration file supplied by the application contains all the information
 needed to configure the virtual printer (margins, page formats, etc.),
@@ -452,7 +486,7 @@ On MacOS systems:
 
 The default file is in the repository folder: [data](./escparser/data/).
 
-### Fonts
+## :abc: Fonts
 
 For reasons of licensing and personal preference, EscaPy does not embed fonts
 (except for a minimal version of Courier and Helvetica).
@@ -523,7 +557,7 @@ $ apt install ttf-mscorefonts-installer
 More generally, think of the `fnt` tool as a package manager for managing and
 installing fonts.
 
-### User-defined characters
+## :a: User-defined characters
 
 A JSON file is created and updated when custom characters are found.
 The user must specify the desired character in the unicode character set.
@@ -561,7 +595,7 @@ By default, the JSON file (`user_defined_mapping.json`) is created in the curren
 folder, but this can be changed in the configuration file.
 A folder containing the image of the bitmap character received can also be created.
 
-### Unsupported encodings (Chinese, Japanese, etc.)
+## :u7a7a: Unsupported encodings (Chinese, Japanese, etc.)
 
 The ESC/P and ESC/P2 standards do not seem to support Chinese or Japanese
 languages (encodings were apparently not provided for). However, some language
@@ -574,7 +608,7 @@ The easiest way to achieve this is to use the printer in graphics mode
 (raster or bitimage) instead of text mode.
 
 
-## Acknowledgements
+## :trophy: Acknowledgements
 
 - The management of modern fonts and their display on our screens would not
 have been possible without the work of French engineer
@@ -597,13 +631,13 @@ If you too feel that this is not appropriate, then you should consider
 manufacturers who respect your right to repair/modify what you own.
 
 
-## Contributions
+## 👏🏻 Contributions
 
 This project is open for any contribution! Any bug report can be posted by
 opening an [issue](https://github.com/ysard/EscaPy/issues).
 
 
-## License
+## :book: License
 
 EscaPy is distributed under two licenses: one for community use and the other
 for commercial use.
