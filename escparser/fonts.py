@@ -179,7 +179,9 @@ def find_font(
     # def clean_font_name(font_name: str):
     #     return font_name.translate(str.maketrans({"_": "", "-": "", " ": ""}))
 
-    searched_condensed = 300 if condensed else 500
+    # Condensed level is 200, not 300, since the character_pitch of the old days
+    # was at most this value.
+    searched_condensed = 200 if condensed else 500
     searched_italic = 500 if italic else 0
     searched_bold = 700 if bold else 400
 
