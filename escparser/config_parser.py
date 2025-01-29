@@ -26,7 +26,6 @@ from escparser.commons import (
     logger,
     log_level,
     EMBEDDED_CONFIG_FILE,
-    LOG_LEVEL,
     DIR_FONTS,
     TYPEFACE_NAMES,
     PAGESIZE_MAPPING,
@@ -88,7 +87,7 @@ def parse_config(config: configparser.ConfigParser):
     misc_section = config["misc"]
     loglevel = misc_section.get("loglevel")
     if not loglevel:
-        misc_section["loglevel"] = LOG_LEVEL.lower()
+        misc_section["loglevel"] = "info"
     log_level(misc_section["loglevel"])
 
 
