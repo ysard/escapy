@@ -88,6 +88,7 @@ def minimal_config() -> str:
     - fonfigure the default font
     """
     return """[misc]
+        loglevel = debug
         [Roman]
         fixed = FiraCode
         """
@@ -96,7 +97,7 @@ def test_stdin_stdout(capsysbinary, tmp_path: Path, minimal_config: str):
     """Test the produced data written on stdout
 
     :param tmp_path: Path of temporary working dir returned by a pytest fixture.
-    :param minimal_config: Minimal configuration file content.
+    :param minimal_config: Fixture with minimal configuration file content.
     """
     empty_config_file = tmp_path / "config.conf"
     empty_config_file.write_text(minimal_config)
@@ -123,7 +124,7 @@ def test_argument_parser(tmp_path: Path, minimal_config: str):
     """Almost full test from the command line to the pdf generated
 
     :param tmp_path: Path of temporary working dir returned by a pytest fixture.
-    :param minimal_config: Minimal configuration file content.
+    :param minimal_config: Fixture with minimal configuration file content.
     """
     empty_config_file = tmp_path / "config.conf"
     empty_config_file.write_text(minimal_config)
@@ -146,7 +147,7 @@ def test_empty_input_file(tmp_path: Path, minimal_config: str):
     """Test an empty input file given from the command line
 
     :param tmp_path: Path of temporary working dir returned by a pytest fixture.
-    :param minimal_config: Minimal configuration file content.
+    :param minimal_config: Fixture with minimal configuration file content.
     """
     empty_config_file = tmp_path / "config.conf"
     empty_config_file.write_text(minimal_config)
@@ -170,6 +171,9 @@ def test_empty_input_file(tmp_path: Path, minimal_config: str):
 def test_choose_config_file(tmp_path: Path, minimal_config: str):
     """Test CONFIG_FILES, USER_CONFIG_FILE, EMBEDDED_CONFIG_FILE variables
     from :meth:`escparser.commons` and their usage during the program start phase.
+
+    :param tmp_path: Path of temporary working dir returned by a pytest fixture.
+    :param minimal_config: Fixture with minimal configuration file content.
     """
     # Block similar to the one found in escparser.commons
     config_file = Path("config.conf")

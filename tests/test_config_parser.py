@@ -26,7 +26,6 @@ import pytest
 # Local imports
 from escparser.commons import (
     log_level,
-    LOG_LEVEL,
     DIR_FONTS,
     USER_DEFINED_DB_FILE,
 )
@@ -36,7 +35,7 @@ from escparser.config_parser import parse_config, load_config, build_parser_para
 def default_config():
     """Get default settings for different sections of the expected config file"""
     misc_section = {
-        "loglevel": LOG_LEVEL.lower(),
+        "loglevel": "info",
         "default_font_path": DIR_FONTS,
         "page_size": "A4",
         "automatic_linefeed": "false",
@@ -77,19 +76,25 @@ def sample_config(request):
     log_level("debug")
 
 
+@pytest.fixture()
+def tear_down():
+    yield None
+
+    # Restore previous loglevel for further tests
+    log_level("debug")
+
+
 def test_empty_file():
     """Test empty config file, will raise an exception"""
-    sample_config = ""
-
     config = configparser.ConfigParser()
-    config.read_string(sample_config)
+    config.read_string("")
 
     with pytest.raises(KeyError, match=r".*misc.*"):
         # Raises KeyError on not found section
         _ = parse_config(config)
 
 
-def test_default_file():
+def test_default_file(tear_down):
     """Test the loading of the default config file embedded with the application"""
     sample_config = load_config()
     expected_misc_section, expected_roman_section, expected_userdef_section = default_config()
@@ -192,7 +197,7 @@ def test_default_file():
     ],
     ids=[""] * 11,
 )
-def test_erroneous_settings(sample_config):
+def test_erroneous_settings(sample_config, tear_down):
     """Test settings that should raise a SystemExit exception with an error msg
 
     :param sample_config: Tested configuration string that will be parsed.
@@ -214,7 +219,7 @@ def test_erroneous_settings(sample_config):
             # sample1:
             """
             [misc]
-            loglevel=info
+            loglevel=debug
             default_font_path=/one_path/
             [Roman]
             fixed = FiraCode
@@ -223,7 +228,7 @@ def test_erroneous_settings(sample_config):
             """,
             {
                 "misc": {
-                    "loglevel": "info",
+                    "loglevel": "debug",
                     "default_font_path": "/one_path/",
                 },
                 "Roman": {
@@ -246,7 +251,7 @@ def test_erroneous_settings(sample_config):
     ids=["sample1"],
     indirect=["sample_config"],  # Send sample_config val to the fixture
 )
-def test_specific_settings(sample_config, expected_settings):
+def test_specific_settings(sample_config, expected_settings, tear_down):
     """Test user settings vs parsed ones (focused on font definition)
 
     .. note:: Roman & Sans serif sections are mandatory and created if not in the
@@ -348,7 +353,7 @@ def test_specific_settings(sample_config, expected_settings):
     ids=[""] * 3,
     indirect=["sample_config"],  # Send sample_config val to the fixture
 )
-def test_build_parser_params(sample_config, expected):
+def test_build_parser_params(sample_config, expected, tear_down):
     """Test legit settings verified by the configparser and prepared as kwargs for ESCParser
 
     .. seealso:: :meh:`build_parser_params`.
