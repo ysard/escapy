@@ -963,7 +963,8 @@ def test_set_intercharacter_space(tmp_path: Path):
     enable_upperscripting = b"\x1bS\x00"
     disable_upperscripting = b"\x1bT"
     point_8 = b"\x1bX\x00\x10\x00"  # ESC X: 0x10 => 16 / 2 = 8 points
-    alphabet = b"abcdefghijklmnopqrstuvwxz"
+    # Use NULL instruction to break the text in 2 parts; render must be identical
+    alphabet = b"abcdefghij\x00klmnopqrstuvwxz"
     lines = [
         esc_reset,
         point_8 + b"Intercharacter space from 0 to 128 (steps 20)"

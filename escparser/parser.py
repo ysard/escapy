@@ -1454,6 +1454,10 @@ class ESCParser:
         if not self.current_pdf:
             # Fallback
             text_width = len(text) / self.character_pitch
+
+        # Add intercharacter space which is not used by stringWidth()
+        # PS: not `len(text) - 1`, because there is a trailing space.
+        text_width += len(text) * self.extra_intercharacter_space
         # use inches: convert pixels to inch
         text_width /= 72
 
