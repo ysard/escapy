@@ -1603,7 +1603,7 @@ class ESCParser:
 
     def next_page(self):
         """Initiate a new page and reset cursors"""
-        LOGGER.info("NEXT PAGE! at y offset %s", self.cursor_y)
+        LOGGER.debug("NEXT PAGE! at y offset %s", self.cursor_y)
 
         self.reset_cursor_y()
         self._carriage_return()
