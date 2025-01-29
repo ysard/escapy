@@ -30,7 +30,7 @@ from platformdirs import user_data_dir
 
 # Paths
 DIR_LOGS = tempfile.gettempdir() + "/"
-CONFIG_FILE = "escparser.conf"
+CONFIG_FILE = "escapy.conf"
 EMBEDDED_CONFIG_FILE = resources.files(__package__) / "data" / CONFIG_FILE
 USER_CONFIG_FILE = Path(user_data_dir('escapy')) / CONFIG_FILE
 CONFIG_FILES = [Path(CONFIG_FILE), USER_CONFIG_FILE]
