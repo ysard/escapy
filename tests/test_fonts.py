@@ -9,7 +9,6 @@ from escparser.parser import ESCParser
 from .misc import format_databytes
 from escparser.fonts import open_font, find_font, setup_fonts, rptlab_times, rptlab_courier
 from .test_config_parser import sample_config
-from escparser.commons import TYPEFACE_NAMES
 
 
 @pytest.mark.parametrize(
