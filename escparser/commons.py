@@ -32,7 +32,7 @@ from platformdirs import user_data_dir
 DIR_LOGS = tempfile.gettempdir() + "/"
 CONFIG_FILE = "escapy.conf"
 EMBEDDED_CONFIG_FILE = resources.files(__package__) / "data" / CONFIG_FILE
-USER_CONFIG_FILE = Path(user_data_dir('escapy')) / CONFIG_FILE
+USER_CONFIG_FILE = Path(user_data_dir("escapy")) / CONFIG_FILE
 CONFIG_FILES = [Path(CONFIG_FILE), USER_CONFIG_FILE]
 
 DIR_FONTS = "/usr/share/fonts/truetype/"
@@ -264,7 +264,7 @@ MISSING_CONTROL_CODES_MAPPING = {
     0x7f: "\u2302",  # HOUSE
 }
 
-CP864_MISSING_CONTROL_CODES_MAPPING={
+CP864_MISSING_CONTROL_CODES_MAPPING = {
     0x01: "\u263A",  # WHITE SMILING FACE
     0x02: "\u266A",  # EIGHTH NOTE
     0x03: "\u266B",  # BEAMED EIGHTH NOTES
@@ -530,8 +530,8 @@ INTERNATIONAL_CHARSETS = {
         123: "©",
         124: "®",
         125: "†",
-        126: "™"
-    }
+        126: "™",
+    },
 }
 
 # Logging

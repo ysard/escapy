@@ -64,7 +64,9 @@ class Codec(codecs.Codec):
                 " Fallback: dump the table."
             )
             # /!\ Errors will be masked with a '?' symbol !!
-            decoding_table = list(bytes(range(256)).decode(base_encoding, errors="replace"))
+            decoding_table = list(
+                bytes(range(256)).decode(base_encoding, errors="replace")
+            )
         else:
             # Convert the decoding table (str) to a mutable type (list)
             decoding_table = list(module.decoding_table)

@@ -102,25 +102,24 @@ def main():  # pragma: no cover
 
     def get_formatter_class(prog):
         """Limit help width"""
-        return argparse.ArgumentDefaultsHelpFormatter(prog, max_help_position=25, width=90)
+        return argparse.ArgumentDefaultsHelpFormatter(
+            prog, max_help_position=25, width=90
+        )
 
-    parser = argparse.ArgumentParser(
-        prog="",
-        formatter_class=get_formatter_class
-    )
+    parser = argparse.ArgumentParser(prog="", formatter_class=get_formatter_class)
 
     parser.add_argument(
         "esc_prn",
         help="ESC raw printer file. - to read from stdin.",
         type=argparse.FileType("r"),
-        default=sys.stdin
+        default=sys.stdin,
     )
 
     parser.add_argument(
         "--pins",
         nargs="?",
         help="number of needles of the print head (9, 24, 48). "
-            "Leave it unset for ESCP2 modern printers. (default: unset)",
+        "Leave it unset for ESCP2 modern printers. (default: unset)",
         default=argparse.SUPPRESS,  # Absent by default (handled later)
         type=int,
     )
@@ -129,7 +128,7 @@ def main():  # pragma: no cover
         "--single_sheets",
         help="single-sheets or continuous paper. (default: single-sheets)",
         default=argparse.SUPPRESS,  # Absent by default (handled later)
-        action=argparse.BooleanOptionalAction
+        action=argparse.BooleanOptionalAction,
     )
 
     parser.add_argument(
@@ -146,7 +145,7 @@ def main():  # pragma: no cover
         "--config",
         nargs="?",
         help="configuration file to use. "
-            "(default: ./escapy.conf, ~/.local/share/escapy/escapy.conf)",
+        "(default: ./escapy.conf, ~/.local/share/escapy/escapy.conf)",
         default=argparse.SUPPRESS,  # Absent by default (handled later)
         type=Path,
     )
@@ -156,14 +155,12 @@ def main():  # pragma: no cover
         "--userdef_db_filepath",
         nargs="?",
         help="mappings between user-defined chararacter codes and unicode. "
-            "(default: ./user_defined_mapping.json)",
+        "(default: ./user_defined_mapping.json)",
         default=argparse.SUPPRESS,  # Absent by default (handled later)
         type=Path,
     )
 
-    parser.add_argument(
-        "-v", "--version", action="version", version=__version__
-    )
+    parser.add_argument("-v", "--version", action="version", version=__version__)
 
     # Get program args and launch associated command
     args = parser.parse_args()

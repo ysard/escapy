@@ -61,12 +61,14 @@ class PrintMode(Enum):
     .. note:: NLQ mode for 9 pin printers is considered equivalent to the LQ mode
         of 24/48 pins printers.
     """
+
     DRAFT = 0
     LQ = 1
 
 
 class PrintCharacterStyle(Enum):
     """Character style enumeration in reportlab text render values"""
+
     FILL = 0
     OUTLINE = 1
     SHADOW = 2
@@ -74,6 +76,7 @@ class PrintCharacterStyle(Enum):
 
 class PrintScripting(Enum):
     """Text scripting enumeration"""
+
     SUP = 0
     SUB = 1
 
@@ -85,6 +88,7 @@ class PrintControlCodes(Enum):
         :meth:`unset_upper_control_codes_printing`,
         :meth:`switch_control_codes_printing`.
     """
+
     UPPER = frozenset(range(128, 160))
     SELECTED = frozenset(
         it.chain(
@@ -97,6 +101,7 @@ class PrintControlCodes(Enum):
 
 
 LOGGER = logger()
+
 
 class ESCParser:
     """Parser routines used to interpret ESC bytecode and build PDF files
@@ -124,7 +129,7 @@ class ESCParser:
         userdef_images_path=None,
         pdf=True,
         output_file="output.pdf",
-        **_
+        **_,
     ):
         """
 
@@ -260,7 +265,9 @@ class ESCParser:
                 output_file = output_file.buffer
             else:
                 output_file = str(output_file)
-            self.current_pdf = Canvas(output_file, pagesize=page_size, pageCompression=1)
+            self.current_pdf = Canvas(
+                output_file, pagesize=page_size, pageCompression=1
+            )
             self.current_pdf.setLineWidth(0.3)
             self.current_pdf.setFillOverprint(True)
             self.current_pdf.setStrokeOverprint(True)
@@ -283,9 +290,7 @@ class ESCParser:
             )
 
         # Convert printable area from mm to inches
-        printable_area_margins_inch = tuple(
-            i / 25.4 for i in printable_area_margins_mm
-        )
+        printable_area_margins_inch = tuple(i / 25.4 for i in printable_area_margins_mm)
         # Convert printable area to absolute positions
         top, bottom, left, right = printable_area_margins_inch
         self.printable_area = (
@@ -302,9 +307,14 @@ class ESCParser:
             self.right_margin,
         ) = self.printable_area
 
-        LOGGER.debug("page size, height, width: %s x %s", self.page_height, self.page_width)
+        LOGGER.debug(
+            "page size, height, width: %s x %s", self.page_height, self.page_width
+        )
         LOGGER.debug("printable_area_margins_inch: %s", printable_area_margins_inch)
-        LOGGER.debug("printable_area (default printing margins positions): %s", self.printable_area)
+        LOGGER.debug(
+            "printable_area (default printing margins positions): %s",
+            self.printable_area,
+        )
 
         # Mechanically usable width
         # Note: Here margins are used because during initialization:
@@ -331,7 +341,7 @@ class ESCParser:
         self.character_tables = [
             "italic",
             "cp437",
-            None, # User-defined characters: can be reassigned but lost until reset
+            None,  # User-defined characters: can be reassigned but lost until reset
             "cp437",
         ]
         self.typefaces = available_fonts
@@ -343,6 +353,7 @@ class ESCParser:
         self.copied_font = {}
         self.ram_characters = False
         from escparser.user_defined_characters import RAMCharacters
+
         self.userdef_db_filepath = userdef_db_filepath
         self.userdef_images_path = userdef_images_path
         self.user_defined = RAMCharacters(parent=self, db_filepath=userdef_db_filepath)
@@ -365,25 +376,25 @@ class ESCParser:
         self.microweave_mode = False
         # Get horizontal density with dot density value
         self.bit_image_horizontal_resolution_mapping = {
-            0:  1/60 ,
-            1:  1/120,
-            2:  1/120,
-            3:  1/240,
-            4:  1/80 ,
-            5:  1/72 ,
-            6:  1/90 ,
-            7:  1/144,
-            32: 1/60 ,
-            33: 1/120,
-            38: 1/90 ,
-            39: 1/180,
-            40: 1/360,
-            64: 1/60 ,
-            65: 1/120,
-            70: 1/90 ,
-            71: 1/180,
-            72: 1/360,
-            73: 1/360,
+            0: 1 / 60,
+            1: 1 / 120,
+            2: 1 / 120,
+            3: 1 / 240,
+            4: 1 / 80,
+            5: 1 / 72,
+            6: 1 / 90,
+            7: 1 / 144,
+            32: 1 / 60,
+            33: 1 / 120,
+            38: 1 / 90,
+            39: 1 / 180,
+            40: 1 / 360,
+            64: 1 / 60,
+            65: 1 / 120,
+            70: 1 / 90,
+            71: 1 / 180,
+            72: 1 / 360,
+            73: 1 / 360,
         }
         # Raster resolution (ESC . 0 or 1 or 2)
         self.vertical_resolution = None
@@ -397,7 +408,7 @@ class ESCParser:
 
         self.bytes_per_line = 0
         self.bytes_per_column = 0
-        self.movx_unit = 1/360
+        self.movx_unit = 1 / 360
 
         # Absolute position from the page left edge
         self.cursor_x = 0
@@ -517,7 +528,9 @@ class ESCParser:
         """
         self.double_width_centralized_setter(double_width, multiline=True)
 
-    def double_width_centralized_setter(self, double_width: bool, multiline: bool = False):
+    def double_width_centralized_setter(
+        self, double_width: bool, multiline: bool = False
+    ):
         """Centralized setter for :meth:`double_width_multi` & :meth:`double_width`
 
         :param double_width: Value that goes into `_double_width` (ESC SO) or
@@ -750,7 +763,7 @@ class ESCParser:
             LOGGER.error(
                 "bottom margin is outside the current page_length (measures: %s vs %s)",
                 self.bottom_margin,
-                self.page_length
+                self.page_length,
             )
             # The distance from the top edge of the page to the bottom-margin
             # position must be less than the page length; otherwise, the end of
@@ -791,10 +804,16 @@ class ESCParser:
             "left margin, right margin, printable area limit (in): %s, %s, %s",
             self.left_margin,
             right_margin,
-            self.printable_area_width + left
+            self.printable_area_width + left,
         )
-        if not self.left_margin + 0.1 <= right_margin <= self.printable_area_width + left:
-            LOGGER.error("right margin outside printing area or before left margin! => ignored")
+        if (
+            not self.left_margin + 0.1
+            <= right_margin
+            <= self.printable_area_width + left
+        ):
+            LOGGER.error(
+                "right margin outside printing area or before left margin! => ignored"
+            )
             return
         self.right_margin = right_margin
 
@@ -833,7 +852,9 @@ class ESCParser:
         left_margin = args[1].value[0] * character_pitch + left
 
         if not 0 <= left_margin <= self.right_margin - 0.1:
-            LOGGER.error("right margin outside printing area or before left margin !! => ignored")
+            LOGGER.error(
+                "right margin outside printing area or before left margin !! => ignored"
+            )
             return
 
         self.left_margin = left_margin
@@ -893,8 +914,7 @@ class ESCParser:
         LOGGER.debug("set relative cursor_x: %s", cursor_x)
 
         if not self.left_margin <= cursor_x < self.right_margin:
-            LOGGER.error(
-                "set relative cursor_x outside defined margins! => ignored")
+            LOGGER.error("set relative cursor_x outside defined margins! => ignored")
             return
 
         self.cursor_x = cursor_x
@@ -936,7 +956,10 @@ class ESCParser:
 
         movement_amplitude = self.cursor_y - cursor_y
         if movement_amplitude < 0 and -movement_amplitude > 179 / 360:
-            LOGGER.error("set absolute cursor_y movement upwards too big (%s)! => ignored", movement_amplitude)
+            LOGGER.error(
+                "set absolute cursor_y movement upwards too big (%s)! => ignored",
+                movement_amplitude,
+            )
             return
 
         self.cursor_y = cursor_y
@@ -972,7 +995,10 @@ class ESCParser:
         movement_amplitude = value * unit
 
         if movement_amplitude < 0 and -movement_amplitude > 179 / 360:
-            LOGGER.error("set relative cursor_y movement upwards too big (%s)! => ignored", movement_amplitude)
+            LOGGER.error(
+                "set relative cursor_y movement upwards too big (%s)! => ignored",
+                movement_amplitude,
+            )
             return
 
         # sign inverted due to bottom-up
@@ -1130,14 +1156,22 @@ class ESCParser:
         horizontal_scale_coef = self.compute_horizontal_scale_coef()
         point_size = self._point_size
         # See binary_blob()
-        point_size = round(point_size * 2 / 3) if self.scripting and point_size > 8 else point_size
+        point_size = (
+            round(point_size * 2 / 3)
+            if self.scripting and point_size > 8
+            else point_size
+        )
 
         # Scale is applied only on the string part, not intercharacter space
         # that is already updated via the standard implementation.
         text_width = self.current_pdf.stringWidth(" ", fontSize=point_size)
         # use inches: convert pixels to inch
         text_width /= 72
-        cursor_x = self.cursor_x - text_width * horizontal_scale_coef - self.extra_intercharacter_space
+        cursor_x = (
+            self.cursor_x
+            - text_width * horizontal_scale_coef
+            - self.extra_intercharacter_space
+        )
 
         # Alternative: print a space with binary blob, measure the diff
         # of the cursor_x: after - before...
@@ -1209,8 +1243,8 @@ class ESCParser:
             charset.update(
                 MISSING_CONTROL_CODES_MAPPING
                 # Specific patch for this encoding. May move in future update...
-                if encoding != "cp864" else
-                CP864_MISSING_CONTROL_CODES_MAPPING
+                if encoding != "cp864"
+                else CP864_MISSING_CONTROL_CODES_MAPPING
             )
 
         if self.international_charset:
@@ -1226,7 +1260,7 @@ class ESCParser:
                 getregentry,
                 effective_encoding=encoding_variant,
                 base_encoding=encoding,
-                intl_charset=charset
+                intl_charset=charset,
             )
             codecs.register(register_codec_func)
 
@@ -1234,17 +1268,17 @@ class ESCParser:
 
     def compute_horizontal_scale_coef(self) -> float:
         """Get a scale coefficient used to simulate double-width, double-height
-         condensed printing and all character pitch changes (internal use).
+        condensed printing and all character pitch changes (internal use).
 
-         Since that only the point-size is modifiable on modern fonts, we must
-         play with this parameter and with a horizontal scale coefficient
-         to stretch the text and obtain the rendering of the old days.
+        Since that only the point-size is modifiable on modern fonts, we must
+        play with this parameter and with a horizontal scale coefficient
+        to stretch the text and obtain the rendering of the old days.
 
-         .. seealso:: :meth:`binary_blob`, :meth:`backspace`.
+        .. seealso:: :meth:`binary_blob`, :meth:`backspace`.
 
-         :return: A numeric value used in the `setHorizScale` methods of the
-            reportlab textobjects.
-         """
+        :return: A numeric value used in the `setHorizScale` methods of the
+           reportlab textobjects.
+        """
         if self.double_height:
             # The point size is already multiplied by 2, we must reduce the pitch
             horizontal_scale_coef = 0.5
@@ -1298,7 +1332,8 @@ class ESCParser:
             6: "=",
         }
         g = (
-            (scoring_type, style) for scoring_type, style in self.scoring_types.items()
+            (scoring_type, style)
+            for scoring_type, style in self.scoring_types.items()
             if style  # Skip 0 (turn off the scoring)
         )
         for scoring_type, style in g:
@@ -1344,8 +1379,7 @@ class ESCParser:
                 offset = horizontal_scale_coef * self.point_size * 0.5 / 10
                 # The white text will be on top and above the legit text
                 text_object.setTextOrigin(
-                    self.cursor_x * 72 - offset,
-                    cursor_y * 72 + offset
+                    self.cursor_x * 72 - offset, cursor_y * 72 + offset
                 )
                 text_object.textOut(text)
                 text_object.setFillColorRGB(0, 0, 0)
@@ -1387,7 +1421,9 @@ class ESCParser:
         # Decode the text according to the current character table
         encoding = self.character_tables[self.character_table]
         if encoding == "italic":
-            LOGGER.warning("Italic table is partially supported: map all italic chars to normal chars")
+            LOGGER.warning(
+                "Italic table is partially supported: map all italic chars to normal chars"
+            )
             # Remap the upper table part to the lower part
             raw_text = bytearray(i if i < 0x80 else i - 0x80 for i in raw_text)
         elif self.control_codes_filter:
@@ -1429,14 +1465,18 @@ class ESCParser:
                 line_width_backup = self.current_pdf._lineWidth
 
                 # Print text
-                textobject = self.current_pdf.beginText(self.cursor_x * 72, cursor_y * 72)
+                textobject = self.current_pdf.beginText(
+                    self.cursor_x * 72, cursor_y * 72
+                )
                 textobject.setRise(rise)
                 textobject.setCharSpace(self.extra_intercharacter_space)
                 textobject.setHorizScale(horizontal_scale_coef * 100)
 
                 if self.character_style is not None:
                     self.current_pdf.setLineWidth(0.1)
-                    self.apply_text_style(cursor_y, horizontal_scale_coef, textobject, text)
+                    self.apply_text_style(
+                        cursor_y, horizontal_scale_coef, textobject, text
+                    )
                 else:
                     textobject.textOut(text)
 
@@ -1737,7 +1777,11 @@ class ESCParser:
 
         try:
             tab_pos = next(g)
-            LOGGER.debug("Choosen tab position: %s, %s", tab_pos, (self.top_margin-tab_pos) / self.current_line_spacing)
+            LOGGER.debug(
+                "Choosen tab position: %s, %s",
+                tab_pos,
+                (self.top_margin - tab_pos) / self.current_line_spacing,
+            )
         except StopIteration:
             tab_pos = None
 
@@ -1805,7 +1849,11 @@ class ESCParser:
             self.horizontal_tabulations[tab_idx] = tab_width * character_pitch
 
             prev = tab_width
-            LOGGER.debug("tab set at column %s: %s", tab_idx, self.horizontal_tabulations[tab_idx])
+            LOGGER.debug(
+                "tab set at column %s: %s",
+                tab_idx,
+                self.horizontal_tabulations[tab_idx],
+            )
 
     def set_vertical_tabs(self, *args):
         """Set vertical tab positions (in the current line spacing) at the lines
@@ -1833,7 +1881,12 @@ class ESCParser:
             self.vertical_tabulations[tab_idx] = tab_height * self.current_line_spacing
 
             prev = tab_height
-            LOGGER.debug("tab %d set at line %s: %s", tab_idx, tab_height, self.vertical_tabulations[tab_idx])
+            LOGGER.debug(
+                "tab %d set at line %s: %s",
+                tab_idx,
+                tab_height,
+                self.vertical_tabulations[tab_idx],
+            )
 
     def set_italic(self, *_):
         """Enable italic style - ESC 4"""
@@ -1907,13 +1960,15 @@ class ESCParser:
         font_type = "proportional" if self.proportional_spacing else "fixed"
         # Get typefaces definitions
         func = self.typefaces[self.typeface][font_type]
-        font = func(self.condensed and not self.condensed_fallback, self.italic, self.bold)
+        font = func(
+            self.condensed and not self.condensed_fallback, self.italic, self.bold
+        )
         if font is None:
             # Font is not found
             LOGGER.warning(
                 "System font <%s> is not available in <%s> mode; do nothing",
                 TYPEFACE_NAMES[self.typeface],
-                font_type
+                font_type,
             )
             return False
 
@@ -1931,7 +1986,9 @@ class ESCParser:
                 self.condensed_autoscaling = True
             else:
                 styles = open_font(font)[1]
-                self.condensed_autoscaling = not (styles and "condensed" in styles.lower())
+                self.condensed_autoscaling = not (
+                    styles and "condensed" in styles.lower()
+                )
 
             self.current_fontpath = font
             LOGGER.debug("Loaded & used system font: %s", fontname)
@@ -1971,7 +2028,7 @@ class ESCParser:
             LOGGER.error(
                 "Table id %d is NOT expected for the printer's pins mode (%s)",
                 d1,
-                self.pins
+                self.pins,
             )
             return
 
@@ -1983,7 +2040,7 @@ class ESCParser:
             LOGGER.error(
                 "Character table %s is not supported (code page not available) "
                 "=> will use cp437, do not expect anything good !",
-                d1
+                d1,
             )
 
     def select_character_table(self, *args):
@@ -2023,7 +2080,8 @@ class ESCParser:
                 character_table = 1
             case (2 | 50) if (
                 self.pins in (24, 48)
-                or self.pins is None and self.character_tables[2] is None
+                or self.pins is None
+                and self.character_tables[2] is None
             ):
                 # - ESC/P 2 printers:
                 #   cannot shift user-defined characters if you have previously
@@ -2053,7 +2111,7 @@ class ESCParser:
             LOGGER.error(
                 "Character table %d is not supported (code page not available) "
                 "=> will use cp437, do not expect anything good !",
-                character_table
+                character_table,
             )
 
         self.character_table = character_table
@@ -2068,7 +2126,11 @@ class ESCParser:
         value = args[1].value[0]
         self.international_charset = value
 
-        LOGGER.debug("Select international charset variant %s (%s)", value, CHARSET_NAMES_MAPPING[value])
+        LOGGER.debug(
+            "Select international charset variant %s (%s)",
+            value,
+            CHARSET_NAMES_MAPPING[value],
+        )
 
     def select_letter_quality_or_draft(self, *args):
         """Select either LQ or draft printing - ESC x
@@ -2267,10 +2329,10 @@ class ESCParser:
                     [0 if (0x80 & (i << mask)) else 0xff for mask in bitmasks]
                     for i in data
                 ],
-                np.uint8
+                np.uint8,
             ).flatten()
             # 2D array/matrix: isolate each column in the master array (vector)
-            array = np.reshape(array, (char_width_a1, column_bytes_size*8))
+            array = np.reshape(array, (char_width_a1, column_bytes_size * 8))
             # Pillow accepts a list of lines, not a list of columns;
             # We need to transpose the matrix (90° rotation + updown flip)
             array = array.T
@@ -2280,7 +2342,7 @@ class ESCParser:
             # Save the image for later investigations
             data = Image.fromarray(array)
             # data = data.resize((34, int(24*1.5)))
-            data.save(f'{self.userdef_images_path}/char_{md5_digest}.png')
+            data.save(f"{self.userdef_images_path}/char_{md5_digest}.png")
 
         self.user_defined.update_encoding()
         self.user_defined.save()
@@ -2700,7 +2762,11 @@ class ESCParser:
             5: "Single broken line",
             6: "Double broken line",
         }
-        LOGGER.debug("Scoring: %s, %s", scoring_types[scoring_type_d1], scoring_styles[scoring_style_d2])
+        LOGGER.debug(
+            "Scoring: %s, %s",
+            scoring_types[scoring_type_d1],
+            scoring_styles[scoring_style_d2],
+        )
 
         # if scoring_type_d1 == 1:
         #     # Handle underline
@@ -2784,7 +2850,11 @@ class ESCParser:
             2: "Turn on shadow printing",
             3: "Turn on outline and shadow printing",
         }
-        LOGGER.debug("Set character style: %s; text render: %s", character_style_names.get(value), self.character_style)
+        LOGGER.debug(
+            "Set character style: %s; text render: %s",
+            character_style_names.get(value),
+            self.character_style,
+        )
 
     @property
     def condensed(self) -> bool:
@@ -3226,8 +3296,17 @@ class ESCParser:
         if LOGGER.level == DEBUG:
             expected_bytes = v_dot_count_m * self.bytes_per_line
 
-            LOGGER.debug("expect %s bytes (%s dots = %s byte(s) per column)", expected_bytes, h_dot_count, h_dot_count / 8)
-            LOGGER.debug("vertical x horizontal resolution: %s/360 x %s/360", v_res//10, h_res // 10)
+            LOGGER.debug(
+                "expect %s bytes (%s dots = %s byte(s) per column)",
+                expected_bytes,
+                h_dot_count,
+                h_dot_count / 8,
+            )
+            LOGGER.debug(
+                "vertical x horizontal resolution: %s/360 x %s/360",
+                v_res // 10,
+                h_res // 10,
+            )
             LOGGER.debug("height x width: %sx%s", v_dot_count_m, h_dot_count)
             # LOGGER.debug("microweave_mode: %s", self.microweave_mode)
             LOGGER.debug("line spacing: %s", self.current_line_spacing)
@@ -3310,7 +3389,9 @@ class ESCParser:
                         # print("offset, i: x,y", column_offset, i, x_pos, y_pos)
                         cx = "{:.2f}".format(x_pos * 72, 2).rstrip("0")
                         code.append(
-                            f"{cx} {cy} m {cx} {cy} l" if dots else (f"{cx} {cy}" + rect_suffix),
+                            f"{cx} {cy} m {cx} {cy} l"
+                            if dots
+                            else (f"{cx} {cy}" + rect_suffix),
                         )
                     # Consume the MSB
                     col_int = overflow_mask & (col_int << 1)
@@ -3330,7 +3411,7 @@ class ESCParser:
         # when the function is called by <XFER> in tiff compressed mode),
         # just use the x offset on the unique line (column_offset)
         # adjusted to reflect the number of the set bits in the last byte.
-        printed_dots = h_dot_count if h_dot_count else column_offset -8 +i
+        printed_dots = h_dot_count if h_dot_count else column_offset - 8 + i
         self.cursor_x = printed_dots * horizontal_resolution
 
     @staticmethod
@@ -3399,7 +3480,11 @@ class ESCParser:
         self.horizontal_resolution = h_res / 3600
 
         if LOGGER.level == DEBUG:
-            LOGGER.debug("vertical x horizontal resolution: %s/360 x %s/360", v_res//10, h_res // 10)
+            LOGGER.debug(
+                "vertical x horizontal resolution: %s/360 x %s/360",
+                v_res // 10,
+                h_res // 10,
+            )
             LOGGER.debug("height x width: %s x <unknown h dots>", v_dot_count_m)
             # LOGGER.debug("microweave_mode: %s", self.microweave_mode)
             LOGGER.debug("line spacing: %s", self.current_line_spacing)
@@ -3457,7 +3542,7 @@ class ESCParser:
 
         self._carriage_return()
 
-        unit = self.defined_unit if self.defined_unit else 1/360
+        unit = self.defined_unit if self.defined_unit else 1 / 360
         self.cursor_y -= dot_offset * unit
 
     def set_movx_unit_8dots(self, *_):
@@ -3498,7 +3583,7 @@ class ESCParser:
             THUS, we can use the ESC ( U setting here (and not in the MOVX command),
             since it can't be changed in the meantime (the command is not allowed).
         """
-        unit = self.defined_unit if self.defined_unit else 1/360
+        unit = self.defined_unit if self.defined_unit else 1 / 360
         self.movx_unit = dot_unit * unit
 
     def set_printing_color_ex(self, *args):
@@ -3561,7 +3646,12 @@ class ESCParser:
             expected_bytes = self.bytes_per_column * dot_columns_nb
 
             # 8 for 8 dots height
-            LOGGER.debug("expect %s bytes (%s dots = %s byte(s) per column)", expected_bytes, 8 * self.bytes_per_column, self.bytes_per_column)
+            LOGGER.debug(
+                "expect %s bytes (%s dots = %s byte(s) per column)",
+                expected_bytes,
+                8 * self.bytes_per_column,
+                self.bytes_per_column,
+            )
             LOGGER.debug("Choosen dot density m: %s", dot_density_m)
             LOGGER.debug("Columns number: %s", dot_columns_nb)
             LOGGER.debug("line spacing: %s", self.current_line_spacing)
@@ -3634,8 +3724,8 @@ class ESCParser:
         # Consume all bits of the current value (can be multiple bytes)
         # at each loop the current byte is shifted to the left with an offset of 1.
         # This avoids testing the remaining bits if their value is zero.
-        mask = 1 << (self.bytes_per_column * 8 -1)
-        overflow_mask = 2**(8*self.bytes_per_column) -1
+        mask = 1 << (self.bytes_per_column * 8 - 1)
+        overflow_mask = 2 ** (8 * self.bytes_per_column) - 1
         prev_col_int = 0
 
         if dots:
@@ -3648,8 +3738,7 @@ class ESCParser:
             # Configure linewidth (w)
             # No noop to end previous path (n) (useless here)
             linewidth = round(
-                max(horizontal_resolution, vertical_resolution) * 72 * 1.28,
-                2
+                max(horizontal_resolution, vertical_resolution) * 72 * 1.28, 2
             )
             code.append(f"1 J {linewidth} w")
         else:
@@ -3684,7 +3773,9 @@ class ESCParser:
                     y_pos = cursor_y - i * vertical_resolution
                     cy = "{:.2f}".format(y_pos * 72, 2).rstrip("0")
                     code.append(
-                        f"{cx} {cy} m {cx} {cy} l" if dots else (f"{cx} {cy}" + rect_suffix)
+                        f"{cx} {cy} m {cx} {cy} l"
+                        if dots
+                        else (f"{cx} {cy}" + rect_suffix)
                     )
                 i += 1
                 # Consume the MSB
@@ -3722,16 +3813,16 @@ class ESCParser:
         # Get vertical resolution & expected bytes per column (influences the number of dots per column)
         if dot_density_m < 32:
             # For 9 pins, fixed resolution
-            self.vertical_resolution = 1/72 if self.pins == 9 else 1/60
+            self.vertical_resolution = 1 / 72 if self.pins == 9 else 1 / 60
             self.bytes_per_column = 1
         elif dot_density_m < 64:
             # Should not be available to 9 pins printers
-            self.vertical_resolution = 1/180
+            self.vertical_resolution = 1 / 180
             self.bytes_per_column = 3
         else:
             # Values under 73 (included)
             # Should not be available for 9 & 24 pins printers
-            self.vertical_resolution = 1/360
+            self.vertical_resolution = 1 / 360
             self.bytes_per_column = 6
 
         # Get speed (adjacent dot printing not enabled for the following densities)
@@ -3904,16 +3995,25 @@ class ESCParser:
         barcode_types = {
             0: "EAN13",
             1: "EAN8",
-            2: "I2of5", #"Interleaved 2 of 5",
+            2: "I2of5",  # "Interleaved 2 of 5",
             3: "UPCA",
-            4: "UPCE", # Not supported
+            4: "UPCE",  # Not supported
             5: "Standard39",
             6: "Code128",
             7: "POSTNET",
         }
-        not_supported_types = (4, )
+        not_supported_types = (4,)
 
-        nL, nH, barcode_type_k, module_width_m, space_adjustment_s, v1, v2, control_flag_c = header.value
+        (
+            nL,
+            nH,
+            barcode_type_k,
+            module_width_m,
+            space_adjustment_s,
+            v1,
+            v2,
+            control_flag_c,
+        ) = header.value
         expected_bytes = (nH << 8) + nL - 6
 
         data = data.value
@@ -3928,10 +4028,10 @@ class ESCParser:
             return
 
         # PS: Bar length is ignored when POSTNET is selected
-        unit = 1/72 if self.pins == 9 else 1/180
+        unit = 1 / 72 if self.pins == 9 else 1 / 180
         bar_length = ((v2 << 8) + v1) * unit
         # Limit invalid data
-        bar_length = min(max(bar_length, 18/72 if self.pins == 9 else 45/180), 22)
+        bar_length = min(max(bar_length, 18 / 72 if self.pins == 9 else 45 / 180), 22)
 
         if barcode_type_k == 7:
             # Limit long bar length of POSTNET codes
@@ -3996,7 +4096,8 @@ class ESCParser:
         if tree.data in ("start", "instruction", "tiff_compressed_rule"):
             # Recursive call
             _ = [
-                self.run_esc_instruction(child) for child in tree.children
+                self.run_esc_instruction(child)
+                for child in tree.children
                 if not isinstance(child, Token)
             ]
         elif tree.data in self.dir:
@@ -4010,7 +4111,7 @@ class ESCParser:
 
         This function is the entry point of the parser.
         """
-        parse_tree = init_parser(program) # ambiguity='explicit'
+        parse_tree = init_parser(program)  # ambiguity='explicit'
 
         # Parse the tree (Note: The first tree token is Token('RULE', 'start'))
         self.run_esc_instruction(parse_tree)

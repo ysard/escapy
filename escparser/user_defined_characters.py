@@ -304,6 +304,5 @@ class RAMCharacters:
         See :meth:`RAMCharacters.load_manual_mapping`.
         """
         self.db_filepath.write_text(
-            json.dumps(self.database, indent=4, cls=EnumsEncoder),
-            encoding="utf8"
+            json.dumps(self.database, indent=4, cls=EnumsEncoder), encoding="utf8"
         )

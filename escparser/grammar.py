@@ -18,8 +18,10 @@
 # Standard imports
 from logging import DEBUG
 from itertools import islice
+
 # Custom imports
 from lark import *
+
 # Local imports
 from escparser.commons import logger
 
@@ -317,7 +319,10 @@ esc_grammar = r"""
     %import common.ESCAPED_STRING   -> STRING
 """
 
-def decompress_rle_data(iter_data, expected_decompressed_bytes) -> tuple[bytearray, int]:
+
+def decompress_rle_data(
+    iter_data, expected_decompressed_bytes
+) -> tuple[bytearray, int]:
     """Decompress the given data bytes (TIFF decompression)
 
     During compressed mode, the first byte of data must be a counter.
@@ -357,6 +362,7 @@ def decompress_rle_data(iter_data, expected_decompressed_bytes) -> tuple[bytearr
             break
 
     return decompressed_data, bytes_read
+
 
 def parse_from_stream(parser, code, start=None, *args, **kwargs):
     """Parse interatively the given ESC code and build DATA tokens for commands
@@ -398,7 +404,11 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
 
                 expected_bytes = bytes_per_column * dot_columns_nb
 
-                LOGGER.debug("Expect %d bytes (%d dots per column)", expected_bytes, 8 * bytes_per_column)
+                LOGGER.debug(
+                    "Expect %d bytes (%d dots per column)",
+                    expected_bytes,
+                    8 * bytes_per_column,
+                )
                 data_token_flag = True
 
             if token.type in ("PRINT_DATA_AS_CHARACTERS_HEADER", "SELECT_XDPI_GRAPHICS_HEADER"):
@@ -410,7 +420,7 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
                 # b"\x01\x14\x14\x18\xa0\x01"
                 graphics_mode, v_res, h_res, v_dot_count_m, nL, nH = token.value
                 h_dot_count = (nH << 8) + nL
-                expected_decompressed_bytes = v_dot_count_m * int((h_dot_count +7) / 8)
+                expected_decompressed_bytes = v_dot_count_m * int((h_dot_count + 7) / 8)
                 # print(f"Expect {expected_decompressed_bytes} bytes")
                 if graphics_mode == 1:
                     # RLE/TIFF compression
@@ -453,7 +463,7 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
                     # #BC = 2: number of raster data = n1 + n2 × 256
                     # Get the next bytes as nL and nH
                     nL = lexer_state.text[token_start_pos]
-                    nH = lexer_state.text[token_start_pos+1]
+                    nH = lexer_state.text[token_start_pos + 1]
                     expected_decompressed_bytes = (nH << 8) + nL
 
                     token_start_pos += 2
@@ -513,7 +523,7 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
                 # Here we get signed values
                 cmd_bc = cmd & 0x0f
                 if not (cmd >> 4) & 1:
-                    #BC = parameter where –8 ≤ #BC ≤ 7
+                    # BC = parameter where –8 ≤ #BC ≤ 7
                     dot_offset = cmd_bc - 2**4 if cmd_bc & 0x08 else cmd_bc
                 elif cmd_bc == 1:
                     # F = 1 then #BC = 1: number of next bytes to read
@@ -584,10 +594,9 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
 
                     char_data = bytes(islice(iter_data, 0, char_expected_bytes))
 
-                    token = Token("DATA", (
-                        (space_left_a0, char_width_a1, space_right_a2),
-                        char_data
-                        )
+                    token = Token(
+                        "DATA",
+                        ((space_left_a0, char_width_a1, space_right_a2), char_data),
                     )
                     LOGGER.debug("Expect %d bytes", char_expected_bytes)
                 lexer_state.line_ctr.char_pos += expected_bytes
@@ -630,6 +639,7 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
     if LOGGER.level == DEBUG:
         LOGGER.debug("\n" + tree.pretty())
     return tree
+
 
 def init_parser(code, *args, **kwargs):
     """Call Lark to parse the given code

@@ -31,10 +31,12 @@
 """Define a codec based on a given mapping - intended to be used as encoding for RAM characters"""
 # Standard imports
 import codecs
+
 # Local imports
 from escparser.commons import logger
 
 LOGGER = logger()
+
 
 class Codec(codecs.Codec):
     """Custom code page encoding/decoding codec based only on a given mapping"""

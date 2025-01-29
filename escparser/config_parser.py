@@ -133,7 +133,7 @@ def parse_config(config: configparser.ConfigParser):
     cleaned_data = to_tuple(page_size)
     if page_size:
         if page_size not in PAGESIZE_MAPPING:
-            if  len(cleaned_data) == 1:
+            if len(cleaned_data) == 1:
                 LOGGER.error(
                     "page_size: A known alias or 2 values are expected (width, height) (%s).",
                     page_size,
@@ -186,8 +186,7 @@ def parse_config(config: configparser.ConfigParser):
             Path(images_path).mkdir(exist_ok=True)
         except Exception as exc:
             LOGGER.error(
-                "UserDefinedCharacters: error accessing images_path (%s)",
-                images_path
+                "UserDefinedCharacters: error accessing images_path (%s)", images_path
             )
             raise SystemExit from exc
 
@@ -245,6 +244,7 @@ def build_parser_params(config) -> dict:
     :param config: Configuration object.
     :type config: configparser.ConfigParser
     """
+
     def to_tuple(config_str) -> tuple[float] | None:
         """Get a tuple of numeric values if the given param is not empty and not None"""
         return tuple(map(float, config_str.split(","))) if config_str else None
@@ -262,7 +262,9 @@ def build_parser_params(config) -> dict:
     dots_as_circles = misc_section.get("renderer") == "dots"
 
     # None is synonym of "auto" (unconfigured)
-    condensed_fallback = True if misc_section.get("condensed_fallback") == "yes" else None
+    condensed_fallback = (
+        True if misc_section.get("condensed_fallback") == "yes" else None
+    )
 
     # Default: images path export is disabled (if not defined or empty)
     ud_section = config["UserDefinedCharacters"]

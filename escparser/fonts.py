@@ -189,7 +189,6 @@ def find_font(
     for filepath in it.chain(
         Path(path).rglob(f"{name}*.ttf"), Path(path).rglob(f"{name}*.otf")
     ):
-
         font_family, styles = open_font(filepath)
         if styles is None:  # pragma: no cover
             continue
