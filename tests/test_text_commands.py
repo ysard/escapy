@@ -34,6 +34,7 @@ from escparser.parser import (
     PrintControlCodes,
 )
 from escparser.fonts import rptlab_times
+
 # Support custom encodings; DO NOT import abicomp, see test_charset_tables
 from escparser.encodings import brascii, mazovia, iscii, cp774
 from .misc import format_databytes, pdf_comparison
@@ -206,7 +207,7 @@ def partial_fonts():
             "fixed": (lambda *args: Path("/usr/share/fonts/truetype/firacode/FiraCode-Regular.ttf")),
             # Fallback to a reportlab internal font
             "proportional": rptlab_times,
-        }
+        },
     }
     return fonts
 
@@ -438,7 +439,7 @@ def test_vertical_tabs(tmp_path: Path, pins: None | int, expected_filename):
         # The last tab is not enabled/used
         esc_vtab + b"\x07\x0a\x0e\x44\x01\x00",  # penultimate tab at line 68
         b"\n" * 14,
-        vtab + pouet
+        vtab + pouet,
     ]
 
     processed_file = tmp_path / expected_filename
@@ -1107,7 +1108,7 @@ def test_double_width_height(tmp_path: Path, pins: int, expected_filename: str):
         double_width_m + double_height + pangram + reset_double_height + reset_double_width_m,
         point_8 + b"Back to normal width (10.5 cpi)" + reset_intercharacter_space,
         pangram,
-        b"\r\n"
+        b"\r\n",
     ]
 
     # Mix with scripting with various interlaced commands
@@ -1173,13 +1174,13 @@ def test_select_character_style(tmp_path: Path):
 
     lines = [
         esc_reset,
-        point_8 + b'Character style - outline - ESC q 1' + reset_intercharacter_space,
+        point_8 + b"Character style - outline - ESC q 1" + reset_intercharacter_space,
         esc_q1 + pangram + esc_q0,
         point_8 + b'Character style - shadow - ESC q 2' + reset_intercharacter_space,
         esc_q2 + pangram + esc_q0,
         point_8 + b'Character style - outline + shadow - ESC q 3' + reset_intercharacter_space,
         esc_q3 + pangram + esc_q0,
-        point_8 + b'Character style - off - ESC q 0' + reset_intercharacter_space,
+        point_8 + b"Character style - off - ESC q 0" + reset_intercharacter_space,
         esc_q0 + pangram + esc_q0,
         b"\r\n",
 
@@ -1213,7 +1214,6 @@ def test_select_character_style(tmp_path: Path):
         point_8 + b'Double-height + Character style - off - ESC q 0' + reset_intercharacter_space,
         double_height + esc_q0 + pangram + esc_q0 + reset_double_height,
         b"\r\n",
-
     ]
 
     code = b"\r\n".join(lines)
@@ -1240,7 +1240,9 @@ def test_select_character_style(tmp_path: Path):
         "without_ccodes",
     ],
 )
-def test_print_data_as_characters(tmp_path: Path, encoding, control_codes, expected_filename):
+def test_print_data_as_characters(
+    tmp_path: Path, encoding, control_codes, expected_filename
+):
     """Test the printability of the full CP437 table from 0x00 to 0xFF
 
     Cover: Mainly ESC ( ^ (all the given codes are printable),
@@ -1557,7 +1559,6 @@ def test_select_line_score(tmp_path: Path):
         (None, "test_character_pitch_autoscaling_auto.pdf"),
         # True is synonym of "yes" (always enabled)
         (True, "test_character_pitch_autoscaling_forced.pdf"),
-
     ],
     ids=[
         "autoscaling_auto",
@@ -1579,7 +1580,7 @@ def test_character_pitch(tmp_path: Path, condensed_fallback, expected_filename):
     """
     lorem = b"Lorem ipsum dolor sit amet, consectetur adipiscing elit.\nSed non risus. Suspendisse..."
 
-    lines= [
+    lines = [
         b"select_10cpi+double_width_5cpi",
         select_10cpi + double_width_m + lorem + reset_double_width_m,
         b"", b"select_12cpi+double_width_6cpi",
@@ -1608,7 +1609,7 @@ def test_character_pitch(tmp_path: Path, condensed_fallback, expected_filename):
         code,
         condensed_fallback=condensed_fallback,
         output_file=processed_file,
-        available_fonts=available_fonts
+        available_fonts=available_fonts,
     )
 
     pdf_comparison(processed_file)

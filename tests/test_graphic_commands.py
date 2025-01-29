@@ -186,9 +186,17 @@ def test_select_bit_image_9pins(tmp_path: Path):
     # https://bugs.python.org/issue24892
     # /!\ We add a full last byte at the end, this byte (like any other 2nd byte)
     # should be masked with 0x80, so, just the 1st bit is kept.
-    data_88_columns = b"\x80".join(data_44_columns[i:i + 1] for i in range(len(data_44_columns))) + b"\xff"
+    data_88_columns = (
+        b"\x80".join(data_44_columns[i : i + 1] for i in range(len(data_44_columns)))
+        + b"\xff"
+    )
 
-    m0_line = select_9pins_graphics_cmd + dot_density_m_0 + expect_88_columns + data_88_columns
+    m0_line = (
+        select_9pins_graphics_cmd
+        + dot_density_m_0
+        + expect_88_columns
+        + data_88_columns
+    )
 
     processed_file = tmp_path / "test_select_bit_image_9pins.pdf"
     escparser = ESCParser(m0_line, pins=9, output_file=processed_file)
@@ -211,7 +219,9 @@ def test_select_bit_image_9pins(tmp_path: Path):
         "dots_as_rectangles",
     ],
 )
-def test_select_bit_image(tmp_path: Path, dots_as_circles: bool, expected_filename: str):
+def test_select_bit_image(
+    tmp_path: Path, dots_as_circles: bool, expected_filename: str
+):
     """Test select_bit_image ESC *
 
     Show different representation of a form like the ⌐ (reversed not sign)
@@ -491,7 +501,9 @@ def test_switch_microweave_mode():
         "dots_as_rectangles",
     ],
 )
-def test_print_tiff_raster_graphics(tmp_path: Path, dots_as_circles: bool, expected_filename: str):
+def test_print_tiff_raster_graphics(
+    tmp_path: Path, dots_as_circles: bool, expected_filename: str
+):
     """Test TIFF raster graphics (mainly <XFER>)
 
     Cover ESC . 2, <MOVY>, full <XFER> command (nibble combinations), <EXIT>.

@@ -142,7 +142,9 @@ def test_set_right_margin(format_databytes: bytes, expected_offset: float):
         # right margin position is expressed as a function of the leftmost pos
         expected = escparser.printable_area[2] + expected_offset
         assert escparser.right_margin == expected
-        assert escparser.cursor_x == escparser.left_margin, "A carriage return must be done"
+        assert (
+            escparser.cursor_x == escparser.left_margin
+        ), "A carriage return must be done"
 
 
 @pytest.mark.parametrize(

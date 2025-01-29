@@ -93,6 +93,7 @@ def minimal_config() -> str:
         fixed = FiraCode
         """
 
+
 def test_stdin_stdout(capsysbinary, tmp_path: Path, minimal_config: str):
     """Test the produced data written on stdout
 

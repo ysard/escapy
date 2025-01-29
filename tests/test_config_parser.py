@@ -97,7 +97,11 @@ def test_empty_file():
 def test_default_file(tear_down):
     """Test the loading of the default config file embedded with the application"""
     sample_config = load_config()
-    expected_misc_section, expected_roman_section, expected_userdef_section = default_config()
+    (
+        expected_misc_section,
+        expected_roman_section,
+        expected_userdef_section,
+    ) = default_config()
 
     # Transtype for easier debugging (original object has a different string rep)
     found_misc_section = dict(sample_config["misc"])
@@ -109,7 +113,6 @@ def test_default_file(tear_down):
     assert found_roman_section == expected_roman_section
     assert found_sansserif_section == expected_roman_section
     assert found_userdef_section == expected_userdef_section
-
 
 
 @pytest.mark.parametrize(
@@ -244,7 +247,7 @@ def test_erroneous_settings(sample_config, tear_down):
                 "Courier": {
                     "fixed": "FiraCode",
                     "proportional": "",
-                }
+                },
             },
         ),
     ],

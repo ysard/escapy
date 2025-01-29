@@ -287,7 +287,7 @@ def test_image(tmp_path, normal_char_data, create_userdef_images):
         code,
         userdef_db_filepath=db_file,
         userdef_images_path=userdef_images_path,
-        pdf=False
+        pdf=False,
     )
 
     # Expect an image whose name is based on the md5 hash of the character's bytes
@@ -600,7 +600,7 @@ def test_select_user_defined_set(tmp_path: Path, normal_char_data: bytes):
         pins=None,
         available_fonts=fonts,
         userdef_db_filepath=mocked_db_file,
-        output_file=processed_file
+        output_file=processed_file,
     )
 
     pdf_comparison(processed_file)

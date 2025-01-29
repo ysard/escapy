@@ -7,7 +7,13 @@ import pytest
 # Local imports
 from escparser.parser import ESCParser
 from .misc import format_databytes
-from escparser.fonts import open_font, find_font, setup_fonts, rptlab_times, rptlab_courier
+from escparser.fonts import (
+    open_font,
+    find_font,
+    setup_fonts,
+    rptlab_times,
+    rptlab_courier,
+)
 from .test_config_parser import sample_config
 
 
@@ -106,10 +112,10 @@ def test_find_font(arguments, expected):
 
 @pytest.mark.parametrize(
     "font_path, expected_attrs",
-    [   # args order: condensed, italic, bold
+    [  # args order: condensed, italic, bold
         (
-                Path("/usr/share/fonts/truetype/noto/NotoSans-CondensedBoldItalic.ttf"),
-                ("Noto Sans", "Condensed Bold Italic")
+            Path("/usr/share/fonts/truetype/noto/NotoSans-CondensedBoldItalic.ttf"),
+            ("Noto Sans", "Condensed Bold Italic"),
         ),
         (Path("/usr/share/fonts/truetype/noto/NONE_FAKE"), (None, None)),
     ],
@@ -176,7 +182,7 @@ def erroneous_fonts():
         2: {
             "fixed": (lambda *args: Path("/usr/share/fonts/truetype/firacode/FiraCode-Regular.ttf")),
             # Missing proportional key
-        }
+        },
     }
     return fonts
 
@@ -206,5 +212,7 @@ def test_not_expected_font_struct_format(tmp_path, erroneous_fonts, format_datab
     """
     output_file = tmp_path / "output.pdf"
     with pytest.raises((KeyError, TypeError)):
-        _ = ESCParser(format_databytes, available_fonts=erroneous_fonts, output_file=output_file)
+        _ = ESCParser(
+            format_databytes, available_fonts=erroneous_fonts, output_file=output_file
+        )
         print(_.typeface, _.proportional_spacing, _.current_pdf._fontname)
