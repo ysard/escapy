@@ -40,7 +40,8 @@ to be a printer compatible with older hardware.
 
 ## Donations
 
-EscaPy is a project that took ~2 months of full-time work for its first version.
+EscaPy is a project that took ~2 months of full-time work and 12k+ lines
+including documentation & tests, for its first version.
 If it has been useful to you in any way and you would like to contribute to its
 development, please follow the link below, with all thanks :
 
@@ -60,7 +61,11 @@ development, please follow the link below, with all thanks :
     <details>
    <summary><b>See details</b></summary>
 
-    *: Not recommended command.
+    *: Not recommended command.<br>
+    :white_check_mark:: Implemented.<br>
+    :heavy_exclamation_mark:: Not fully implemented.<br>
+    :white_large_square:: Not implemented.<br>
+    :no_entry_sign:: Will not be implemented.<br>
 
     | Setting the page format          |                                             |                      |
     |----------------------------------|---------------------------------------------|----------------------|
@@ -99,16 +104,16 @@ development, please follow the link below, with all thanks :
     | ESC 1                            | Select 7/72-inch line spacing*              | :white_check_mark:   |
     | ESC D                            | Set horizontal tabs                         | :white_check_mark:   |
     | ESC B                            | Set vertical tabs                           | :white_check_mark:   |
-    | ESC b                            | Set vertical tabs in VFU channels*          |                      |
-    | ESC /                            | Select vertical tab channel*                |                      |
-    | ESC e                            | Set fixed tab increment*                    |                      |
-    | ESC a                            | Select justification*                       |                      |
+    | ESC b                            | Set vertical tabs in VFU channels*          | :white_large_square: |
+    | ESC /                            | Select vertical tab channel*                | :white_large_square: |
+    | ESC e                            | Set fixed tab increment*                    | :white_large_square: |
+    | ESC a                            | Select justification*                       | :white_large_square: |
     |                                  |                                             |                      |
     | Selecting characters             |                                             |                      |
     | ESC ( t                          | Assign character table                      | :white_check_mark:   |
     | ESC t                            | Select character table                      | :white_check_mark:   |
     | ESC R                            | Select an international character set       | :white_check_mark:   |
-    | ESC &                            | Define user-defined characters              | :white_large_square: |
+    | ESC &                            | Define user-defined characters              | :heavy_exclamation_mark: |
     | ESC :                            | Copy ROM to RAM                             | :white_check_mark:   |
     | ESC %                            | Select user-defined set                     | :white_check_mark:   |
     | ESC x                            | Select LQ or draft                          | :white_check_mark:   |
@@ -153,7 +158,7 @@ development, please follow the link below, with all thanks :
     | ESC m                            | Select printing of upper control codes*     | :white_check_mark:   |
     |                                  |                                             |                      |
     | Mechanical control               |                                             |                      |
-    | ESC EM                           | Control paper loading/ejecting              | :white_large_square: |
+    | ESC EM                           | Control paper loading/ejecting              | :white_check_mark:   |
     | ESC U                            | Turn unidirectional mode on/off             | :no_entry_sign:      |
     | ESC <                            | Unidirectional mode (one line)*             | :no_entry_sign:      |
     | BEL                              | Beeper*                                     | :no_entry_sign:      |
@@ -180,13 +185,13 @@ development, please follow the link below, with all thanks :
     |                                  |                                             |                      |
     | Data and memory control          |                                             |                      |
     | ESC @                            | Initialize printer                          | :white_check_mark:   |
-    | CAN                              | Cancel line*                                |                      |
-    | DEL                              | Delete last character in buffer*            |                      |
+    | CAN                              | Cancel line*                                | :white_large_square: |
+    | DEL                              | Delete last character in buffer*            | :white_large_square: |
     | DC1                              | Select printer*                             | :no_entry_sign:      |
     | DC3                              | Deselect printer*                           | :no_entry_sign:      |
-    | ESC #                            | Cancel MSB control*                         |                      |
-    | ESC =                            | Set MSB to 0*                               |                      |
-    | ESC >                            | Set MSB to 1*                               |                      |
+    | ESC #                            | Cancel MSB control*                         | :white_large_square: |
+    | ESC =                            | Set MSB to 0*                               | :white_large_square: |
+    | ESC >                            | Set MSB to 1*                               | :white_large_square: |
     |                                  |                                             |                      |
     | Deleted commands                 |                                             |                      |
     | ESC j                            | Reverse paper feed*                         | :no_entry_sign:      |
@@ -247,7 +252,7 @@ development, please follow the link below, with all thanks :
 -[x] **Wide range of encodings available**
 
     A major effort has been made to ensure that the essential encodings of this
- era and more are also supported by EscaPy. It's easy to add to this list.
+ era and more, are also supported by EscaPy. It's easy to add to this list.
  Contributions are welcome.
  <br><br>
     Characters that can be printed in the place of the intervals dedicated to
@@ -498,7 +503,7 @@ character set, but close to the embedded fonts on Epson printers :
 
 ---
 
-Noto, Free and Fira fonts are normally installed on most systems, but can also be
+Noto, FreeFont and Fira fonts are normally installed on most systems, but can also be
 installed manually with the following command (on Debian systems and derivatives):
 
 ```bash
@@ -582,7 +587,7 @@ documentation of the language interpreted by their printers.
 
 ## Absence of acknowledgements
 
-Since the 2010s, Epson-Seiko (like so many other brands) no longer publishes
+Since the 2010s, Epson-Seiko (like so many other brands) tends to no longer publish
 language evolutions or advanced technical specifications for their machines.
 The brand tends to consider that this is now an industrial secret and none of
 your business.
