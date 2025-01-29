@@ -1288,8 +1288,7 @@ class ESCParser:
         for scoring_type, style in g:
             offset_y = scoring_types[scoring_type]
             char = scoring_styles[style]
-            textobject = self.current_pdf.beginText()
-            textobject.setTextOrigin(self.cursor_x * 72, offset_y * 72)
+            textobject = self.current_pdf.beginText(self.cursor_x * 72, offset_y * 72)
             textobject.setCharSpace(self.extra_intercharacter_space)
             textobject.setHorizScale(horizontal_scale_coef * 100)
             textobject.textOut(char * len(text))
