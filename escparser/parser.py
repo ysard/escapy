@@ -58,6 +58,7 @@ from escparser.commons import logger
 
 class PrintMode(Enum):
     """Printing modes enumeration
+
     .. note:: NLQ mode for 9 pin printers is considered equivalent to the LQ mode
         of 24/48 pins printers.
     """
@@ -885,7 +886,7 @@ class ESCParser:
         self.cursor_x = cursor_x
 
     def set_relative_horizontal_print_position(self, _, nL, nH):
-        """Move the horizontal print position left or right from the current position - ESC \
+        r"""Move the horizontal print position left or right from the current position - ESC \
 
         Use the defined unit set by ESC ( U command.
         Default defined unit for this command is 1/120 inch in draft mode,
@@ -1053,18 +1054,21 @@ class ESCParser:
 
     def set_18_line_spacing(self, *_):
         """Set the line spacing to 1/8 inch - ESC 0
+
         default: 1/6
         """
         self.current_line_spacing = 1 / 8
 
     def set_16_line_spacing(self, *_):
         """Set the line spacing to 1/6 inch - ESC 2
+
         default: 1/6
         """
         self.current_line_spacing = 1 / 6
 
     def set_n180_line_spacing(self, *args):
         """Set the line spacing to n/180 inch - ESC 3
+
         default: 1/6
 
         9pins: n/216 inch
@@ -1075,6 +1079,7 @@ class ESCParser:
 
     def set_n360_line_spacing(self, *args):
         """Set the line spacing to n/360 inch - ESC +
+
         default: 1/6
 
         .. note:: available only on 24/48-pin printers.
@@ -1084,6 +1089,7 @@ class ESCParser:
 
     def set_n60_line_spacing(self, *args):
         """Set the line spacing to n/60 inch - ESC A
+
         default: 1/6
 
         9pins: n/72 inch
@@ -1093,6 +1099,7 @@ class ESCParser:
 
     def set_772_line_spacing(self, *_):
         """Set the line spacing to 7/72 inch - ESC 1
+
         default: 1/6
 
         .. note:: available only on 9-pin printers.
@@ -3712,6 +3719,7 @@ class ESCParser:
 
         def chunk_this(iterable, length):
             """Split iterable in chunks of equal sizes
+
             .. todo:: Update this with itertools.batched for the 3.12 migration;
                 this is twice as fast.
             """
@@ -4087,6 +4095,7 @@ class ESCParser:
 
     def run_esc_instruction(self, tree):
         """Recursive call of methods from the given parse tree
+
         Todo: do not emit ESC token: avoid to always have it at the first pos of *args
 
         :param tree: Lark tree of tokens, we use aliases as method names.

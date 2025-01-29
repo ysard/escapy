@@ -43,6 +43,7 @@ class Codec(codecs.Codec):
 
     def __init__(self, mapping_charset):
         """
+
         :param mapping_charset: Mapping on which the codec is built.
             Numeric values as keys, letters as values.
             Missing values are fulfilled with the UNDEFINED unicode symbol `\ufffe`.
@@ -64,14 +65,14 @@ class Codec(codecs.Codec):
         self.encoding_table = codecs.charmap_build(self.decoding_table)
 
     def encode(self, input, errors="strict"):
-        """unicode str to bytes
+        """Unicode str to bytes
 
         .. seealso:: https://docs.python.org/3/library/codecs.html#codecs.Codec.encode
         """
         return codecs.charmap_encode(input, errors, self.encoding_table)
 
     def decode(self, input, errors="strict"):
-        """bytes to unicode str
+        """Bytes to unicode str
 
         .. seealso:: https://docs.python.org/3/library/codecs.html#codecs.Codec.decode
         """
