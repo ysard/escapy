@@ -53,11 +53,11 @@ def test_reportlab_fallbacks(func, arguments, expected):
 @pytest.mark.parametrize(
     "arguments, expected",
     [   # args order: condensed, italic, bold
-        (("NotoSans-", True, True, True), Path("/usr/share/fonts/truetype/noto/NotoSans-CondensedBoldItalic.ttf")),
+        (("NotoSans-", True, True, True), Path("/usr/share/fonts/truetype/noto/NotoSans-ExtraCondensedBoldItalic.ttf")),
         (("NotoSans-", False, False, False), Path("/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf")),
-        (("NotoSans-", True, False, False), Path("/usr/share/fonts/truetype/noto/NotoSans-Condensed.ttf")),
-        (("NotoSans-", True, True, False), Path("/usr/share/fonts/truetype/noto/NotoSans-CondensedItalic.ttf")),
-        (("NotoSans-", True, False, True), Path("/usr/share/fonts/truetype/noto/NotoSans-CondensedBold.ttf")),
+        (("NotoSans-", True, False, False), Path("/usr/share/fonts/truetype/noto/NotoSans-ExtraCondensed.ttf")),
+        (("NotoSans-", True, True, False), Path("/usr/share/fonts/truetype/noto/NotoSans-ExtraCondensedItalic.ttf")),
+        (("NotoSans-", True, False, True), Path("/usr/share/fonts/truetype/noto/NotoSans-ExtraCondensedBold.ttf")),
         (("NotoSans-", False, True, True), Path("/usr/share/fonts/truetype/noto/NotoSans-BoldItalic.ttf")),
         (("NotoSans-", False, True, False), Path("/usr/share/fonts/truetype/noto/NotoSans-Italic.ttf")),
         (("NotoSans-", False, False, True), Path("/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf")),
@@ -75,11 +75,11 @@ def test_reportlab_fallbacks(func, arguments, expected):
 
     ],
     ids=[
-        "NotoSans-CondensedBoldItalic",
+        "NotoSans-ExtraCondensedBoldItalic",
         "NotoSans-Regular",
-        "NotoSans-Condensed",
-        "NotoSans-CondensedItalic",
-        "NotoSans-CondensedBold",
+        "NotoSans-ExtraCondensed",
+        "NotoSans-ExtraCondensedItalic",
+        "NotoSans-ExtraCondensedBold",
         "NotoSans-BoldItalic",
         "NotoSans-Italic",
         "NotoSans-Bold.",
