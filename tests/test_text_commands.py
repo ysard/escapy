@@ -1035,20 +1035,25 @@ def test_linespacing(format_databytes, pins: int | None, expected: float):
     assert escparser.current_line_spacing == expected
 
 
-def test_backspace():
+def test_backspace(tmp_path: Path):
     """Test backspace - ESC SP"""
+    processed_file = tmp_path / "xxx.pdf"
+
     # backspace when the cursor is already at the letfmost position is ignored
     backspace = b"\x08"
     code = esc_reset + backspace
-    escparser = ESCParser(code, pdf=False)
+    escparser = ESCParser(code, output_file=processed_file)
     assert escparser.cursor_x == escparser.left_margin
 
     # Move cursor_x by 1 inch ESC $ 60 (60/60)
     absolute_h_pos = b"\x1b$\x3c\x00"
     code = esc_reset + absolute_h_pos + backspace
-    escparser = ESCParser(code, pdf=False)
+    escparser = ESCParser(code, output_file=processed_file)
     # (x pos from ESC $) - (offset from backspace)
-    expected = (1 + escparser.left_margin) - (escparser.character_pitch + escparser.extra_intercharacter_space)
+    # Approximation method
+    # expected = (1 + escparser.left_margin) - (escparser.character_pitch + escparser.extra_intercharacter_space)
+    # Exact method
+    expected = (1 + escparser.left_margin) - 0.08974358974358974
     assert escparser.cursor_x == expected
 
 
