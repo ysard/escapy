@@ -20,7 +20,7 @@ from logging import DEBUG
 from itertools import islice
 
 # Custom imports
-from lark import *
+from lark import Lark, Token
 
 # Local imports
 from escparser.commons import logger
@@ -364,7 +364,7 @@ def decompress_rle_data(
     return decompressed_data, bytes_read
 
 
-def parse_from_stream(parser, code, start=None, *args, **kwargs):
+def parse_from_stream(parser, code, *args, start=None, **kwargs):
     """Parse interatively the given ESC code and build DATA tokens for commands
     that expect a variable (not predicted) number of bytes.
 
@@ -637,7 +637,7 @@ def parse_from_stream(parser, code, start=None, *args, **kwargs):
 
     tree = interactive.resume_parse()
     if LOGGER.level == DEBUG:
-        LOGGER.debug("\n" + tree.pretty())
+        LOGGER.debug("\n%s", tree.pretty())
     return tree
 
 

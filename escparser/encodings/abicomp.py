@@ -14,8 +14,7 @@
 #
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""
-Python Character Mapping Codec abicomp
+"""Python Character Mapping Codec abicomp
 
 https://en.wikipedia.org/wiki/ABICOMP_character_set
 """

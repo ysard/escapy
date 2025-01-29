@@ -140,7 +140,7 @@ def parse_config(config: configparser.ConfigParser):
                 )
                 raise SystemExit
 
-            elif len(cleaned_data) != 2 or not all(isfloat(i) for i in cleaned_data):
+            if len(cleaned_data) != 2 or not all(isfloat(i) for i in cleaned_data):
                 LOGGER.error(
                     "page_size: 2 values are expected (width, height) (%s).",
                     page_size,

@@ -244,7 +244,7 @@ class ESCParser:
         # Font rendering #######################################################
         self.point_size = 10.5
         self.character_pitch = 1 / 10  # in inches: 1/10 inch = 10 cpi
-        # TODO priorité sur le character_pitch de ESC X, see set_horizontal_motion_index()
+        # Todo priorité sur le character_pitch de ESC X, see set_horizontal_motion_index()
         self.character_width = None  # HMI, horizontal motion index
         # Fixed character spacing
         self._proportional_spacing = False
@@ -282,7 +282,7 @@ class ESCParser:
 
         # Default printable area (restricted with margins into the printing area)
         if not printable_area_margins_mm:
-            # TODO: be sure about margins for continuous paper: None ? cf p18
+            # Todo: be sure about margins for continuous paper: None ? cf p18
             #   "Either no margin or 1-inch margin" (doc ESC N) but its for
             #   printing margins not printable margins...
             printable_area_margins_mm = (
@@ -324,7 +324,7 @@ class ESCParser:
 
         # Page length setting
         #   effective only when you are using continuous paper.
-        #   TODO 9 pins + cut-sheets feeder = Single-sheets ESCP2
+        #   Todo 9 pins + cut-sheets feeder = Single-sheets ESCP2
         if self.single_sheet_paper:
             # Single-sheets ESCP2
             self.page_length = self.top_margin - self.bottom_margin
@@ -625,7 +625,7 @@ class ESCParser:
             # This section should not be reached...
             # Previous checks should cancel this case.
             LOGGER.error("set page_length > current page_length (%s)", self.page_length)
-            # TODO: Fix the bottom_margin in this case. The doc is unclear
+            # Todo: Fix the bottom_margin in this case. The doc is unclear
             #   with the top edge page notion for which paper.
             #   For now calculated_page_length is for ALL papers and taken from
             #   the top_margin, but it could be better to check for continuous
@@ -775,7 +775,7 @@ class ESCParser:
 
         Set margins to default settings (printable area)
 
-        TODO: do not change the cursors ?
+        Todo: do not change the cursors ?
         """
         self.top_margin, self.bottom_margin, *_ = self.printable_area
 
@@ -785,7 +785,7 @@ class ESCParser:
 
         from the left-most mechanically printable position, in the current character pitch
 
-        TODO: the printer ignores any data preceding this command on the same line
+        Todo: the printer ignores any data preceding this command on the same line
             in the buffer (see also set_left_margin).
 
         Always set the right margin to be at least one column (at 10 cpi) larger
@@ -827,7 +827,7 @@ class ESCParser:
 
         from the left-most mechanically printable position, in the current character pitch
 
-        TODO: the printer ignores any data preceding this command on the same line
+        Todo: the printer ignores any data preceding this command on the same line
             in the buffer (see also set_right_margin).
 
         Always set the left margin to be at least one column (at 10 cpi) less
@@ -866,7 +866,7 @@ class ESCParser:
         """Move the horizontal print position to the position specified - ESC $
 
         default defined unit setting for this command is 1/60 inch
-        TODO: fixed On non-ESC/P 2 printers to 1/60 (currently only on 9 pins)
+        Todo: fixed On non-ESC/P 2 printers to 1/60 (currently only on 9 pins)
         ignore this command if the specified position is to the right of the
         right margin.
         """
@@ -935,7 +935,7 @@ class ESCParser:
         Ignore this command under the following conditions:
 
             - move the print position more than 179/360 inch in the negative direction
-            - TODO: move the print position in the negative direction after a
+            - Todo: move the print position in the negative direction after a
               graphics command is sent on the current line, or above the point
               where graphics have previously been printed
 
@@ -974,7 +974,7 @@ class ESCParser:
         Ignore this command under the following conditions:
 
             - move the print position more than 179/360 inch in the negative direction
-            - TODO: move the print position in the negative direction after a
+            - Todo: move the print position in the negative direction after a
             graphics command is sent on the current line, or above the point where graphics
             have previously been printed
             - would move the print position above the top-margin position
@@ -1020,7 +1020,7 @@ class ESCParser:
         On non-ESC/P 2 printers:
 
             - 9pins: n / 216
-            - TODO: Prints all data in the line buffer
+            - Todo: Prints all data in the line buffer
 
         .. seealso:: :meth:`end_page_paper_handling` for implementation checks
         """
@@ -1525,7 +1525,7 @@ class ESCParser:
     def carriage_return(self, *_):
         """Move the print position to the left-margin position
 
-        TODO: non-ESC/P 2 printers: The printer prints all data in the line buffer
+        Todo: non-ESC/P 2 printers: The printer prints all data in the line buffer
         - When automatic line-feed is selected (through DIP-switch or panel setting),
           the CR command is accompanied by a LF command.
           See the `automatic_linefeed` setting.
@@ -1569,7 +1569,7 @@ class ESCParser:
             test if cursor_y below bottom_margin or beyond the end of the
             printable area the printer ejects the paper.
 
-        TODO: non-ESC/P 2 printers: The printer prints all data in the line buffer
+        Todo: non-ESC/P 2 printers: The printer prints all data in the line buffer
 
         doc p34, p294
 
@@ -1613,23 +1613,23 @@ class ESCParser:
             sheet remaining distance (if loaded manually).
             => single-sheet + cut-sheet feeder and below bottom printable => ejects
             => single-sheet + loaded manually and below bottom printable
-                => ejects + report remaining distance on next sheet (TODO)
+                => ejects + report remaining distance on next sheet (Todo)
         """
-        # ESCP & 9 pins (TODO: distingo)
+        # ESCP & 9 pins (Todo: distingo)
         printable_bottom_margin = self.printable_area[1]
         if self.pins == 9 and self.single_sheet_paper:
             if self.cursor_y < printable_bottom_margin:
                 # ejects the paper
                 LOGGER.info("outside printable area => NEXT PAGE required!")
                 self.next_page()
-                # TODO: if loaded manually: report the remaining distance on the new page
+                # Todo: if loaded manually: report the remaining distance on the new page
                 return
             return
 
         if self.cursor_y < self.bottom_margin:
             self.next_page()
             # ESCP/9 pins
-            # TODO: if continuous: Go to the top-of-form, not the top_margin
+            # Todo: if continuous: Go to the top-of-form, not the top_margin
             # See form_feed() similar implementation
 
     def form_feed(self, *_):
@@ -1646,7 +1646,7 @@ class ESCParser:
 
         - Ejects single-sheet paper
         - Moves the horizontal print position to the left-margin position
-        TODO: Prints all data in the buffer
+        Todo: Prints all data in the buffer
         """
         self.double_width = False
         self.next_page()
@@ -1685,8 +1685,7 @@ class ESCParser:
         Ignore this command if no tab is set to the right of the current position
         or if the next tab is to the right of the right margin.
 
-        TODO:
-            Character scoring (underline, overscore, and strikethrough) is not
+        Todo: Character scoring (underline, overscore, and strikethrough) is not
             printed between the current print position and the next tab when this
             command is sent.
             => temp disable before cursor_x set and enabled after
@@ -1826,7 +1825,7 @@ class ESCParser:
         A maximum of 32 horizontal tabs can be set.
         Send an ESC D NUL command to cancel all tab settings.
 
-        TODO: one tab is specified in the current character_pitch but what about
+        Todo: one tab is specified in the current character_pitch but what about
             the interspace character like in BS command (see backspace())
         """
         # Limited to 32 tabs by lark
@@ -1859,8 +1858,7 @@ class ESCParser:
         """Set vertical tab positions (in the current line spacing) at the lines
         specified by n1 to nk, as measured from the top-margin position - ESC B
 
-        TODO:
-            - Is the same as setting the vertical tabs in VFU channel 0.
+        Todo: Is the same as setting the vertical tabs in VFU channel 0.
         """
         # Limited to 16 tabs by lark
         line_ids = args[1].value
@@ -1911,10 +1909,10 @@ class ESCParser:
     def switch_underline(self, *args):
         r"""Turn on/off printing of a line below all characters and spaces - ESC -
 
-        TODO: printed with the following characteristics: draft, LQ, bold, or double-strike.
-        TODO: not printed across the distance the horizontal print position is moved
+        Todo: printed with the following characteristics: draft, LQ, bold, or double-strike.
+        Todo: not printed across the distance the horizontal print position is moved
             ESC $, ESC \ (when the print position is moved to the left), HT
-        TODO: Graphics characters are not underlined.
+        Todo: Graphics characters are not underlined.
         """
         value = args[1].value[0]
         self.underline = value in (1, 49)
@@ -2135,7 +2133,7 @@ class ESCParser:
     def select_letter_quality_or_draft(self, *args):
         """Select either LQ or draft printing - ESC x
 
-        TODO: If Draft quality is enabled:
+        Todo: If Draft quality is enabled:
             - Typeface: Draft typeface only => not a concern for us
             - Point size: 10.5 and 21-point sizes only
 
@@ -2158,7 +2156,7 @@ class ESCParser:
             case 1 | 49:
                 # LQ: ESCP2/ESCP
                 # NLQ: 9 pins
-                # TODO: 9 pins: Double-strike printing is not possible when NLQ printing is selected
+                # Todo: 9 pins: Double-strike printing is not possible when NLQ printing is selected
                 self.mode = PrintMode.LQ
 
         # Keep the current value in case switch_proportional_mode is called
@@ -2171,7 +2169,7 @@ class ESCParser:
         """Select the typeface for LQ printing - ESC k
 
         - Ignored if the user-defined character set is selected.
-        - TODO: If draft mode is selected when this command is sent,
+        - Todo: If draft mode is selected when this command is sent,
             the new LQ typeface will be selected when the printer returns to LQ printing.
         - The Roman typeface is selected if the selected typeface is not available.
         - Ignored if typeface is not available in scalable/multipoint mode.
@@ -2379,10 +2377,10 @@ class ESCParser:
             Characters copied from locations 0 to 127
         9pins:
             Characters copied from locations 0 to 255;
-            TODO: locations from 128 to 255 are taken from the Italic table...
+            Todo: locations from 128 to 255 are taken from the Italic table...
 
         LX-series printers, ActionPrinter Apex 80, ActionPrinter T-1000, ActionPrinter 2000
-            TODO: Only characters from 58 to 63 can be copied to RAM.
+            Todo: Only characters from 58 to 63 can be copied to RAM.
 
         - Erase any characters that are currently stored in RAM.
         - Ignored during multipoint mode (p255).
@@ -2435,7 +2433,7 @@ class ESCParser:
         cancels the HMI set with the ESC c command.
         cancels multipoint mode.
 
-        TODO: If you change the pitch with this command during proportional mode
+        Todo: If you change the pitch with this command during proportional mode
             (selected with the ESC p command), the change takes effect when the
             printer exits proportional mode.
 
@@ -2487,7 +2485,7 @@ class ESCParser:
         Roman, Sans Serif, Roman T, and Sans Serif H not available to ESC/P printers.
 
         - ESC/P 2 only
-        TODO:
+        Todo:
             Selecting a combination of 15 cpi and 10 or 20-point characters results
             in 15-cpi ROM characters being chosen; the height of these characters
             is about 2/3 that of normal characters.
@@ -2569,13 +2567,14 @@ class ESCParser:
         - Canceled by: ESC P, ESC M, ESC g, ESC SP, ESC p, ESC !, SO, SI, DC2,
           DC4, ESC W, (via cancel_multipoint_mode()) and ESC @
 
-        TODO: The HMI set with the ESC c command cancels the pitch set with the ESC X command.
+        Todo: The HMI set with the ESC c command cancels the pitch set with the ESC X command.
 
-        TODO:
+        Todo:
             Use this command to set the pitch if you want to print normal-height 10 or 20-point
             characters at 15 cpi during multipoint mode. Selecting 15 cpi for 10 or 20-point
             characters with the ESC X command results in characters being printed at 2/3 their
             normal height.
+
         """
         nL, nH = args[1].value
         value = (nH << 8) + nL
@@ -2712,11 +2711,9 @@ class ESCParser:
     def set_double_strike_printing(self, *_):
         """Print each dot twice, with the second slightly below the first, creating bolder characters - ESC G
 
-        TODO:
-        9 pins:
+        Todo: 9 pins:
             LQ/NLQ mode overrides double-strike printing;
             double-strike printing resumes when LQ/NLQ mode is canceled.
-
             => only available in Draft
 
         .. note:: We use bold setting for now.
@@ -2731,7 +2728,7 @@ class ESCParser:
         r"""Turn on/off scoring of all characters and spaces following this command - ESC ( -
 
         - Only ESCP2/ESCP 24/48 pins
-        - TODO: does not affect graphics characters
+        - Todo: does not affect graphics characters
         - Each type of scoring is independent of other types; any combination of
           scoring methods may be set simultaneously.
         - The position and thickness of scoring depends on the current point
@@ -2791,7 +2788,7 @@ class ESCParser:
             character proportional width table in the Appendix.
 
             For 9 pins : the width is the same as that of normal characters
-            (TODO: Not implemented).
+            (Todo: Not implemented).
 
         When point sizes other than 10 (10.5) and 20 (21) are selected in
         multipoint mode, super/subscript characters are printed at the nearest
@@ -2829,7 +2826,7 @@ class ESCParser:
         """Turn on/off outline and shadow printing - ESC q
 
         - only ESCP2/ESCP 24/48 pins
-        - TODO: does not affect graphics characters
+        - Todo: does not affect graphics characters
         """
         value = args[1].value[0]
         # Map character style ids with reportlab text render modes
@@ -3023,15 +3020,14 @@ class ESCParser:
             - ESC w 1: Selects double-height (21-point) characters
             - ESC w 0: Selects normal (10.5-point) characters
 
-        TODO:
-            The first line of a page is not doubled if ESC w is sent on the first
+        Todo: The first line of a page is not doubled if ESC w is sent on the first
             printable line; all following lines are printed at double-height.
 
         9 pins: Double-height printing overrides:
 
             - super/subscript,
             - condensed,
-            - TODO: and high-speed draft printing;
+            - Todo: and high-speed draft printing;
             They all resume when double-height printing is canceled.
         """
         value = args[1].value[0]
@@ -3172,7 +3168,7 @@ class ESCParser:
         F   Loads paper from the front tractor
         R   Ejects one sheet of single-sheet paper
 
-        TODO R (ESCP2):
+        Todo R (ESCP2):
             ejects the currently loaded single-sheet paper without printing data
             from the line buffer; this is not the equivalent of the FF command
             (which does print line-buffer data).
@@ -3217,11 +3213,12 @@ class ESCParser:
 
             *: available only with the Stylus COLOR and later inkjet printer models
 
-        TODO: You cannot move the print position in a negative direction (up) while in graphics mode.
+        Todo:
+            You cannot move the print position in a negative direction (up) while in graphics mode.
             Also, the printer ignores commands moving the vertical print position in a negative
             direction if the final position would be above any graphics printed with this command.
 
-        TODO: Text printing should not be possible; DO NOT MIX text/graphics on the same page.
+        Todo: Text printing should not be possible; DO NOT MIX text/graphics on the same page.
 
         .. tip:: The print position is the top printable row of dots.
         """
@@ -3243,7 +3240,7 @@ class ESCParser:
 
             => It's a purely mechanically related setting. Not used here.
 
-        TODO: only available during raster graphics printing.
+        Todo: only available during raster graphics printing.
 
         Sending an ESC @ or ESC ( G command turns MicroWeave printing off.
         """
@@ -3261,16 +3258,16 @@ class ESCParser:
             - 1: RLE compressed raster graphics mode
 
         - ESCP2 only !!
-        - TODO: available in graphics mode only via ESC ( G
-        - TODO: Print data that exceeds the right margin is ignored.
+        - Todo: available in graphics mode only via ESC ( G
+        - Todo: Print data that exceeds the right margin is ignored.
         - When MicroWeave is selected, the image height m must be set to 1.
         - Use only one image density and do not change this setting once in raster
           graphics mode.
 
-        TODO:
-        You cannot move the print position in a negative direction (up) while in graphics mode.
-        Also, the printer ignores commands moving the vertical print position in a negative
-        direction if the final position would be above any graphics printed with this command.
+        Todo:
+            You cannot move the print position in a negative direction (up) while in graphics mode.
+            Also, the printer ignores commands moving the vertical print position in a negative
+            direction if the final position would be above any graphics printed with this command.
         """
         # v_dot_count_m (number of rows of dots): 1, 8, or 24
         graphics_mode, v_res, h_res, v_dot_count_m, nL, nH = args[1].value
@@ -3369,15 +3366,16 @@ class ESCParser:
             linewidth = round(horizontal_resolution * 72 * 1.28, 2)
             code.append(f"1 J {linewidth} w")
         else:
-            h_res = "{:.2f}".format(horizontal_resolution * 72, 2).rstrip("0")
-            v_res = "{:.2f}".format(vertical_resolution * 72, 2).rstrip("0")
+            h_res = "{:.2f}".format(horizontal_resolution * 72).rstrip("0")
+            v_res = "{:.2f}".format(vertical_resolution * 72).rstrip("0")
             rect_suffix = f" {h_res} {v_res} re"
 
         # Iterate on bytes inside lines
-        for line_idx, line_bytes in enumerate(chunk_this(data, self.bytes_per_line), 1):
+        # Iterate on lines first
+        for line_bytes in chunk_this(data, self.bytes_per_line):
             # Keep track of the x position in the current line
             column_offset = 0
-            cy = "{:.2f}".format(y_pos * 72, 2).rstrip("0")
+            cy = "{:.2f}".format(y_pos * 72).rstrip("0")
             for col_int in line_bytes:
                 # Consume all bits of the current byte
                 # at each loop the current byte is shifted to the left with an offset of 1.
@@ -3387,7 +3385,7 @@ class ESCParser:
                     if col_int & mask:
                         x_pos = cursor_x + (column_offset + i) * horizontal_resolution
                         # print("offset, i: x,y", column_offset, i, x_pos, y_pos)
-                        cx = "{:.2f}".format(x_pos * 72, 2).rstrip("0")
+                        cx = "{:.2f}".format(x_pos * 72).rstrip("0")
                         code.append(
                             f"{cx} {cy} m {cx} {cy} l"
                             if dots
@@ -3496,7 +3494,7 @@ class ESCParser:
         - Does not affect the vertical print position.
         - Horizontal print position is moved to the next dot after this command
           is received.
-        - TODO: Print data that exceeds the right margin is ignored.
+        - Todo: Print data that exceeds the right margin is ignored.
 
         .. note:: TIFF format:
             - Moves raster data to the band buffer of the selected color.
@@ -3517,7 +3515,7 @@ class ESCParser:
         - If #BC has a negative value, it is described with two’s complement.
         - The unit for this command is determined by the ESC ( U set unit command.
 
-        TODO: Settings that exceed the right or left margin will be ignored.
+        Todo: Settings that exceed the right or left margin will be ignored.
 
         .. note:: For MOVX/MOVY: 0, 1, or 2 bytes are expected (nL and nH are optional...)
         """
@@ -3532,7 +3530,7 @@ class ESCParser:
         negative direction (up).
         - The unit for this command is determined by the ESC ( U set unit command .
 
-        TODO: - After the vertical print position is moved, all seed row(s) are
+        Todo: - After the vertical print position is moved, all seed row(s) are
             copied to the band buffer.
             - Settings beyond 22 inches are ignored.
 
@@ -3552,7 +3550,7 @@ class ESCParser:
         - Do not move the vertical print position.
         - The unit for this command is determined by the ESC ( U set unit command.
 
-        TODO: Start printing of stored data.
+        Todo: Start printing of stored data.
 
         .. seealso:: :meth:`set_movx_unit`
         """
@@ -3566,7 +3564,7 @@ class ESCParser:
         - Do not move the vertical print position.
         - The unit for this command is determined by the ESC ( U set unit command.
 
-        TODO: Start printing of stored data.
+        Todo: Start printing of stored data.
 
         .. seealso:: :meth:`set_movx_unit`
         """
@@ -3594,7 +3592,7 @@ class ESCParser:
         1000 0010B  0x82    Cyan
         1000 0100B  0x84    Yellow
 
-        TODO: (TIFF format):  Select the band buffer color.
+        Todo: (TIFF format):  Select the band buffer color.
 
         - Move the horizontal print position to 0 (left-most print position).
         - Parameters other than those listed above are ignored.
@@ -3606,7 +3604,7 @@ class ESCParser:
     def exit_tiff_raster_graphics(self, *_):
         """Exit TIFF compressed raster graphics mode - <EXIT>
 
-        TODO: Start printing of stored data.
+        Todo: Start printing of stored data.
 
         - Move the horizontal print position to 0 (left-most print position).
         """
@@ -3745,8 +3743,8 @@ class ESCParser:
             # Rectangles: width and height are the current H/V resolutions.
             # The prefix including the coordinates is added in the loop.
             # We use a fill directive here.
-            h_res = "{:.2f}".format(horizontal_resolution * 72, 2).rstrip("0")
-            v_res = "{:.2f}".format(vertical_resolution * 72, 2).rstrip("0")
+            h_res = "{:.2f}".format(horizontal_resolution * 72).rstrip("0")
+            v_res = "{:.2f}".format(vertical_resolution * 72).rstrip("0")
             rect_suffix = f" {h_res} {v_res} re"
 
         # Iterate on bytes inside columns
@@ -3765,13 +3763,13 @@ class ESCParser:
 
             # Do not search further, it IS the most efficient way to
             # round & strip trailing zeroes (to save space).
-            cx = "{:.2f}".format(cursor_x * 72, 2).rstrip("0")
+            cx = "{:.2f}".format(cursor_x * 72).rstrip("0")
             i = 0
             while col_int:
                 if col_int & mask:
                     # At each bit, move the local cursor_y down
                     y_pos = cursor_y - i * vertical_resolution
-                    cy = "{:.2f}".format(y_pos * 72, 2).rstrip("0")
+                    cy = "{:.2f}".format(y_pos * 72).rstrip("0")
                     code.append(
                         f"{cx} {cy} m {cx} {cy} l"
                         if dots
@@ -3913,7 +3911,7 @@ class ESCParser:
 
         doc p198
 
-        TODO: Graphics data that would print beyond the right-margin position is ignored.
+        Todo: Graphics data that would print beyond the right-margin position is ignored.
         """
         dot_density_m, nL, nH = args[1].value
         expected_bytes = (nH << 8) + nL
@@ -3948,9 +3946,10 @@ class ESCParser:
             In this mode for ESCP2, only Black, Cyan, Magenta, Yellow are available.
             Non-ESCP2 printers can use any color.
 
-        TODO:
+        Todo:
             If you change the selected colors after entering raster graphics mode,
             the data buffer will be flushed.
+
         """
         self.color = args[1].value[0]
 
@@ -3987,8 +3986,8 @@ class ESCParser:
         - Printing position after the printing of a bar code
           returns to the print position before bar code printing.
 
-        - TODO: The bar code is not printed when part of the bar code is past
-          the right margin.
+        Todo: The bar code is not printed when part of the bar code is past
+            the right margin.
 
         PS: It's not a BASIC script & my customers may need it ><.
         """
@@ -4043,7 +4042,7 @@ class ESCParser:
         # Show code text
         human_readable = not 2 & control_flag_c
         # EAN-13 and UPC-A only; left flag center or under the bars
-        # TODO: not supported by reportlab ?
+        # Todo: not supported by reportlab ?
         flag_char_under = bool(3 & control_flag_c)
 
         if LOGGER.level == DEBUG:
@@ -4074,7 +4073,7 @@ class ESCParser:
 
         Should be called at the beginning and at the end of each print job.
 
-        TODO: call it in the constructor to lighten it?
+        Todo: call it in the constructor to lighten it?
 
         - does not affect user-defined characters
         """
@@ -4083,12 +4082,12 @@ class ESCParser:
 
         # Cancel HMI set_horizontal_motion_index() ESC c command,
         # Cancel multipoint mode,
-        # Reset point_size to 10.5 TODO: use default point size instead
+        # Reset point_size to 10.5 Todo: use default point size instead
         # self.cancel_multipoint_mode()
 
     def run_esc_instruction(self, tree):
         """Recursive call of methods from the given parse tree
-        TODO: do not emit ESC token: avoid to always have it at the first pos of *args
+        Todo: do not emit ESC token: avoid to always have it at the first pos of *args
 
         :param tree: Lark tree of tokens, we use aliases as method names.
         :type tree: <lark.lexer.Tree>

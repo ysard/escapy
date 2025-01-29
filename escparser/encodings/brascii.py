@@ -14,8 +14,7 @@
 #
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""
-Python Character Mapping Codec brascii derived from code page latin1 / iso8859_1
+"""Python Character Mapping Codec brascii derived from code page latin1 / iso8859_1
 with 2 specific characters.
 
 https://en.wikipedia.org/wiki/BraSCII

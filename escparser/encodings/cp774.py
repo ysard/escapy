@@ -14,8 +14,7 @@
 #
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""
-Python Character Mapping Codec cp774 derived from code page 437
+"""Python Character Mapping Codec cp774 derived from code page 437
 with specific positions modified to accommodate Lithuanian letters.
 
 https://en.wikipedia.org/wiki/Code_page_1118

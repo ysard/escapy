@@ -14,8 +14,7 @@
 #
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""
-Python Character Mapping Codec iscii (Indian Script Code for Information Interchange)
+"""Python Character Mapping Codec iscii (Indian Script Code for Information Interchange)
 
 https://en.wikipedia.org/wiki/Indian_Script_Code_for_Information_Interchange
 

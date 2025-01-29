@@ -49,7 +49,7 @@ def choose_config_file(config_file: [Path | None]) -> Path:
     if isinstance(config_file, Path):
         # Config file from command line
         if not config_file.exists():
-            LOGGER.critical(f"Configuration file <%s> not found!", config_file)
+            LOGGER.critical("Configuration file <%s> not found!", config_file)
             raise SystemExit
         return config_file
 
@@ -61,11 +61,11 @@ def choose_config_file(config_file: [Path | None]) -> Path:
         USER_CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy(EMBEDDED_CONFIG_FILE, USER_CONFIG_FILE)
         return USER_CONFIG_FILE
-    else:
-        # Use the first file found
-        config_file = g[0]
-        LOGGER.debug("Use config at <%s>", config_file)
-        return config_file
+
+    # Use the first file found
+    config_file = g[0]
+    LOGGER.debug("Use config at <%s>", config_file)
+    return config_file
 
 
 def escparser_entry_point(**kwargs):
