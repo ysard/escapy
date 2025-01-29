@@ -1115,16 +1115,32 @@ class ESCParser:
             since it is obtained by doubling the point size.
 
         """
-        # Original implementation
-        # cursor_x = self.cursor_x - (self.character_pitch + self.extra_intercharacter_space)
+        # Original (printer) implementation
+        # cursor_x = self.cursor_x - self.character_pitch - self.extra_intercharacter_space
 
         # Custom implementation: approximatation
         # Compute coef only if double-height is enabled
         # We USE character_pitch here, witch is updated via the standard implementation
         # (like the intercharacter space).
-        horizontal_scale_coef = 1 if not self.double_height else 0.5
-        scripting_coef = 2/3 if self.scripting else 1
-        cursor_x = self.cursor_x - (self.character_pitch * scripting_coef * horizontal_scale_coef + self.extra_intercharacter_space)
+        # horizontal_scale_coef = 1 if not self.double_height else 0.5
+        # scripting_coef = 2/3 if self.scripting and self._point_size > 8 else 1
+        # cursor_x = self.cursor_x - (self.character_pitch * scripting_coef * horizontal_scale_coef + self.extra_intercharacter_space)
+
+        # Custom implementation: precise, using text width from the pdf renderer
+        horizontal_scale_coef = self.compute_horizontal_scale_coef()
+        point_size = self._point_size
+        # See binary_blob()
+        point_size = round(point_size * 2 / 3) if self.scripting and point_size > 8 else point_size
+
+        # Scale is applied only on the string part, not intercharacter space
+        # that is already updated via the standard implementation.
+        text_width = self.current_pdf.stringWidth(" ", fontSize=point_size)
+        # use inches: convert pixels to inch
+        text_width /= 72
+        cursor_x = self.cursor_x - text_width * horizontal_scale_coef - self.extra_intercharacter_space
+
+        # Alternative: print a space with binary blob, measure the diff
+        # of the cursor_x: after - before...
 
         if cursor_x < self.left_margin:
             return
