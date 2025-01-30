@@ -2572,6 +2572,8 @@ class ESCParser:
         HMI: determine the fixed distance to move the horizontal position when
         printing characters.
 
+        Seems to be used only during multipoint mode.
+
         - ESP2 only
         - cancel additional character space set with the ESC SP command
         - Canceled by: ESC P, ESC M, ESC g, ESC SP, ESC p, ESC !, SO, SI, DC2,
@@ -2590,8 +2592,12 @@ class ESCParser:
         value = (nH << 8) + nL
         hmi = value / 360
 
-        assert 0 < value <= 1080
-        assert hmi <= 3, "HMI should be less than 3 inches ({hmi})"
+        if not 0 < hmi <= 3:
+            LOGGER.warning(
+                "HMI should be > to 0 and <= to 3 inches (%s) => ignored", hmi
+            )
+            return
+
         self.character_width = hmi
         # Cancel extra space set_intercharacter_space ESC SP command
         self.extra_intercharacter_space = 0
