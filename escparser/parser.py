@@ -2525,6 +2525,9 @@ class ESCParser:
         if point_size:
             self.point_size = point_size
 
+        # Cancel HMI set_horizontal_motion_index() ESC c command
+        self.character_width = None
+
     def cancel_multipoint_mode(self):
         """Cancel multipoint mode & HMI
 
@@ -2937,6 +2940,9 @@ class ESCParser:
         """
         self.condensed = True
 
+        # Cancel HMI set_horizontal_motion_index() ESC c command
+        self.character_width = None
+
     @multipoint_mode_ignore
     def unset_condensed_printing(self, *_):
         """Cancel condensed printing selected by the SI or ESC SI commands - DC2
@@ -2950,6 +2956,9 @@ class ESCParser:
         """
         # Reset character pitch
         self.condensed = False
+
+        # Cancel HMI set_horizontal_motion_index() ESC c command
+        self.character_width = None
 
     @multipoint_mode_ignore
     def select_double_width_printing(self, *_):
@@ -3064,6 +3073,9 @@ class ESCParser:
                 self.condensed = self.previous_condensed
 
         self.double_height = double_height
+
+        # Cancel HMI set_horizontal_motion_index() ESC c command
+        self.character_width = None
 
         LOGGER.debug("Double-height status: %s", self.double_height)
         LOGGER.debug("scripting status: %s", self.scripting)
