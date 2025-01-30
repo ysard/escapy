@@ -20,7 +20,7 @@ from logging import DEBUG
 from itertools import islice
 
 # Custom imports
-from lark import Lark, Token
+from lark import Lark, Token, UnexpectedToken
 
 # Local imports
 from escparser.commons import logger
@@ -388,6 +388,12 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
             token = next(interactive.lexer_thread.lex(interactive.parser_state))
         except StopIteration:
             break
+        except UnexpectedToken as exc:
+            LOGGER.critical(
+                "Lexer error at file offset: %d",
+                interactive.lexer_thread.state.line_ctr.char_pos
+            )
+            raise exc
         else:
             # print(token.type, token.value)
 
