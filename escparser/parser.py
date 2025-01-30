@@ -3301,7 +3301,7 @@ class ESCParser:
             expected_bytes = v_dot_count_m * self.bytes_per_line
 
             LOGGER.debug(
-                "expect %s bytes (%s dots = %s byte(s) per column)",
+                "expect %s bytes (%s dots = %s byte(s) per line)",
                 expected_bytes,
                 h_dot_count,
                 h_dot_count / 8,
