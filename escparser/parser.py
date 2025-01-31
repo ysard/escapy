@@ -243,8 +243,10 @@ class ESCParser:
         ]
 
         # Font rendering #######################################################
+        # Scalable fonts status
+        self.multipoint_mode = False
         self.point_size = 10.5
-        self.character_pitch = 1 / 10  # in inches: 1/10 inch = 10 cpi
+        self._character_pitch = 1 / 10  # in inches: 1/10 inch = 10 cpi
         # Todo priorité sur le character_pitch de ESC X, see set_horizontal_motion_index()
         self.character_width = None  # HMI, horizontal motion index
         # Fixed character spacing
@@ -369,8 +371,6 @@ class ESCParser:
             self.control_codes_filter = PrintControlCodes.SELECTED.value
         else:
             self.control_codes_filter = frozenset()
-        # scalable fonts possibility
-        self.multipoint_mode = False
 
         # Graphics #############################################################
         self.graphics_mode = False
@@ -1286,6 +1286,9 @@ class ESCParser:
         :return: A numeric value used in the `setHorizScale` methods of the
            reportlab textobjects.
         """
+        if self.multipoint_mode and self.proportional_spacing:
+            return 1
+
         if self.double_height:
             # The point size is already multiplied by 2, we must reduce the pitch
             horizontal_scale_coef = 0.5
@@ -2513,10 +2516,10 @@ class ESCParser:
 
         # Character pitch
         if m == 1:
-            # Select proportional spacing
+            # Proportional spacing
             self.proportional_spacing = True
         elif m:
-            # 360/m cpi = m/360 inch
+            # Fixed spacing: 360/m cpi = m/360 inch
             self.character_pitch = m / 360
 
         # Point size
@@ -2570,16 +2573,20 @@ class ESCParser:
         """Fixes the character width (HMI) - ESC c
 
         HMI: determine the fixed distance to move the horizontal position when
-        printing characters.
+        printing characters in inches per character (instead of character per inch).
 
-        Seems to be used only during multipoint mode.
+        .. warning::
+            - Seems to be used only during multipoint mode ?????.
+            - In multipoint mode, the character width depends ONLY on the
+              selected point-size (and values stored in tables).
+              See :meth:`compute_horizontal_scale_coef` that should return 1
+              in this situation.
 
         - ESP2 only
-        - cancel additional character space set with the ESC SP command
+        - Cancel additional character space set with the ESC SP command
         - Canceled by: ESC P, ESC M, ESC g, ESC SP, ESC p, ESC !, SO, SI, DC2,
-          DC4, ESC W, (via cancel_multipoint_mode()) and ESC @
-
-        Todo: The HMI set with the ESC c command cancels the pitch set with the ESC X command.
+          DC4, ESC W, (via :meth:`cancel_multipoint_mode`), ESC w, ESC X, and ESC @.
+        - The HMI set cancels the pitch set with the ESC X command.
 
         Todo:
             Use this command to set the pitch if you want to print normal-height 10 or 20-point
@@ -2601,6 +2608,22 @@ class ESCParser:
         self.character_width = hmi
         # Cancel extra space set_intercharacter_space ESC SP command
         self.extra_intercharacter_space = 0
+
+    @property
+    def character_pitch(self) -> float:
+        """Get the character pitch
+
+        :return: The character pitch in inches per character unit (not cpi).
+            Note that the HMI (Horizontal Motion Index) has priority over
+            the character pitch legacy setting.
+            See :meth:`set_horizontal_motion_index`.
+        """
+        return self.character_width or self._character_pitch
+
+    @character_pitch.setter
+    def character_pitch(self, value: float):
+        """Set the character pitch (in inches per character unit)"""
+        self._character_pitch = value
 
     @property
     def proportional_spacing(self) -> bool:
