@@ -809,6 +809,8 @@ def test_select_font_by_pitch_and_point(tmp_path: Path):
         (b"\x1bp\x01" + select_condensed_printing + unset_condensed_printing, 10, None),
         # Proportional + condensed but 9pins: condensed is ignored
         (b"\x1bp\x01" + select_condensed_printing, 10, 9),
+        # TODO: IS HMI can be set on non-multipoint mode ?
+        (b"\x1bc" + struct.pack("<H", 36), 10, None),
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
@@ -828,6 +830,7 @@ def test_select_font_by_pitch_and_point(tmp_path: Path):
         "proportional+condensed_20cpi",
         "proportional+condensed_set/unset_10cpi",
         "proportional+condensed_9pins",
+        "hmi_10cpi",
     ],
 )
 def test_character_pitch_changes(
@@ -852,19 +855,29 @@ def test_character_pitch_changes(
         ## Multipoint mode
         # ESC X: m = 0x12: 360/18 = 20 cpi
         (b"\x1bX\x12\x00\x00", 20, None),
+        # Condensed mode is ignored
         (b"\x1bX\x12\x00\x00" + select_condensed_printing, 20, None),
+        # Double-width/height are ignored
+        (b"\x1bX\x12\x00\x00" + double_width + double_height, 20, None),
+        # ESC c: HMI overwrite character pitch set by ESC X
+        (b"\x1bX\x12\x00\x00" b"\x1bc" + struct.pack("<H", 36), 10, None),
+        # ESC c: Max value 1080; 1081 / 360 is ignored
+        (b"\x1bX\x12\x00\x00" b"\x1bc" + struct.pack("<H", 1081), 20, None),
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
     ids=[
         "multipoint_20cpi",
         "multipoint_condensed_ignored_20cpi",
+        "double_width/height_ignored_20cpi",
+        "hmi_cancels_pitch_10cpi",
+        "hmi_limit_ignored_20cpi",
     ],
 )
 def test_character_pitch_changes_multipoint(
     format_databytes: bytes, expected_cpi: float, pins: int | None
 ):
-    """Test character pitch in multipoint mode
+    """Test character pitch IN multipoint mode
 
     Cover: ESC X (pitch)
     """
