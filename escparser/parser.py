@@ -2521,6 +2521,7 @@ class ESCParser:
         elif m:
             # Fixed spacing: 360/m cpi = m/360 inch
             self.character_pitch = m / 360
+            self.proportional_spacing = False
 
         # Point size
         point_size = ((nH << 8) + nL) / 2
