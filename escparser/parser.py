@@ -1283,8 +1283,8 @@ class ESCParser:
 
         .. seealso:: :meth:`binary_blob`, :meth:`backspace`.
 
-        :return: A numeric value used in the `setHorizScale` methods of the
-           reportlab textobjects.
+        :return: A numeric value ([0, 1]) used in the `setHorizScale` methods of
+            the reportlab textobjects.
         """
         if self.multipoint_mode and self.proportional_spacing:
             return 1
@@ -2650,7 +2650,7 @@ class ESCParser:
             # ESC X (multipoint mode), or 9pins printers
             return
         # Not multipoint mode and ESCP2
-        if proportional_spacing in (1, 49):
+        if self._proportional_spacing:
             # Force LQ mode if in Draft mode
             self.previous_mode = self.mode
             self.mode = PrintMode.LQ
@@ -2684,7 +2684,8 @@ class ESCParser:
 
     @multipoint_mode_ignore
     def set_intercharacter_space(self, *args):
-        """Increases the space between characters by n/180 inch in LQ mode and n/120 inch in draft mode - ESC SP
+        """Increase the space between characters by n/180 inch in LQ mode
+        and n/120 inch in draft mode - ESC SP
 
         Add a fixed amount of space to the right of every character.
         This additional space is added to both fixed-pitch and proportional characters.
@@ -2829,6 +2830,7 @@ class ESCParser:
             For 9 pins : the width is the same as that of normal characters
             (Todo: Not implemented).
 
+        Prints characters that follow at about 2/3 their normal height.
         When point sizes other than 10 (10.5) and 20 (21) are selected in
         multipoint mode, super/subscript characters are printed at the nearest
         point size less than or equal to 2/3 the current size.
@@ -3020,7 +3022,8 @@ class ESCParser:
     def unset_double_width_printing(self, *_):
         """Cancels double-width printing selected by the SO or ESC SO commands - DC4
 
-        .. seealso:: :meth:`select_double_width_printing`, :meth:`switch_double_width_printing`
+        .. seealso:: :meth:`select_double_width_printing`,
+            :meth:`switch_double_width_printing`
 
         Does not cancel double-width printing selected with the ESC W command.
         => distinction between 1-line and multiline.
@@ -3043,7 +3046,8 @@ class ESCParser:
 
             Also cancels double-width selected by ESC ! (equivalent command).
 
-        .. seealso:: :meth:`select_double_width_printing`, :meth:`unset_double_width_printing`
+        .. seealso:: :meth:`select_double_width_printing`,
+            :meth:`unset_double_width_printing`
         """
         value = args[1].value[0]
         self.double_width_multi = value in (1, 49)
