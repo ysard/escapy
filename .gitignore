@@ -5,6 +5,7 @@ poc/
 *.png
 *.pbm
 *.json
+!test_data/*
 
 # Readme illustrations/assets
 !images/*
