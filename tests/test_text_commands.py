@@ -1626,3 +1626,93 @@ def test_character_pitch(tmp_path: Path, condensed_fallback, expected_filename):
     )
 
     pdf_comparison(processed_file)
+
+
+def test_multipoint_mode(tmp_path: Path):
+    """Test graphical effects of character pitch & point size behaviors,
+    plus proportional mode for scalable fonts IN multipoint mode.
+
+    Cover: ESC X (pitch, point size, proportional mode), ESC c (HMI).
+
+    We inject Noto font for its SansMono & Sans variants (fixed & proportional
+    variants respectively).
+    """
+    # ESC X: m = 0x12: 360/18 = 20 cpi
+    esc_x = b"\x1bX"
+    multipoint_only = esc_x + b"\x00\x00\x00"
+    pitch_5 = esc_x + b"\x48"
+    pitch_6 = esc_x + b"\x3c"
+    pitch_7_5 = esc_x + b"\x30"
+    pitch_10 = esc_x + b"\x24"
+    pitch_12 = esc_x + b"\x1e"
+    pitch_15 = esc_x + b"\x18"
+    pitch_17_14 = esc_x + b"\x15"
+    pitch_20 = esc_x + b"\x12"
+
+    point_10_5 = b"\x15\x00"
+    point_21 = b"\x2a\x00"
+
+    multipoint_proportional_enable = b"\x1bX\x01\x00\x00"
+
+    default = pitch_10 + point_10_5
+
+    # ESC c: HMI overwrites character pitch set by ESC X
+    hmi_15 = b"\x1bc" + struct.pack("<H", 24)
+
+    lorem = b"Lorem ipsum dolor sit amet, consectetur adipiscing elit.\nSed non risus. Suspendisse..."
+
+    lines = [
+        b"equiv select_10cpi+double_width - 5cpi",
+        pitch_5 + point_10_5 + lorem + default,
+        b"", b"equiv select_12cpi+double_width - 6cpi",
+        pitch_6 + point_10_5 + lorem + default,
+        b"", b"equiv select_15cpi+double_width - 7.5cpi",
+        pitch_7_5 + point_10_5 + lorem + default,
+        b"", b"equiv select_10cpi - 10cpi",
+        pitch_10 + point_10_5 + lorem + default,
+        b"", b"equiv select_12cpi - 12cpi",
+        pitch_12 + point_10_5 + lorem + default,
+        b"", b"equiv select_10cpi+condensed - 17.14cpi",
+        pitch_17_14 + point_10_5 + lorem + default,
+        b"", b"equiv select_12cpi+condensed - 20cpi",
+        pitch_20 + point_10_5 + lorem + default,
+
+        b"", b"", b"15cpi 10.5pt - normal size",
+        # 15cpi is set via HMI, in this case the pt size is restored to 10.5
+        pitch_15 + point_10_5 + hmi_15 + lorem + default,
+        b"", b"15cpi 10.5pt - reduced size (2/3 size)",
+        pitch_15 + point_10_5 + lorem + default,
+        b"", b"15cpi 10.5pt - reduced size (2/3 size)",
+        # 15cpi + 10.5pt is already set when multipoint is enabled,
+        # so the pt size is directly reduced
+        select_15cpi + multipoint_only + lorem + default,
+
+        # Same as before but for 21pt
+        b"", b"", b"15cpi 21pt - normal size",
+        pitch_15 + point_21 + hmi_15 + lorem + default,
+        b"", b"15cpi 21pt - reduced size (2/3 size)",
+        pitch_15 + point_21 + lorem + default,
+
+        # Reduced size is not applied on proportional mode
+        # Character pitch & width (HMI) are not used on proportional mode
+        b"", b"", b"proportional mode (#1)",
+        multipoint_proportional_enable + lorem + default,
+        b"", b"proportional mode; pitch ignored; identical to (#1)",
+        pitch_15 + point_10_5 + multipoint_proportional_enable + lorem + default,
+        b"", b"proportional mode; pitch ignored; identical to (#1)",
+        pitch_15 + point_10_5 + multipoint_proportional_enable + hmi_15 + lorem + default
+    ]
+
+    code = b"\r\n".join(lines)
+    processed_file = tmp_path / "test_multipoint_mode.pdf"
+    # Inject Noto font in the default slot 0 => This font has a condensed version
+    available_fonts = dict(typefaces)
+    available_fonts[0] = noto_font_def
+
+    _ESCParser(
+        code,
+        output_file=processed_file,
+        available_fonts=available_fonts,
+    )
+
+    pdf_comparison(processed_file)
