@@ -485,7 +485,29 @@ class ESCParser:
 
     @property
     def point_size(self) -> float:
-        """Get the current font point size (in 1/72 inch)"""
+        """Get the current font point size (in 1/72 inch)
+
+        .. note:: Reminder of the functions :meth:`set_horizontal_motion_index`
+            and :meth:`select_font_by_pitch_and_point` (commands ESC X, ESC c).
+
+            [Set character_width (HMI)] to set the pitch if you want to print
+            normal-height 10 or 20-point characters at 15 cpi during multipoint
+            mode. Selecting 15 cpi for 10 or 20-point characters with the ESC X
+            command results in characters being printed at 2/3 their normal height.
+        """
+        if not self.multipoint_mode:
+            return self._point_size
+
+        if (
+            # Exclude pitch set by ESC c (HMI)
+            not self.character_width
+            # Fixed pitch makes no sense in proportional mode
+            and not self.proportional_spacing
+            and self._character_pitch == 1 / 15
+            # Add 10 & 20 just to be sure (10.5, 21 are the real sizes)
+            and self._point_size in (10, 10.5, 20, 21)
+        ):
+            return self._point_size * 2 / 3
         return self._point_size
 
     @point_size.setter
@@ -1458,6 +1480,13 @@ class ESCParser:
         if not text:
             return
 
+        # Handle ESCP2 + ESC X strange behavior: 15cpi + 10.5 or 21pt
+        # artificially reduce the point size as ROM characters are loaded...
+        real_point_size = self._point_size
+        effective_point_size = self.point_size
+        if real_point_size != effective_point_size:
+            self.point_size = effective_point_size
+
         if self.scripting:
             # See ESC S command for more documentation of what is done here
             # Compute the position of the scripting text
@@ -1515,6 +1544,10 @@ class ESCParser:
             self.current_pdf.drawText(textobject)
 
         self.apply_text_scoring(cursor_y, horizontal_scale_coef, text)
+
+        if real_point_size != effective_point_size:
+            # Restore original point size
+            self.point_size = real_point_size
 
         # Actualize the x cursor with the apparent width of the written text
         if not self.current_pdf:
@@ -2495,19 +2528,19 @@ class ESCParser:
         Roman, Sans Serif, Roman T, and Sans Serif H not available to ESC/P printers.
 
         - ESC/P 2 only
-        Todo:
-            Selecting a combination of 15 cpi and 10 or 20-point characters results
-            in 15-cpi ROM characters being chosen; the height of these characters
-            is about 2/3 that of normal characters.
-            Select the pitch with the ESC c command to obtain normal height 10
-            or 20-point characters at 15 cpi.
+        - Selecting a combination of 15 cpi and 10 or 20-point characters results
+          in 15-cpi ROM characters being chosen; the height of these characters
+          is about 2/3 that of normal characters.
+          Select the pitch with the ESC c command to obtain normal height 10
+          or 20-point characters at 15 cpi.
+
+          See :meth:`point_size`, :meth:`binary_blob`,
+          meth:`set_horizontal_motion_index` implementations.
 
         During multipoint mode the printer ignores the ESC W, ESC w, ESC SP,
         DC2, DC4, SI, ESC SI, SO, and ESC SO commands.
         ESC k is ignored if typeface is not available in scalable/multipoint mode.
         See the decorator :meth:`multipoint_mode_ignore`.
-
-        .. seealso:: A second method to change the pitch can be :meth:`set_horizontal_motion_index` (ESC c).
         """
         m, nL, nH = args[1].value
 
@@ -2571,7 +2604,7 @@ class ESCParser:
         return modified_func
 
     def set_horizontal_motion_index(self, *args):
-        """Fixes the character width (HMI) - ESC c
+        """Set the character width (HMI) - ESC c
 
         HMI: determine the fixed distance to move the horizontal position when
         printing characters in inches per character (instead of character per inch).
@@ -2589,12 +2622,13 @@ class ESCParser:
           DC4, ESC W, (via :meth:`cancel_multipoint_mode`), ESC w, ESC X, and ESC @.
         - The HMI set cancels the pitch set with the ESC X command.
 
-        Todo:
-            Use this command to set the pitch if you want to print normal-height 10 or 20-point
-            characters at 15 cpi during multipoint mode. Selecting 15 cpi for 10 or 20-point
-            characters with the ESC X command results in characters being printed at 2/3 their
-            normal height.
+        - Use this command to set the pitch if you want to print normal-height
+          10 or 20-point characters at 15 cpi during multipoint mode.
+          Selecting 15 cpi for 10 or 20-point characters with the ESC X command
+          results in characters being printed at 2/3 their normal height.
 
+          See :meth:`point_size`, :meth:`binary_blob`,
+          meth:`select_font_by_pitch_and_point` implementations.
         """
         nL, nH = args[1].value
         value = (nH << 8) + nL
