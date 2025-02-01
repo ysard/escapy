@@ -13,8 +13,8 @@
 
 # EscaPy
 
-EscaPy is a tool that **reliably** and almost **exhaustively** interprets the
-ESC/P and ESC/P2 command sets defined by Epson
+EscaPy is a **thoroughly tested** tool that **reliably** and almost
+**exhaustively** interprets the ESC/P and ESC/P2 command sets defined by Epson
 ([Wikipedia - Epson ESC/P](https://en.wikipedia.org/wiki/ESC/P)), then converts
 the data formerly intended for printers into a modern PDF file.
 
@@ -373,7 +373,8 @@ development, please follow the link below, with all thanks :
 
 - [x] **Enhanced reliability thanks to testing (~100%)**
 
-    EscaPy is an implementation of a standard made up of over 600 pages.
+    EscaPy is an implementation of a standard made up of over 600 pages
+    covered by almost 300 tests.
 
     A coverage rate close to 100% eliminates most of the erratic behavior that
     a non-rigorously tested application can produce.
