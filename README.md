@@ -256,7 +256,7 @@ development, please follow the link below, with all thanks :
 
     <div align="center"><figure>
       <img src="./images/fonts.webp">
-      <img src="./images/character_styles.webp">
+      <img src="./images/character_styles.webp"><br>
       <figcaption>Fonts examples & character style implementations.</figcaption>
     </figure></div>
 
@@ -269,7 +269,7 @@ development, please follow the link below, with all thanks :
     <div align="center"><figure>
       <img src="./images/graphism_render_1.webp">
       <img src="./images/graphism_render_2.webp">
-      <img src="./images/graphism_render_2_details.webp">
+      <img src="./images/graphism_render_2_details.webp"><br>
       <figcaption>Graphic element magnifications. Two ways of rendering.</figcaption>
     </figure></div>
 
@@ -294,7 +294,7 @@ development, please follow the link below, with all thanks :
  Character Set) are also injected into the encoding tables.
 
     <div align="center"><figure>
-      <img src="./images/encodings.webp">
+      <img src="./images/encodings.webp"><br>
       <figcaption>Support for many common encodings.</figcaption>
     </figure></div>
 
