@@ -154,7 +154,7 @@ development, please follow the link below, with all thanks :
     | ESC x                            | Select NLQ or draft                         | :white_check_mark:   |
     | ESC k                            | Select typeface                             | :white_check_mark:   |
     | ESC X                            | Select font by pitch and point              | :white_check_mark:   |
-    | ESC c                            | Set horizontal motion index (HMI)           | :white_large_square: |
+    | ESC c                            | Set horizontal motion index (HMI)           | :white_check_mark:   |
     | ESC P                            | Select 10.5-point, 10-cpi                   | :white_check_mark:   |
     | ESC P                            | Select 10-cpi                               | :white_check_mark:   |
     | ESC M                            | Select 10.5-point, 12-cpi                   | :white_check_mark:   |
