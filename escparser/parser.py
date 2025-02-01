@@ -1557,12 +1557,11 @@ class ESCParser:
         # Add intercharacter space which is not used by stringWidth()
         # PS: not `len(text) - 1`, because there is a trailing space.
         text_width += len(text) * self.extra_intercharacter_space
-        # use inches: convert pixels to inch
-        text_width /= 72
-
         # Handle all character pitch changes
         # (double width/height, condensed, select_*_cpi)
         text_width *= horizontal_scale_coef
+        # Use inches: convert pixels to inches
+        text_width /= 72
         self.cursor_x += text_width
 
     def carriage_return(self, *_):
