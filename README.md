@@ -396,7 +396,7 @@ development, please follow the link below, with all thanks :
 All operating systems should be supported, although this project is mainly
 developed for a GNU-Linux system as an everyday computer.
 
-Simple installation from PyPi :
+Simple installation from PyPI :
 ```bash
 $ pip install esca-py
 ```
@@ -413,7 +413,12 @@ $ make install
 $ pip install -e .[dev]
 ```
 
-Installation on Debian : (coming soon)
+Installation on Debian :
+- Download the `.deb` file in the [releases section of this repo](./releases).
+- Then :
+```bash
+apt install ./escapy_1.0.0-2_all.deb
+```
 
 
 ### Usage
