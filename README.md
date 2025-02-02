@@ -414,7 +414,7 @@ $ pip install -e .[dev]
 ```
 
 Installation on Debian :
-- Download the `.deb` file in the [releases section of this repo](./releases).
+- Download the `.deb` file in the [releases section of this repo](https://github.com/ysard/escapy/releases).
 - Then :
 ```bash
 apt install ./escapy_1.0.0-2_all.deb
