@@ -15,4 +15,4 @@
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Public package variables used for the release process"""
-__version__ = "1.0.0.dev0"
+__version__ = "1.0.0"
