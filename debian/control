@@ -1,0 +1,16 @@
+Source: escapy
+Section: contrib/python
+Priority: optional
+Maintainer: Ysard <ysard_git@gmx.fr>
+Build-Depends: debhelper (>= 9.20160709), python3 (>= 3.10), python3-setuptools, python3-numpy (>= 1.19.5), python3-reportlab (>= 4.0.0), python3-reportlab-accel, python3-lark (>= 1.1.0), python3-platformdirs, python3-pil
+Standards-Version: 3.9.6
+Homepage: https://github.com/ysard/escapy
+Vcs-Git: https://github.com/ysard/escapy
+
+Package: escapy
+Architecture: all
+Depends: dpkg (>= 1.16.1), adduser (>= 3.11), python3 (>= 3.10), ${python3:Depends}, ${misc:Depends}
+Description: Interpreter for ESC/P and ESC/P2 commands, converting files into PDFs
+ EscaPy is a tool that reliably and almost exhaustively interprets the ESC/P
+ and ESC/P2 command sets defined by Epson, then converts the data formerly
+ intended for printers into a modern PDF file.

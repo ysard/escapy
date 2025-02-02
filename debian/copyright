@@ -1,0 +1,12 @@
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: EscaPy
+Source: https://github.com/ysard/escapy
+
+Files: *
+Copyright: 2024  Ysard <ysard@users.noreply.github.com>
+License: AGPL-3+
+
+
+License: AGPL-3+
+ Released under the GNU Affero General Public License, version 3 or later.
+ See https://www.gnu.org/licenses/agpl.html for terms.

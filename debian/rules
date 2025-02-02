@@ -1,0 +1,23 @@
+#!/usr/bin/make -f
+# Increase trace logging, see debhelper(7) (uncomment to enable)
+DH_VERBOSE=1
+export PYBUILD_DISABLE_python2=1
+export PYBUILD_NAME=escapy
+PACKAGE=$(shell dh_listpackages)
+DEB_DIR=debian/$(PACKAGE)
+LOCAL_INSTALL_ROOT=$(DEB_DIR)/usr/share/$(PACKAGE)
+# Disable running tests
+DEB_BUILD_OPTIONS=nocheck
+
+.PHONY: override_dh_python3
+
+%:
+	dh $@ --with systemd --with python3 --buildsystem=pybuild
+
+override_dh_python3:
+	# Script tools inherit the python2 shebang without explicit force...
+	dh_python3 --shebang=/usr/bin/python3
+
+	rm -rf $(DEB_DIR)/usr/lib/python3/dist-packages/test_data
+	rm -rf $(DEB_DIR)/usr/lib/python3/dist-packages/images
+	rm -rf $(DEB_DIR)/usr/lib/python3/dist-packages/resources
