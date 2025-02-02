@@ -1,9 +1,10 @@
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/ysard/escapy)](https://github.com/ysard/escapy/releases/latest/)
+[![version on pypi](https://img.shields.io/pypi/v/pyscape.svg)](https://pypi.python.org/pypi/pyscape)
+[![version on pypi](https://img.shields.io/pypi/pyversions/pyscape)](https://pypi.python.org/pypi/pyscape)
 [![tests status](./images/tests.svg)](https://github.com/ysard/escapy/actions)
 [![python docstring coverage](./images/interrogate_badge.svg)](https://interrogate.readthedocs.io/en/latest/)
 [![python test coverage](./images/coverage.svg)](https://docs.pytest.org/en/latest/)
-[![version on pypi](https://img.shields.io/pypi/v/esca-py.svg)](https://pypi.python.org/pypi/esca-py)
-[![licence](https://img.shields.io/pypi/l/esca-py.svg)](https://github.com/ysard/escapy/blob/main/LICENCE)
+[![licence](https://img.shields.io/pypi/l/pyscape.svg)](https://github.com/ysard/escapy/blob/main/LICENCE)
 [![Donate](./images/liberapay.svg)](https://liberapay.com/Ysard/donate)
 <!--[![documentation](https://readthedocs.org/projects/escapy/badge/)](https://escapy.readthedocs.io/en/latest/)-->
 
@@ -396,9 +397,9 @@ development, please follow the link below, with all thanks :
 All operating systems should be supported, although this project is mainly
 developed for a GNU-Linux system as an everyday computer.
 
-Simple installation from PyPI :
+Simple installation from PyPI (**beware, the package name is not the project name!**):
 ```bash
-$ pip install esca-py
+$ pip install pyscape
 ```
 
 Installation from sources :
