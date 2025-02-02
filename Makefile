@@ -72,7 +72,7 @@ missing_doc:
 
 archive:
 	# Create upstream src archive
-	git archive HEAD --prefix='escparser-$(PROJECT_VERSION).orig/' | gzip > ../escparser-$(PROJECT_VERSION).orig.tar.gz
+	git archive HEAD --prefix='escapy-$(PROJECT_VERSION).orig/' | gzip > ../escapy-$(PROJECT_VERSION).orig.tar.gz
 
 reset_patches:
 	# Force the removal of the current patches
@@ -82,4 +82,4 @@ debianize: archive reset_patches
 	dpkg-buildpackage -us -uc -b -d
 
 debcheck:
-	lintian -EvIL +pedantic ../escparser_*.deb
+	lintian -EvIL +pedantic ../escapy_*.deb
