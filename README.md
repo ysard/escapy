@@ -490,7 +490,7 @@ On Windows systems:
 On MacOS systems:
 `/Users/<YOUR_USERNAME>/Library/Application Support/escapy`
 
-The default file is in the repository folder: [data](./escparser/data/).
+The default file is in the repository folder: [data](./escapy/data/).
 
 ## :abc: Fonts
 
