@@ -44,7 +44,7 @@ install:
 	@# Install a project in editable mode.
 	pip install -e .[dev]
 uninstall:
-	pip escapy uninstall
+	pip py_escape uninstall
 
 sdist: clean
 	@echo Building the distribution package...
