@@ -23,7 +23,7 @@ import pytest
 from lark import UnexpectedToken
 
 # Local imports
-from escparser.parser import ESCParser as _ESCParser
+from escapy.parser import ESCParser as _ESCParser
 from .misc import typefaces
 
 # Inject test typefaces

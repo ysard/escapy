@@ -23,7 +23,7 @@ from itertools import islice
 from lark import Lark, Token, UnexpectedToken
 
 # Local imports
-from escparser.commons import logger
+from escapy.commons import logger
 
 
 LOGGER = logger()

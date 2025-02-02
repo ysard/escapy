@@ -1,4 +1,4 @@
-from escparser.commons import log_level
+from escapy.commons import log_level
 
 # Enable debug loglevel for tests
 log_level("DEBUG")

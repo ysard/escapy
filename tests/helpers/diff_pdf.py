@@ -20,7 +20,7 @@ import subprocess
 from pathlib import Path
 
 # Custom imports
-from escparser.commons import logger
+from escapy.commons import logger
 
 LOGGER = logger()
 

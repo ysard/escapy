@@ -22,7 +22,7 @@ import configparser
 from logging import DEBUG
 
 # Local imports
-from escparser.commons import (
+from escapy.commons import (
     logger,
     log_level,
     EMBEDDED_CONFIG_FILE,

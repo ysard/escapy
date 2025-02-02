@@ -24,7 +24,7 @@ from functools import partial
 import codecs
 
 # Local imports
-from escparser.encodings.i18n_codecs import getregentry
+from escapy.encodings.i18n_codecs import getregentry
 
 
 CHARSET = {

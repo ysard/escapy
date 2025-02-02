@@ -5,9 +5,9 @@ from pathlib import Path
 import pytest
 
 # Local imports
-from escparser.parser import ESCParser
+from escapy.parser import ESCParser
 from .misc import format_databytes
-from escparser.fonts import (
+from escapy.fonts import (
     open_font,
     find_font,
     setup_fonts,

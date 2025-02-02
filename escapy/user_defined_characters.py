@@ -22,9 +22,9 @@ import codecs
 import json
 
 # Custom imports
-from escparser.commons import logger, USER_DEFINED_DB_FILE, RAM_CHARACTERS_TABLE
-from escparser.encodings import ram_codec
-from escparser.parser import PrintMode, PrintScripting
+from escapy.commons import logger, USER_DEFINED_DB_FILE, RAM_CHARACTERS_TABLE
+from escapy.encodings import ram_codec
+from escapy.parser import PrintMode, PrintScripting
 
 LOGGER = logger()
 
@@ -52,7 +52,7 @@ class RAMCharacters:
             extracted and compared to decide on the reset of RAM memory.
         :key db_filepath: JSON filepath used as mappings between
             chararacter codes and unicode.
-        :type parent: escparser.ESCParser
+        :type parent: escapy.ESCParser
         :type db_filepath: str | Path
         """
         self.db_filepath = Path(db_filepath)
@@ -105,7 +105,7 @@ class RAMCharacters:
 
         :param parent: Instance of the ESCParser from which settings will be
             extracted and compared to decide on the reset of RAM memory.
-        :type parent: escparser.ESCParser
+        :type parent: escapy.ESCParser
         """
         self.settings = {
             "mode": parent.mode,

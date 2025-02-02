@@ -27,7 +27,7 @@ from functools import partial, lru_cache
 from PIL import ImageFont
 
 # Local imports
-from escparser.commons import logger, TYPEFACE_NAMES, DIR_FONTS
+from escapy.commons import logger, TYPEFACE_NAMES, DIR_FONTS
 
 LOGGER = logger()
 STRETCH_DICT = {

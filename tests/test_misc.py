@@ -23,8 +23,8 @@ from functools import partial
 import pytest
 
 # Local imports
-from escparser.commons import log_level
-from escparser.parser import ESCParser as _ESCParser
+from escapy.commons import log_level
+from escapy.parser import ESCParser as _ESCParser
 from .misc import DIR_DATA, esc_reset, typefaces
 
 # Inject test typefaces

@@ -24,7 +24,7 @@ from functools import partial
 import pytest
 
 # Local imports
-from escparser.fonts import find_font
+from escapy.fonts import find_font
 from .helpers.diff_pdf import is_similar_pdfs
 
 # Test data path depends on the current package name

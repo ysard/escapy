@@ -33,7 +33,7 @@
 import codecs
 
 # Local imports
-from escparser.commons import logger
+from escapy.commons import logger
 
 LOGGER = logger()
 

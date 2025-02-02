@@ -24,10 +24,10 @@ from functools import partial
 import pytest
 
 # Local imports
-from escparser.commons import RAM_CHARACTERS_TABLE
-from escparser.parser import ESCParser as _ESCParser, PrintMode, PrintScripting
-from escparser.user_defined_characters import RAMCharacters
-from escparser.encodings import ram_codec
+from escapy.commons import RAM_CHARACTERS_TABLE
+from escapy.parser import ESCParser as _ESCParser, PrintMode, PrintScripting
+from escapy.user_defined_characters import RAMCharacters
+from escapy.encodings import ram_codec
 from .misc import esc_reset, pdf_comparison, typefaces
 
 # Inject test typefaces
@@ -127,15 +127,15 @@ def test_user_defined_chars(tmp_path: Path, scripting, char_data):
         + char_data,
     ]
     code = esc_reset + b"".join(lines)
-    escparser = ESCParser(code, userdef_db_filepath=db_file, pdf=False)
+    escapy = ESCParser(code, userdef_db_filepath=db_file, pdf=False)
 
     # REPLACEMENT CHARACTER is used if the mapping is not found
     expected_mapping = {1: "\ufffd", 2: "\ufffd"}
-    found_charset = escparser.user_defined.charset_mapping
+    found_charset = escapy.user_defined.charset_mapping
     assert found_charset == expected_mapping
 
     # No encoding has been used as a reference (no copy rom to ram)
-    assert escparser.user_defined.encoding is None
+    assert escapy.user_defined.encoding is None
 
     ############################################################################
     # Changing 1 of the settings should reset the charset of RAM characters
@@ -151,17 +151,17 @@ def test_user_defined_chars(tmp_path: Path, scripting, char_data):
         + char_data
     ]
     code = esc_reset + b"".join(lines)
-    escparser = ESCParser(code, userdef_db_filepath=db_file, pdf=False)
+    escapy = ESCParser(code, userdef_db_filepath=db_file, pdf=False)
 
     # 1 REPLACEMENT CHARACTER only
     expected = {1: "\ufffd"}
-    found_charset = escparser.user_defined.charset_mapping
+    found_charset = escapy.user_defined.charset_mapping
     assert found_charset == expected
 
     # No encoding has been used as a reference (no copy rom to ram)
-    assert escparser.user_defined.encoding is None
+    assert escapy.user_defined.encoding is None
     # RAM settings must reflect the proportional spacing status
-    assert escparser.user_defined.settings["proportional_spacing"] is True
+    assert escapy.user_defined.settings["proportional_spacing"] is True
 
 
 def mocked_init(self: RAMCharacters, parent: ESCParser = None, db_filepath: str = None):
@@ -241,11 +241,11 @@ def test_database_file(
     ]
     code = esc_reset + b"".join(lines)
 
-    escparser = ESCParser(code, userdef_db_filepath=mocked_db_file, pdf=False)
+    escapy = ESCParser(code, userdef_db_filepath=mocked_db_file, pdf=False)
 
     # The code 3 must be a REPLACEMENT CHARACTER
     expected_mapping |= {3: "\ufffd"}
-    found_charset = escparser.user_defined.charset_mapping
+    found_charset = escapy.user_defined.charset_mapping
     assert found_charset == expected_mapping
 
     # A JSON mapping file should have been created
@@ -343,7 +343,7 @@ def test_copy_rom_to_ram(tmp_path: Path, normal_char_data, multipoint, typeface_
         + normal_char_data,
     ]
     code = esc_reset + b"".join(lines)
-    escparser = ESCParser(code, userdef_db_filepath=db_file, pdf=False)
+    escapy = ESCParser(code, userdef_db_filepath=db_file, pdf=False)
 
     # Validate the encoding
     if is_cmd_ignored:
@@ -352,9 +352,9 @@ def test_copy_rom_to_ram(tmp_path: Path, normal_char_data, multipoint, typeface_
         expected_encoding = None
     else:
         # The CURRENT encoding has been used as a reference (no copy rom to ram)
-        expected_encoding = escparser.encoding
+        expected_encoding = escapy.encoding
 
-    assert escparser.user_defined.encoding == expected_encoding
+    assert escapy.user_defined.encoding == expected_encoding
 
     # Validate the charset mapping size
     if is_cmd_ignored:
@@ -362,13 +362,13 @@ def test_copy_rom_to_ram(tmp_path: Path, normal_char_data, multipoint, typeface_
     else:
         expected = 128  # ESCP2/ESCP; TODO 256; 9 pins
 
-    mapping_size = len(escparser.user_defined.charset_mapping)
+    mapping_size = len(escapy.user_defined.charset_mapping)
     assert mapping_size == expected
 
     # Validate the charset mapping content
     expected_mapping = {1: "\ufffd", 2: "\ufffd"}
     for char_code, unicode_val in expected_mapping.items():
-        assert escparser.user_defined.charset_mapping[char_code] == unicode_val
+        assert escapy.user_defined.charset_mapping[char_code] == unicode_val
 
 
 def test_copy_rom_to_ram_settings():
@@ -390,12 +390,12 @@ def test_copy_rom_to_ram_settings():
         cpy_rom_to_ram_cmd_prefix + typeface_id + b"\x00",
     ]
     code = esc_reset + b"".join(lines)
-    escparser = ESCParser(code, pdf=False)
+    escapy = ESCParser(code, pdf=False)
 
     # RAM settings must be updated to the parser settings
-    assert escparser.user_defined.settings["proportional_spacing"] is True
-    assert escparser.user_defined.settings["mode"] == PrintMode.DRAFT
-    assert escparser.user_defined.settings["scripting"] == PrintScripting.SUB
+    assert escapy.user_defined.settings["proportional_spacing"] is True
+    assert escapy.user_defined.settings["mode"] == PrintMode.DRAFT
+    assert escapy.user_defined.settings["scripting"] == PrintScripting.SUB
 
 
 def test_shift_upper_charset(tmp_path: Path, normal_char_data):
@@ -429,12 +429,12 @@ def test_shift_upper_charset(tmp_path: Path, normal_char_data):
         + normal_char_data
     ]
     code = esc_reset + b"".join(lines)
-    escparser = ESCParser(code, userdef_db_filepath=db_file, pdf=False)
+    escapy = ESCParser(code, userdef_db_filepath=db_file, pdf=False)
 
     # User-defined chars should be moved to the upper part of the charset
     expected_mapping = {1: "\ufffd", 2: "☻", 129: "\ufffd", 130: "\ufffd"}
     for char_code, unicode_val in expected_mapping.items():
-        assert escparser.user_defined.charset_mapping[char_code] == unicode_val
+        assert escapy.user_defined.charset_mapping[char_code] == unicode_val
 
 
 @pytest.mark.parametrize(
@@ -479,18 +479,18 @@ def test_select_character_table(pins):
         select_character_table_cmd,
     ]
     code = esc_reset + b"".join(lines)
-    escparser = ESCParser(code, pins=pins, pdf=False)
+    escapy = ESCParser(code, pins=pins, pdf=False)
 
     if pins in (24, 48):
         # User-defined character table has been shifted
         # => see test_shift_upper_charset()
         # Default table is still in use since table 2 is not reachable.
-        assert escparser.character_table == 1
-        assert escparser.character_tables[2] is None
+        assert escapy.character_table == 1
+        assert escapy.character_tables[2] is None
     else:
         # ESCP2 only: table 2 is updated
-        assert escparser.character_table == 2
-        assert "cp863" == escparser.character_tables[2]
+        assert escapy.character_table == 2
+        assert "cp863" == escapy.character_tables[2]
 
 
 def test_ram_codec():

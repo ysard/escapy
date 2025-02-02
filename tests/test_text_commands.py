@@ -26,17 +26,17 @@ import pytest
 from lark.exceptions import UnexpectedToken
 
 # Local imports
-import escparser.commons as cm
-from escparser.parser import (
+import escapy.commons as cm
+from escapy.parser import (
     ESCParser as _ESCParser,
     PrintMode,
     PrintScripting,
     PrintControlCodes,
 )
-from escparser.fonts import rptlab_times
+from escapy.fonts import rptlab_times
 
 # Support custom encodings; DO NOT import abicomp, see test_charset_tables
-from escparser.encodings import brascii, mazovia, iscii, cp774
+from escapy.encodings import brascii, mazovia, iscii, cp774
 from .misc import format_databytes, pdf_comparison
 from .misc import (
     esc_reset,
@@ -98,7 +98,7 @@ def test_assign_character_table(format_databytes, pins: None | int):
     """
     print(format_databytes)
 
-    escparser = ESCParser(format_databytes, pdf=False)
+    escapy = ESCParser(format_databytes, pdf=False)
     d1_slot = format_databytes[5 + 2]  # +2 for the ESC reset added by the fixture
     if d1_slot >= 0x30:
         d1_slot -= 0x30
@@ -106,10 +106,10 @@ def test_assign_character_table(format_databytes, pins: None | int):
     print("table slot:", d1_slot)
     if pins is None:
         expected = "cp863"
-        assert escparser.character_tables[d1_slot] == expected
+        assert escapy.character_tables[d1_slot] == expected
     else:
         # cmd should be ignored => table not modified (default)
-        assert escparser.character_table == 1
+        assert escapy.character_table == 1
 
 
 @pytest.mark.parametrize(
@@ -185,12 +185,12 @@ def test_select_international_charset(format_databytes):
     """select_international_charset - ESC R"""
     print(format_databytes)
 
-    escparser = ESCParser(format_databytes, pdf=False)
+    escapy = ESCParser(format_databytes, pdf=False)
     expected = format_databytes[2 + 2]
     charset_name = cm.CHARSET_NAMES_MAPPING[expected]
 
     assert (
-        escparser.international_charset == expected
+        escapy.international_charset == expected
     ), f"Expected charset {charset_name}"
 
 
@@ -253,15 +253,15 @@ def test_select_typeface(
     """
     output_file = tmp_path / "output.pdf"
 
-    escparser = ESCParser(
+    escapy = ESCParser(
         format_databytes, available_fonts=partial_fonts, output_file=output_file
     )
-    print(escparser.typefaces)
-    assert escparser.typeface == expected_typefaceid, "Wrong typeface selected"
+    print(escapy.typefaces)
+    assert escapy.typeface == expected_typefaceid, "Wrong typeface selected"
 
-    # Note: escparser.current_pdf._fontname can't be tested here because the
+    # Note: escapy.current_pdf._fontname can't be tested here because the
     # save() to pdf action resets the canvas
-    found = escparser.current_fontpath
+    found = escapy.current_fontpath
     if isinstance(found, Path):
         # Cast to str for a simpler parametrized test data...
         found = str(found)
@@ -296,13 +296,13 @@ def test_select_character_table(format_databytes):
     """
     print(format_databytes)
 
-    escparser = ESCParser(format_databytes, pdf=False)
+    escapy = ESCParser(format_databytes, pdf=False)
     expected = format_databytes[2 + 2]
 
     if expected >= 0x30:
         expected -= 0x30
 
-    assert escparser.character_table == expected
+    assert escapy.character_table == expected
 
 
 def test_horizontal_tabs(tmp_path: Path):
@@ -356,17 +356,17 @@ def test_horizontal_tabs(tmp_path: Path):
     processed_file = tmp_path / "test_horizontal_tabs.pdf"
 
     code = esc_reset + b"\r\n".join(lines)
-    escparser = ESCParser(code, pins=None, output_file=processed_file)
+    escapy = ESCParser(code, pins=None, output_file=processed_file)
 
     expected = [0.1, 0.8] + [0] * 30
-    assert escparser.horizontal_tabulations == expected
+    assert escapy.horizontal_tabulations == expected
 
     # comparaison of PDFs
     pdf_comparison(processed_file)
 
     # No change expected
-    escparser = ESCParser(code, pins=9, output_file=processed_file)
-    assert escparser.horizontal_tabulations == expected
+    escapy = ESCParser(code, pins=9, output_file=processed_file)
+    assert escapy.horizontal_tabulations == expected
 
     # With a 1/15 character pitch the positions of the columns should be different
     code += b"\r\n".join(
@@ -375,9 +375,9 @@ def test_horizontal_tabs(tmp_path: Path):
             esc_htab + b"\x01\x08\x00",
         ]
     )
-    escparser = ESCParser(code, pins=None, output_file=processed_file)
+    escapy = ESCParser(code, pins=None, output_file=processed_file)
     expected = [1 / 15, 8 / 15] + [0] * 30
-    assert escparser.horizontal_tabulations == expected
+    assert escapy.horizontal_tabulations == expected
 
     # clean
     processed_file.unlink()
@@ -445,14 +445,14 @@ def test_vertical_tabs(tmp_path: Path, pins: None | int, expected_filename):
     processed_file = tmp_path / expected_filename
 
     code = esc_reset + b"\r\n".join(lines)
-    escparser = ESCParser(code, pins=pins, output_file=processed_file)
+    escapy = ESCParser(code, pins=pins, output_file=processed_file)
 
     line_spacing = 1 / 6
-    assert escparser.current_line_spacing == line_spacing
+    assert escapy.current_line_spacing == line_spacing
     expected = [i * line_spacing for i in (7, 10, 14, 68)] + [0] * 12
-    assert escparser.vertical_tabulations == expected
+    assert escapy.vertical_tabulations == expected
     # Yeah... 4... but there are 3 pages... (the save method increments the count)
-    assert escparser.current_pdf.getPageNumber() == 4
+    assert escapy.current_pdf.getPageNumber() == 4
 
     pdf_comparison(processed_file)
 
@@ -471,8 +471,8 @@ def test_select_letter_quality_or_draft():
         (b"\x1bx\x00" + b"\x1bX\x01\x00\x00", PrintMode.DRAFT),
     ]
     for code, expected in dataset:
-        escparser = ESCParser(esc_reset + code, pdf=False)
-        assert escparser.mode == expected
+        escapy = ESCParser(esc_reset + code, pdf=False)
+        assert escapy.mode == expected
 
 
 def test_set_script_printing():
@@ -488,8 +488,8 @@ def test_set_script_printing():
         (b"\x1bS\x31\x1bT", None),
     ]
     for code, expected in dataset:
-        escparser = ESCParser(esc_reset + code, pdf=False)
-        assert escparser.scripting == expected
+        escapy = ESCParser(esc_reset + code, pdf=False)
+        assert escapy.scripting == expected
 
 
 def test_charset_tables(tmp_path: Path):
@@ -664,10 +664,10 @@ def test_international_charsets(tmp_path: Path, assign_table_cmd, encoding):
 
     code = b"\r\n".join(lines)
     processed_file = tmp_path / "test_international_charset_tables.pdf"
-    escparser = ESCParser(code, output_file=processed_file)
+    escapy = ESCParser(code, output_file=processed_file)
 
     # Check that the base encoding is in use
-    found_encoding = escparser.character_tables[escparser.character_table]
+    found_encoding = escapy.character_tables[escapy.character_table]
     assert found_encoding == encoding
 
     pdf_comparison(processed_file)
@@ -843,10 +843,10 @@ def test_character_pitch_changes(
     .. seealso:: :meth:`test_character_pitch` for graphical tests on the
         character_pitch value.
     """
-    escparser = ESCParser(format_databytes, pdf=False, pins=pins)
+    escapy = ESCParser(format_databytes, pdf=False, pins=pins)
 
-    assert 1 / escparser.character_pitch == expected_cpi
-    assert not escparser.multipoint_mode
+    assert 1 / escapy.character_pitch == expected_cpi
+    assert not escapy.multipoint_mode
 
 
 @pytest.mark.parametrize(
@@ -881,11 +881,11 @@ def test_character_pitch_changes_multipoint(
 
     Cover: ESC X (pitch)
     """
-    escparser = ESCParser(format_databytes, pdf=False, pins=pins)
+    escapy = ESCParser(format_databytes, pdf=False, pins=pins)
 
-    assert 1 / escparser.character_pitch == expected_cpi
-    assert escparser.multipoint_mode is True
-    assert not escparser.condensed  # Same as in test_condensed_mode
+    assert 1 / escapy.character_pitch == expected_cpi
+    assert escapy.multipoint_mode is True
+    assert not escapy.condensed  # Same as in test_condensed_mode
 
 
 @pytest.mark.parametrize(
@@ -927,8 +927,8 @@ def test_character_pitch_changes_multipoint(
 )
 def test_condensed_mode(format_databytes: bytes, expected: float, pins: int | None):
     """Test condensed mode conditions, see :meth:`condensed` - SI, ESC SI, ESC !"""
-    escparser = ESCParser(format_databytes, pdf=False, pins=pins)
-    assert escparser.condensed == expected
+    escapy = ESCParser(format_databytes, pdf=False, pins=pins)
+    assert escapy.condensed == expected
 
 
 @pytest.mark.parametrize(
@@ -961,8 +961,8 @@ def test_proportional_mode(format_databytes: bytes, expected: bool):
     .. seealso:: :meth:`test_select_letter_quality_or_draft` for proportional
         spacing & print mode combinations.
     """
-    escparser = ESCParser(format_databytes, pdf=False)
-    assert escparser.proportional_spacing == expected
+    escapy = ESCParser(format_databytes, pdf=False)
+    assert escapy.proportional_spacing == expected
 
 
 def test_set_intercharacter_space(tmp_path: Path):
@@ -1045,8 +1045,8 @@ def test_linespacing(format_databytes, pins: int | None, expected: float):
         - set_n60_line_spacing, ESC A
         - set_772_line_spacing, ESC 1
     """
-    escparser = ESCParser(format_databytes, pins=pins, pdf=False)
-    assert escparser.current_line_spacing == expected
+    escapy = ESCParser(format_databytes, pins=pins, pdf=False)
+    assert escapy.current_line_spacing == expected
 
 
 def test_backspace(tmp_path: Path):
@@ -1056,19 +1056,19 @@ def test_backspace(tmp_path: Path):
     # backspace when the cursor is already at the letfmost position is ignored
     backspace = b"\x08"
     code = esc_reset + backspace
-    escparser = ESCParser(code, output_file=processed_file)
-    assert escparser.cursor_x == escparser.left_margin
+    escapy = ESCParser(code, output_file=processed_file)
+    assert escapy.cursor_x == escapy.left_margin
 
     # Move cursor_x by 1 inch ESC $ 60 (60/60)
     absolute_h_pos = b"\x1b$\x3c\x00"
     code = esc_reset + absolute_h_pos + backspace
-    escparser = ESCParser(code, output_file=processed_file)
+    escapy = ESCParser(code, output_file=processed_file)
     # (x pos from ESC $) - (offset from backspace)
     # Approximation method
-    # expected = (1 + escparser.left_margin) - (escparser.character_pitch + escparser.extra_intercharacter_space)
+    # expected = (1 + escapy.left_margin) - (escapy.character_pitch + escapy.extra_intercharacter_space)
     # Exact method
-    expected = (1 + escparser.left_margin) - 0.08974358974358974
-    assert escparser.cursor_x == expected
+    expected = (1 + escapy.left_margin) - 0.08974358974358974
+    assert escapy.cursor_x == expected
 
 
 @pytest.mark.parametrize(

@@ -37,9 +37,9 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
 # Local imports
-from escparser import __version__
-from escparser.grammar import init_parser
-from escparser.commons import (
+from escapy import __version__
+from escapy.grammar import init_parser
+from escapy.commons import (
     TYPEFACE_NAMES,
     CHARSET_NAMES_MAPPING,
     INTERNATIONAL_CHARSETS,
@@ -51,9 +51,9 @@ from escparser.commons import (
     CP864_MISSING_CONTROL_CODES_MAPPING,
     COMPLETE_ENCODINGS,
 )
-from escparser.encodings.i18n_codecs import getregentry
-from escparser.fonts import open_font
-from escparser.commons import logger
+from escapy.encodings.i18n_codecs import getregentry
+from escapy.fonts import open_font
+from escapy.commons import logger
 
 
 class PrintMode(Enum):
@@ -138,7 +138,7 @@ class ESCParser:
             Expected format: ESC/P, ESC/P2, ESC/P 9 Pins.
         :key available_fonts: A structure that stores preconfigured methods to
             find fonts on the system, according to dynamic styles in use.
-            See :meth:`escparser.fonts.setup_fonts`.
+            See :meth:`escapy.fonts.setup_fonts`.
         :key pins: Number of pins of the printer head (9, 24, 48, None).
             Use None for default modern ESCP2 printers with nozzles. (default: None).
         :key printable_area_margins_mm: Define printable margins in mm.
@@ -275,7 +275,7 @@ class ESCParser:
             self.current_pdf.setFillOverprint(True)
             self.current_pdf.setStrokeOverprint(True)
             self.current_pdf.setProducer(
-                f"EscaPy {__version__} - https://github.com/ysard/escparser"
+                f"EscaPy {__version__} - https://github.com/ysard/escapy"
             )
 
         # Page configuration ###################################################
@@ -355,7 +355,7 @@ class ESCParser:
         self.typeface = self.default_typeface
         self.copied_font = {}
         self.ram_characters = False
-        from escparser.user_defined_characters import RAMCharacters
+        from escapy.user_defined_characters import RAMCharacters
 
         self.userdef_db_filepath = userdef_db_filepath
         self.userdef_images_path = userdef_images_path
@@ -1250,7 +1250,7 @@ class ESCParser:
         except LookupError:
             LOGGER.debug("Load local encoding: %s", encoding)
             try:
-                importlib.import_module(f"escparser.encodings.{encoding}")
+                importlib.import_module(f"escapy.encodings.{encoding}")
             except ModuleNotFoundError as exc:  # pragma: no cover
                 # For developpers only: CHARACTER_TABLE_MAPPING is updated
                 # with a missing/bad encoding

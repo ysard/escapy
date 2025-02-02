@@ -26,7 +26,7 @@ from lark.exceptions import UnexpectedToken
 from reportlab.lib.pagesizes import A4
 
 # Local imports
-from escparser.parser import ESCParser as _ESCParser
+from escapy.parser import ESCParser as _ESCParser
 from .misc import format_databytes, typefaces
 from .misc import esc_reset, cancel_bold
 
@@ -78,8 +78,8 @@ def test_set_unit(format_databytes: bytes, expected_unit: float):
 
     The given value is divided by 3600.
     """
-    escparser = ESCParser(format_databytes, pdf=False)
-    assert escparser.defined_unit == expected_unit
+    escapy = ESCParser(format_databytes, pdf=False)
+    assert escapy.defined_unit == expected_unit
 
 
 @pytest.mark.parametrize(
@@ -103,12 +103,12 @@ def test_set_left_margin(format_databytes: bytes, expected_offset: float):
 
     :param expected_offset: Expected offset in character_pitch unit.
     """
-    escparser = ESCParser(format_databytes, pdf=False)
+    escapy = ESCParser(format_databytes, pdf=False)
     # Use the mechanic left margin as reference
     # right margin position is expressed as a function of the leftmost pos
-    expected = escparser.printable_area[2] + expected_offset
-    assert escparser.left_margin == expected
-    assert escparser.cursor_x == expected, "A carriage return must be done"
+    expected = escapy.printable_area[2] + expected_offset
+    assert escapy.left_margin == expected
+    assert escapy.cursor_x == expected, "A carriage return must be done"
 
 
 @pytest.mark.parametrize(
@@ -132,18 +132,18 @@ def test_set_right_margin(format_databytes: bytes, expected_offset: float):
 
     :param expected_offset: Expected offset in character_pitch unit.
     """
-    escparser = ESCParser(format_databytes, pdf=False)
+    escapy = ESCParser(format_databytes, pdf=False)
     if expected_offset == 0:
         # Margin is untouched or ignored
-        expected = escparser.printable_area[3]  # Get the mechanic right margin
-        assert escparser.right_margin == expected
+        expected = escapy.printable_area[3]  # Get the mechanic right margin
+        assert escapy.right_margin == expected
     else:
         # Use the mechanic left margin as reference
         # right margin position is expressed as a function of the leftmost pos
-        expected = escparser.printable_area[2] + expected_offset
-        assert escparser.right_margin == expected
+        expected = escapy.printable_area[2] + expected_offset
+        assert escapy.right_margin == expected
         assert (
-            escparser.cursor_x == escparser.left_margin
+            escapy.cursor_x == escapy.left_margin
         ), "A carriage return must be done"
 
 
@@ -169,13 +169,13 @@ def test_set_bottom_margin(format_databytes, single_sheet, expected_bottom_margi
     Set the bottom margin on continuous paper to n lines (in the current line spacing)
     from the top-of-form position on the NEXT page.
     """
-    escparser = ESCParser(format_databytes, single_sheets=single_sheet, pdf=False)
+    escapy = ESCParser(format_databytes, single_sheets=single_sheet, pdf=False)
     if single_sheet:
         # Command is ignored
-        assert escparser.bottom_margin == escparser.printable_area[1]
+        assert escapy.bottom_margin == escapy.printable_area[1]
     else:
         # Continuous paper
-        assert escparser.bottom_margin == expected_bottom_margin
+        assert escapy.bottom_margin == expected_bottom_margin
 
 
 @pytest.mark.parametrize(
@@ -233,12 +233,12 @@ def test_set_page_format(format_databytes, page_size, expected_margins):
     The same value in little endian: 0x780f
     """
     expected_top_margin, expected_bottom_margin = expected_margins
-    escparser = ESCParser(format_databytes, page_size=page_size, pdf=False)
-    print("Page height:", escparser.page_height)
-    print("Found margins (top, bottom):", escparser.top_margin, escparser.bottom_margin)
-    print("Page length:", escparser.page_length)
-    assert escparser.top_margin == expected_top_margin
-    assert escparser.bottom_margin == expected_bottom_margin
+    escapy = ESCParser(format_databytes, page_size=page_size, pdf=False)
+    print("Page height:", escapy.page_height)
+    print("Found margins (top, bottom):", escapy.top_margin, escapy.bottom_margin)
+    print("Page length:", escapy.page_length)
+    assert escapy.top_margin == expected_top_margin
+    assert escapy.bottom_margin == expected_bottom_margin
 
 
 @pytest.mark.parametrize(
@@ -272,11 +272,11 @@ def test_set_page_length_defined_unit(format_databytes, expected):
 
     .. note:: default unit is 1 / 360.
     """
-    escparser = ESCParser(format_databytes, pdf=False)
-    assert escparser.page_length == expected
-    top_margin, bottom_margin = escparser.printable_area[0:2]
-    assert escparser.top_margin == top_margin
-    assert escparser.bottom_margin == bottom_margin
+    escapy = ESCParser(format_databytes, pdf=False)
+    assert escapy.page_length == expected
+    top_margin, bottom_margin = escapy.printable_area[0:2]
+    assert escapy.top_margin == top_margin
+    assert escapy.bottom_margin == bottom_margin
 
 
 @pytest.mark.parametrize(
@@ -313,11 +313,11 @@ def test_set_page_length_lines(format_databytes, expected):
 
     .. note:: default linespacing is 1 / 6.
     """
-    escparser = ESCParser(format_databytes, pdf=False)
-    assert escparser.page_length == expected
-    top_margin, bottom_margin = escparser.printable_area[0:2]
-    assert escparser.top_margin == top_margin
-    assert escparser.bottom_margin == bottom_margin
+    escapy = ESCParser(format_databytes, pdf=False)
+    assert escapy.page_length == expected
+    top_margin, bottom_margin = escapy.printable_area[0:2]
+    assert escapy.top_margin == top_margin
+    assert escapy.bottom_margin == bottom_margin
 
 
 @pytest.mark.parametrize(
@@ -337,11 +337,11 @@ def test_set_page_length_lines(format_databytes, expected):
 )
 def test_set_page_length_inches(format_databytes, expected):
     """Set page length in the current line spacing - ESC C NUL"""
-    escparser = ESCParser(format_databytes, pdf=False)
-    assert escparser.page_length == expected
-    top_margin, bottom_margin = escparser.printable_area[0:2]
-    assert escparser.top_margin == top_margin
-    assert escparser.bottom_margin == bottom_margin
+    escapy = ESCParser(format_databytes, pdf=False)
+    assert escapy.page_length == expected
+    top_margin, bottom_margin = escapy.printable_area[0:2]
+    assert escapy.top_margin == top_margin
+    assert escapy.bottom_margin == bottom_margin
 
 
 @pytest.mark.parametrize(
@@ -466,9 +466,9 @@ def test_set_print_position(
     :param x_offset: Expected offset from the top-margin.
     :param y_offset: Expected offset from the left-margin.
     """
-    escparser = ESCParser(format_databytes, pins=pins, pdf=False)
-    assert escparser.cursor_x == escparser.left_margin + x_offset
-    assert escparser.cursor_y == escparser.top_margin + y_offset
+    escapy = ESCParser(format_databytes, pins=pins, pdf=False)
+    assert escapy.cursor_x == escapy.left_margin + x_offset
+    assert escapy.cursor_y == escapy.top_margin + y_offset
 
 
 def test_h_v_skip():
@@ -477,17 +477,17 @@ def test_h_v_skip():
     horizontal_skip = b"\x1bf\x00\x0a"
     vertical_skip = b"\x1bf\x01\x0a"
 
-    escparser = ESCParser(esc_reset + horizontal_skip, pins=9, pdf=False)
+    escapy = ESCParser(esc_reset + horizontal_skip, pins=9, pdf=False)
     # default character pitch is 1/10
     # Since the modern font don't use this setting, we expect at least 10 * 1/10
-    print(escparser.character_pitch * 10)
-    assert escparser.cursor_x >= 1
+    print(escapy.character_pitch * 10)
+    assert escapy.cursor_x >= 1
 
-    escparser = ESCParser(esc_reset + vertical_skip, pins=9, pdf=False)
-    print(escparser.current_line_spacing * 10)  # 1/6 * 10
+    escapy = ESCParser(esc_reset + vertical_skip, pins=9, pdf=False)
+    print(escapy.current_line_spacing * 10)  # 1/6 * 10
     # We need to round the values... rounding errors seem to accumulate
-    expected = round(escparser.printable_area[0] - escparser.current_line_spacing * 10, 5)
-    found = round(escparser.cursor_y, 5)
+    expected = round(escapy.printable_area[0] - escapy.current_line_spacing * 10, 5)
+    found = round(escapy.cursor_y, 5)
     assert found == expected
 
 
@@ -501,17 +501,17 @@ def test_form_feed():
     # In 9 pins mode + continuous paper, the top_margin is not used
     # (and not configurable in 9 pins BTW...)
     # so the printable area margin is used after the new_page event.
-    escparser = ESCParser(code, pins=9, single_sheets=False, pdf=False)
-    expected = escparser.printable_area[0]
-    assert escparser.cursor_y == expected
-    assert not escparser.double_width
+    escapy = ESCParser(code, pins=9, single_sheets=False, pdf=False)
+    expected = escapy.printable_area[0]
+    assert escapy.cursor_y == expected
+    assert not escapy.double_width
 
     # ESCP2 & 9 pins (single-sheets)
-    escparser = ESCParser(code, pdf=False)
-    expected = escparser.top_margin
-    assert escparser.top_margin != escparser.printable_area[0]
-    assert escparser.cursor_y == expected
-    assert not escparser.double_width
+    escapy = ESCParser(code, pdf=False)
+    expected = escapy.top_margin
+    assert escapy.top_margin != escapy.printable_area[0]
+    assert escapy.cursor_y == expected
+    assert not escapy.double_width
 
 
 def test_control_paper_loading_ejecting(tmp_path: Path):
@@ -525,7 +525,7 @@ def test_control_paper_loading_ejecting(tmp_path: Path):
     eject_paper_cmd = b"\x1b\x19R"
     code = esc_reset + eject_paper_cmd
     processed_file = tmp_path / "test_2pages.pdf"
-    escparser = ESCParser(code, output_file=processed_file)
+    escapy = ESCParser(code, output_file=processed_file)
 
     # Yeah... 3... but there are 2 pages... (the save method increments the count)
-    assert escparser.current_pdf.getPageNumber() == 3
+    assert escapy.current_pdf.getPageNumber() == 3

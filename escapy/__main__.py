@@ -23,12 +23,12 @@ import sys
 import shutil
 
 # Custom imports
-from escparser import __version__
-from escparser.config_parser import load_config, build_parser_params
-from escparser.fonts import setup_fonts
-from escparser.parser import ESCParser
-import escparser.commons as cm
-from escparser.commons import CONFIG_FILES, USER_CONFIG_FILE, EMBEDDED_CONFIG_FILE
+from escapy import __version__
+from escapy.config_parser import load_config, build_parser_params
+from escapy.fonts import setup_fonts
+from escapy.parser import ESCParser
+import escapy.commons as cm
+from escapy.commons import CONFIG_FILES, USER_CONFIG_FILE, EMBEDDED_CONFIG_FILE
 
 LOGGER = cm.logger()
 
@@ -39,7 +39,7 @@ def choose_config_file(config_file: [Path | None]) -> Path:
     Search the config file in the current directory, then in `~/.local/share/escapy`.
     If none has been found: create a config file from the embedded one, in the
     user configuration folder and use it.
-    The filename is defined in :meth:`escparser.commons.CONFIG_FILE`.
+    The filename is defined in :meth:`escapy.commons.CONFIG_FILE`.
 
     :param config_file: Configuration file path from the cli. Can be None if the
         argument is not used.
@@ -68,7 +68,7 @@ def choose_config_file(config_file: [Path | None]) -> Path:
     return config_file
 
 
-def escparser_entry_point(**kwargs):
+def escapy_entry_point(**kwargs):
     """The main routine."""
     # Open input file
     esc_prn_file_content = kwargs["esc_prn"].buffer.read()
@@ -171,7 +171,7 @@ def main():  # pragma: no cover
     params["config"] = choose_config_file(params.get("config"))
 
     # Do magic
-    escparser_entry_point(**params)
+    escapy_entry_point(**params)
 
 
 if __name__ == "__main__":  # pragma: no cover

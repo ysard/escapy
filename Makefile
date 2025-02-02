@@ -8,26 +8,26 @@ tests:
 	pytest tests
 
 coverage:
-	pytest --cov=escparser --cov-report term-missing -vv
+	pytest --cov=escapy --cov-report term-missing -vv
 	@-coverage-badge -f -o images/coverage.svg
 
 branch_coverage:
-	pytest --cov=escparser --cov-report term-missing --cov-branch -vv
+	pytest --cov=escapy --cov-report term-missing --cov-branch -vv
 
 docstring_coverage:
-	interrogate -v escparser/ \
-	    -e escparser/__init__.py \
-	    -e escparser/encodings/__init__.py \
-	    -e escparser/handlers/__init__.py \
+	interrogate -v escapy/ \
+	    -e escapy/__init__.py \
+	    -e escapy/encodings/__init__.py \
+	    -e escapy/handlers/__init__.py \
 	    --badge-style flat --generate-badge images/
 
 # Code formatting
 black:
-	black escparser
+	black escapy
 
 # Run the service locally
 run:
-	python -m escparser
+	python -m escapy
 
 clean:
 	rm -rf *.egg-info
@@ -44,7 +44,7 @@ install:
 	@# Install a project in editable mode.
 	pip install -e .[dev]
 uninstall:
-	pip escparser uninstall
+	pip escapy uninstall
 
 sdist: clean
 	@echo Building the distribution package...
@@ -63,12 +63,12 @@ check_setups:
 	pyroma .
 
 check_code:
-	prospector escparser/
+	prospector escapy/
 	check-manifest
 
 missing_doc:
 	# Remove D213 antagonist of D212
-	prospector escparser/ | grep "escparser/\|Line\|Missing docstring"
+	prospector escapy/ | grep "escapy/\|Line\|Missing docstring"
 
 archive:
 	# Create upstream src archive

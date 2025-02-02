@@ -27,8 +27,8 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.pagesizes import landscape
 
 # Local imports
-from escparser.parser import ESCParser as _ESCParser
-from escparser.__main__ import escparser_entry_point, choose_config_file
+from escapy.parser import ESCParser as _ESCParser
+from escapy.__main__ import escapy_entry_point, choose_config_file
 from .misc import DIR_DATA, pdf_comparison, typefaces
 
 # Inject test typefaces
@@ -113,7 +113,7 @@ def test_stdin_stdout(capsysbinary, tmp_path: Path, minimal_config: str):
     }
 
     # Do magic
-    escparser_entry_point(**cmdline_args)
+    escapy_entry_point(**cmdline_args)
 
     captured = capsysbinary.readouterr()
     processed_file.write_bytes(captured.out)
@@ -139,7 +139,7 @@ def test_argument_parser(tmp_path: Path, minimal_config: str):
     }
 
     # Do magic
-    escparser_entry_point(**cmdline_args)
+    escapy_entry_point(**cmdline_args)
 
     pdf_comparison(processed_file)
 
@@ -166,17 +166,17 @@ def test_empty_input_file(tmp_path: Path, minimal_config: str):
 
     # Do magic
     with pytest.raises(SystemExit):
-        escparser_entry_point(**cmdline_args)
+        escapy_entry_point(**cmdline_args)
 
 
 def test_choose_config_file(tmp_path: Path, minimal_config: str):
     """Test CONFIG_FILES, USER_CONFIG_FILE, EMBEDDED_CONFIG_FILE variables
-    from :meth:`escparser.commons` and their usage during the program start phase.
+    from :meth:`escapy.commons` and their usage during the program start phase.
 
     :param tmp_path: Path of temporary working dir returned by a pytest fixture.
     :param minimal_config: Fixture with minimal configuration file content.
     """
-    # Block similar to the one found in escparser.commons
+    # Block similar to the one found in escapy.commons
     config_file = Path("config.conf")
     user_config_file = tmp_path / "user" / config_file
     embedded_config_file = tmp_path / "embedded" / config_file
@@ -189,7 +189,7 @@ def test_choose_config_file(tmp_path: Path, minimal_config: str):
         file.write_text(minimal_config)
 
     with patch.multiple(
-        "escparser.__main__",
+        "escapy.__main__",
         CONFIG_FILES=config_files,
         USER_CONFIG_FILE=user_config_file,
         EMBEDDED_CONFIG_FILE=embedded_config_file,

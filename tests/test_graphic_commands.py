@@ -34,7 +34,7 @@ import pytest
 from lark.exceptions import UnexpectedToken
 
 # Local imports
-from escparser.parser import ESCParser as _ESCParser
+from escapy.parser import ESCParser as _ESCParser
 from .misc import format_databytes, pdf_comparison
 from .misc import esc_reset, cancel_bold, graphics_mode, typefaces
 
@@ -114,9 +114,9 @@ def test_reassign_bit_image_mode():
         bytearray(cmd_density) for cmd_density in zip(cmd_letters, dot_density_m)
     )
 
-    escparser = ESCParser(esc_reset + code, pdf=False)
+    escapy = ESCParser(esc_reset + code, pdf=False)
 
-    assert escparser.klyz_densities == dot_density_m
+    assert escapy.klyz_densities == dot_density_m
 
 
 @pytest.mark.parametrize(
@@ -157,13 +157,13 @@ def test_select_graphics(
 
     The tests use K command, thus, position 0 in klz_densities is updated.
     """
-    escparser = ESCParser(format_databytes, pins=pins, pdf=False)
+    escapy = ESCParser(format_databytes, pins=pins, pdf=False)
 
-    assert escparser.klyz_densities[0] == dot_density
-    assert escparser.horizontal_resolution == hori
-    assert escparser.vertical_resolution == verti
-    assert escparser.bytes_per_column == bytes_per_column
-    assert escparser.double_speed == double_speed
+    assert escapy.klyz_densities[0] == dot_density
+    assert escapy.horizontal_resolution == hori
+    assert escapy.vertical_resolution == verti
+    assert escapy.bytes_per_column == bytes_per_column
+    assert escapy.double_speed == double_speed
 
 
 def test_select_bit_image_9pins(tmp_path: Path):
@@ -199,10 +199,10 @@ def test_select_bit_image_9pins(tmp_path: Path):
     )
 
     processed_file = tmp_path / "test_select_bit_image_9pins.pdf"
-    escparser = ESCParser(m0_line, pins=9, output_file=processed_file)
-    assert escparser.horizontal_resolution == 1 / 60
-    assert escparser.vertical_resolution == 1 / 72  # We are in 9 pins mode
-    assert escparser.bytes_per_column == 2
+    escapy = ESCParser(m0_line, pins=9, output_file=processed_file)
+    assert escapy.horizontal_resolution == 1 / 60
+    assert escapy.vertical_resolution == 1 / 72  # We are in 9 pins mode
+    assert escapy.bytes_per_column == 2
 
     pdf_comparison(processed_file)
 
@@ -311,14 +311,14 @@ def test_select_bit_image(
     code = b"".join(lines)
 
     processed_file = tmp_path / expected_filename
-    escparser = ESCParser(
+    escapy = ESCParser(
         code, dots_as_circles=dots_as_circles, output_file=processed_file
     )
 
-    assert escparser.horizontal_resolution == 1 / 120
-    assert escparser.vertical_resolution == 1 / 60
-    assert escparser.bytes_per_column == 1
-    assert escparser.double_speed is True  # m2 effect
+    assert escapy.horizontal_resolution == 1 / 120
+    assert escapy.vertical_resolution == 1 / 60
+    assert escapy.bytes_per_column == 1
+    assert escapy.double_speed is True  # m2 effect
 
     pdf_comparison(processed_file)
 
@@ -462,12 +462,12 @@ def test_print_raster_graphics(format_databytes: bytes, tmp_path: Path):
     Data examples from the doc p313.
     """
     processed_file = tmp_path / "test_raster_graphics_compress_no_and_rle.pdf"
-    escparser = ESCParser(format_databytes, output_file=processed_file)
+    escapy = ESCParser(format_databytes, output_file=processed_file)
 
-    assert escparser.horizontal_resolution == 1 / 180
-    assert escparser.vertical_resolution == 1 / 180
-    assert escparser.bytes_per_line == int((72 + 7) / 8)
-    assert escparser.double_speed is False
+    assert escapy.horizontal_resolution == 1 / 180
+    assert escapy.vertical_resolution == 1 / 180
+    assert escapy.bytes_per_line == int((72 + 7) / 8)
+    assert escapy.double_speed is False
 
     pdf_comparison(processed_file)
 
@@ -485,8 +485,8 @@ def test_switch_microweave_mode():
         (b"\x1b(i\x01\x00\x31" + b"\x1b@", False),
     ]
     for code, expected in dataset:
-        escparser = ESCParser(esc_reset + code, pdf=False)
-        assert escparser.microweave_mode == expected
+        escapy = ESCParser(esc_reset + code, pdf=False)
+        assert escapy.microweave_mode == expected
 
 
 @pytest.mark.parametrize(
@@ -550,13 +550,13 @@ def test_print_tiff_raster_graphics(
     ]
 
     processed_file = tmp_path / expected_filename
-    escparser = ESCParser(
+    escapy = ESCParser(
         b"".join(code), dots_as_circles=dots_as_circles, output_file=processed_file
     )
 
-    assert escparser.horizontal_resolution == 1 / 180
-    assert escparser.vertical_resolution == 1 / 180
-    assert escparser.bytes_per_line == expected_bytes_count
+    assert escapy.horizontal_resolution == 1 / 180
+    assert escapy.vertical_resolution == 1 / 180
+    assert escapy.bytes_per_line == expected_bytes_count
 
     pdf_comparison(processed_file)
 
@@ -614,8 +614,8 @@ def test_set_movx_unit_functions(
 
         exit_cmd,
     ]
-    escparser = ESCParser(b"".join(code), pdf=False)
-    assert escparser.movx_unit == expected_unit
+    escapy = ESCParser(b"".join(code), pdf=False)
+    assert escapy.movx_unit == expected_unit
 
 
 @pytest.mark.parametrize(
@@ -672,7 +672,7 @@ def test_set_movx_unit_functions(
 # We want to measure influence on x & y cursors
 # Cancel the carriage return due to <EXIT>
 @patch(
-    "escparser.parser.ESCParser.exit_tiff_raster_graphics",
+    "escapy.parser.ESCParser.exit_tiff_raster_graphics",
     lambda *args: None,
 )
 def test_set_relative_horizontal_vertical_position(
@@ -706,17 +706,17 @@ def test_set_relative_horizontal_vertical_position(
 
         exit_cmd,
     ]
-    escparser = ESCParser(b"".join(code), pdf=False)
+    escapy = ESCParser(b"".join(code), pdf=False)
 
-    print("cursor_x:", escparser.cursor_x)
-    print("cursor_y:", escparser.cursor_y)
+    print("cursor_x:", escapy.cursor_x)
+    print("cursor_y:", escapy.cursor_y)
 
     # For now: The moves are relative to the margins
-    expected_cursor_x = escparser.printable_area[2] + offset_cursor_x
-    expected_cursor_y = escparser.printable_area[0] + offset_cursor_y
+    expected_cursor_x = escapy.printable_area[2] + offset_cursor_x
+    expected_cursor_y = escapy.printable_area[0] + offset_cursor_y
 
-    assert escparser.cursor_x == expected_cursor_x
-    assert escparser.cursor_y == expected_cursor_y
+    assert escapy.cursor_x == expected_cursor_x
+    assert escapy.cursor_y == expected_cursor_y
 
 
 def test_global_print_tiff_raster_graphics(tmp_path: Path):

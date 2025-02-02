@@ -20,7 +20,7 @@ from pathlib import Path
 from functools import partial
 
 # Local imports
-from escparser.parser import ESCParser as _ESCParser
+from escapy.parser import ESCParser as _ESCParser
 from .misc import esc_reset, typefaces
 from .misc import pdf_comparison
 

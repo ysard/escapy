@@ -13,5 +13,5 @@ prune poc
 prune tests
 prune test_data
 include setup.py
-recursive-include escparser *.conf
-recursive-include escparser *.py
+recursive-include escapy *.conf
+recursive-include escapy *.py

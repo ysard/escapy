@@ -24,12 +24,12 @@ from pathlib import Path
 import pytest
 
 # Local imports
-from escparser.commons import (
+from escapy.commons import (
     log_level,
     DIR_FONTS,
     USER_DEFINED_DB_FILE,
 )
-from escparser.config_parser import parse_config, load_config, build_parser_params
+from escapy.config_parser import parse_config, load_config, build_parser_params
 
 
 def default_config():
