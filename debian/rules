@@ -21,3 +21,7 @@ override_dh_python3:
 	rm -rf $(DEB_DIR)/usr/lib/python3/dist-packages/test_data
 	rm -rf $(DEB_DIR)/usr/lib/python3/dist-packages/images
 	rm -rf $(DEB_DIR)/usr/lib/python3/dist-packages/resources
+
+override_dh_fixperms:
+	dh_fixperms
+	chmod 644 $(DEB_DIR)/usr/lib/python3/dist-packages/$(PYBUILD_NAME)/data/$(PYBUILD_NAME).conf
