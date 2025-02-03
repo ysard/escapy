@@ -78,6 +78,9 @@ reset_patches:
 	# Force the removal of the current patches
 	-quilt pop -af
 
+sync_manpage:
+	-help2man -o debian/escapy.1 escapy
+
 debianize: archive reset_patches
 	dpkg-buildpackage -us -uc -b -d
 
