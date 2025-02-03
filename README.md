@@ -4,7 +4,7 @@
 [![tests status](./images/tests.svg)](https://github.com/ysard/escapy/actions)
 [![python docstring coverage](./images/interrogate_badge.svg)](https://interrogate.readthedocs.io/en/latest/)
 [![python test coverage](./images/coverage.svg)](https://docs.pytest.org/en/latest/)
-[![licence](https://img.shields.io/pypi/l/pyscape.svg)](https://github.com/ysard/escapy/blob/main/LICENCE)
+[![license](https://img.shields.io/pypi/l/pyscape.svg)](https://github.com/ysard/escapy/blob/main/LICENSE)
 [![Donate](./images/liberapay.svg)](https://liberapay.com/Ysard/donate)
 <!--[![documentation](https://readthedocs.org/projects/escapy/badge/)](https://escapy.readthedocs.io/en/latest/)-->
 
