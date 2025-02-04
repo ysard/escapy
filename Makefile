@@ -82,7 +82,9 @@ reset_patches:
 	-quilt pop -af
 
 sync_manpage:
-	-help2man -o debian/$(PACKAGE_NAME).1 $(PACKAGE_NAME)
+	-help2man -o debian/$(PACKAGE_NAME).1 \
+	--name="Interpreter for ESC/P and ESC/P2 commands, converting files into PDFs" \
+	$(PACKAGE_NAME)
 
 debianize: archive reset_patches
 	dpkg-buildpackage -us -uc -b -d
