@@ -1,4 +1,5 @@
 PROJECT_VERSION=$(shell python setup.py --version)
+PACKAGE_NAME=escapy
 
 # Workaround for targets with the same name as a directory
 .PHONY: doc tests
@@ -8,26 +9,26 @@ tests:
 	pytest tests
 
 coverage:
-	pytest --cov=escapy --cov-report term-missing -vv
+	pytest --cov=$(PACKAGE_NAME) --cov-report term-missing -vv
 	@-coverage-badge -f -o images/coverage.svg
 
 branch_coverage:
-	pytest --cov=escapy --cov-report term-missing --cov-branch -vv
+	pytest --cov=$(PACKAGE_NAME) --cov-report term-missing --cov-branch -vv
 
 docstring_coverage:
-	interrogate -v escapy/ \
-	    -e escapy/__init__.py \
-	    -e escapy/encodings/__init__.py \
-	    -e escapy/handlers/__init__.py \
+	interrogate -v $(PACKAGE_NAME)/ \
+	    -e $(PACKAGE_NAME)/__init__.py \
+	    -e $(PACKAGE_NAME)/encodings/__init__.py \
+	    -e $(PACKAGE_NAME)/handlers/__init__.py \
 	    --badge-style flat --generate-badge images/
 
 # Code formatting
 black:
-	black escapy
+	black $(PACKAGE_NAME)
 
 # Run the service locally
 run:
-	python -m escapy
+	python -m $(PACKAGE_NAME)
 
 clean:
 	rm -rf *.egg-info
@@ -65,26 +66,26 @@ check_setups:
 	pyroma .
 
 check_code:
-	prospector escapy/
+	prospector $(PACKAGE_NAME)/
 	check-manifest
 
 missing_doc:
 	# Remove D213 antagonist of D212
-	prospector escapy/ | grep "escapy/\|Line\|Missing docstring"
+	prospector $(PACKAGE_NAME)/ | grep "$(PACKAGE_NAME)/\|Line\|Missing docstring"
 
 archive:
 	# Create upstream src archive
-	git archive HEAD --prefix='escapy-$(PROJECT_VERSION).orig/' | gzip > ../escapy-$(PROJECT_VERSION).orig.tar.gz
+	git archive HEAD --prefix='$(PACKAGE_NAME)-$(PROJECT_VERSION).orig/' | gzip > ../$(PACKAGE_NAME)-$(PROJECT_VERSION).orig.tar.gz
 
 reset_patches:
 	# Force the removal of the current patches
 	-quilt pop -af
 
 sync_manpage:
-	-help2man -o debian/escapy.1 escapy
+	-help2man -o debian/$(PACKAGE_NAME).1 $(PACKAGE_NAME)
 
 debianize: archive reset_patches
 	dpkg-buildpackage -us -uc -b -d
 
 debcheck:
-	lintian -EvIL +pedantic ../escapy_*.deb
+	lintian -EvIL +pedantic ../$(PACKAGE_NAME)_*.deb
