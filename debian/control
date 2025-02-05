@@ -9,7 +9,8 @@ Vcs-Git: https://github.com/ysard/escapy
 
 Package: escapy
 Architecture: all
-Depends: dpkg (>= 1.16.1), adduser (>= 3.11), python3 (>= 3.10), ${python3:Depends}, ${misc:Depends}
+Depends: dpkg (>= 1.16.1), python3 (>= 3.10), ${python3:Depends}, ${misc:Depends}
+Suggests: fonts-liberation, fonts-noto, fonts-freefont-ttf, fonts-firacode, ttf-mscorefonts-installer
 Description: Interpreter for ESC/P and ESC/P2 commands, converting files into PDFs
  EscaPy is a tool that reliably and almost exhaustively interprets the ESC/P
  and ESC/P2 command sets defined by Epson, then converts the data formerly
