@@ -658,6 +658,6 @@ def init_parser(code, *args, **kwargs):
     :return: Lark tree.
     :rtype: lark.tree.Tree
     """
-    parser = Lark(esc_grammar, parser="lalr", use_bytes=True, **kwargs)
+    parser = Lark(esc_grammar, parser="lalr", use_bytes=True, cache=True, **kwargs)
 
     return parse_from_stream(parser, code, *args, **kwargs)
