@@ -1,6 +1,6 @@
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/ysard/escapy)](https://github.com/ysard/escapy/releases/latest/)
 [![version on pypi](https://img.shields.io/pypi/v/pyscape.svg)](https://pypi.python.org/pypi/pyscape)
-[![version on pypi](https://img.shields.io/pypi/pyversions/pyscape)](https://pypi.python.org/pypi/pyscape)
+[![python versions on pypi](https://img.shields.io/pypi/pyversions/pyscape)](https://pypi.python.org/pypi/pyscape)
 [![tests status](./images/tests.svg)](https://github.com/ysard/escapy/actions)
 [![python docstring coverage](./images/interrogate_badge.svg)](https://interrogate.readthedocs.io/en/latest/)
 [![python test coverage](./images/coverage.svg)](https://docs.pytest.org/en/latest/)
