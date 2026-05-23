@@ -3356,6 +3356,7 @@ class ESCParser:
             direction if the final position would be above any graphics printed with this command.
         """
         # v_dot_count_m (number of rows of dots): 1, 8, or 24
+        # (9 or 16 can be encountered on some configs, see #2)
         graphics_mode, v_res, h_res, v_dot_count_m, nL, nH = args[1].value
         if self.microweave_mode and v_dot_count_m != 1:
             # In these settings, one raster line printed at a time
