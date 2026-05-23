@@ -47,7 +47,7 @@ install:
 	@# Install a project in editable mode.
 	pip install -e .[dev]
 uninstall:
-	pip pyscape uninstall
+	pip uninstall pyscape
 
 sdist: clean
 	@echo Building the distribution package...
