@@ -1,3 +1,10 @@
+escapy (1.0.2-1) UNRELEASED; urgency=medium
+
+  * Fix issue with unexpected vertical dots resolution on WinUAE AmigaOS
+   emulator. See #2.
+
+ -- Ysard <ysard@users.noreply.github.com>  Sun, 24 May 2026 04:00:00 +0200
+
 escapy (1.0.1-1) UNRELEASED; urgency=medium
 
   * Public release
