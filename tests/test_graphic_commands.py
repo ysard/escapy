@@ -361,11 +361,13 @@ def get_raster_data_code(rle_compressed=False):
     return b"".join(code)
 
 
-def get_raster_data_3bytes(microweave: bool = False):
-    """Generate decompressed raster data in graphics mode mapped on 24 dots vertical size
+def get_raster_data_xdot(vdots: int = 24, microweave: bool = False):
+    """Generate decompressed raster data in graphics mode mapped on any dots vertical size
 
     ESC ( G + ESC . 0
 
+    :key vdots: Vertical resolution (band) in dots.
+        A value >= 8 is expected in order not to degrade the expected visual pattern.
     :key microweave: If True, add the Microweave enable command after entering
         in graphics mode.
         In this case, the program should log a warning: the vertical resolution
@@ -373,15 +375,21 @@ def get_raster_data_3bytes(microweave: bool = False):
         the given resolution, and since Microweave technology has no impact on
         operation, we let the printing process take its course.
     """
+    # If not, the data structure will not match the expected visual pattern
+    assert vdots >= 8
+
     raster_graphics = b"\x1b.\x00"
     v_res_h_res = b"\x14\x14"  # 180 dpi
-    v_dot_count_m = (24).to_bytes()  # height of the band: 24 dots (24 lines)
-    # Triple the data (Add blank lines at the end of the original data)
+    v_dot_count_m = (vdots).to_bytes()  # height of the band: in dots (so, in lines)
+    # The horizontal resolution is still 72 dots in 9 bytes.
+    # We still use the same decompressed data and fill the missing values with
+    # null bytes due to the new line(s) added.
     # nL, hH: Horizontal resolution: 9 bytes of 8 dots = 72 dots
-    # PS: length of decompressed data: vertical * horizontal = 9 bytes * 24 lines
-    #   216 bytes
-    decompressed_data = DECOMPRESSED_DATA + bytes(2 * len(DECOMPRESSED_DATA))
+    # PS: length of decompressed data: vertical * horizontal = 9 bytes * vdots lines
+    # Ex: for a resolution of 24 dots vertical size, we expect 9 * 24 = 216 bytes
+    decompressed_data = DECOMPRESSED_DATA + bytes(vdots * 9 - len(DECOMPRESSED_DATA))
     assert len(decompressed_data) == v_dot_count_m[0] * 9
+    # 72 bytes
     h_dot_count = struct.pack("<h", 9 * 8)
 
     enable_microweave_cmd = b"\x1b(i\x01\x001"
@@ -435,13 +443,18 @@ def get_raster_data_1dot():
         # Try to use color other than CMYK inside graphics mode
         # => The color should not be used
         graphics_mode + b"\x1br\x05" + get_raster_data_code(),
-        # No RLE, height band of 24 dots (24 lines)
-        get_raster_data_3bytes(),
+        # No RLE, height band of 24 dots (24 lines) (3 bytes per col)
+        # i.e. decompressed raster data in graphics mode mapped on 24 dots vertical size
+        get_raster_data_xdot(),
         # No RLE, height band of 1 dot (8 separated commands)
         get_raster_data_1dot(),
+        # No RLE, height band of 9 dots
+        get_raster_data_xdot(vdots=9),
+        # No RLE, height band of 16 dots
+        get_raster_data_xdot(vdots=16),
         # No RLE microweave enabled for a height band of 24
         # => see the docstring for more info
-        get_raster_data_3bytes(microweave=True),
+        get_raster_data_xdot(microweave=True),
     ],
     # First param goes in the 'databytes' param of the fixture format_databytes
     indirect=["format_databytes"],
@@ -451,6 +464,8 @@ def get_raster_data_1dot():
         "no_rle_not_allowed_color_change",
         "24dots_v_band",
         "1dot_v_band",
+        "9dots_v_band",
+        "16dots_v_band",
         "24dots_v_band_microweave",
     ],
 )
