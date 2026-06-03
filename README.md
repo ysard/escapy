@@ -541,6 +541,8 @@ character set, but close to the embedded fonts on Epson printers :
 - [Prestige](https://online-fonts.com/fonts/prestige)
 - [OCR-A](https://online-fonts.com/fonts/ocrarus-lyajka)
 - [OCR-B](https://www.freefontdownload.org/en/ocr-b-regular.font)
+- [Dotrice](https://online-fonts.com/fonts/dotrice) (nice dotmatrix style, needs a conversion to the TTF
+format via fontforge or online tools like [everythingfonts](https://everythingfonts.com/otf-to-ttf)).
 
 ---
 
