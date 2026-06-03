@@ -89,7 +89,6 @@ esc_grammar = r"""
         | ESC "b" /[\x00-\x07][\x01-\xff]{0,16}\x00/ -> set_vertical_tabs_vfu
         # not implemented
         | ESC "/" /[\x00-\x07]/             -> select_vertical_tab_channel
-        # not implemented
         | ESC "e" BIN_ARG HALF_BYTE_ARG     -> set_fixed_tab_increment
         # not implemented
         | ESC "a" /[0-3\x00-\x03]/          -> select_justification

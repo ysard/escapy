@@ -1838,13 +1838,18 @@ class ESCParser:
 
         self.cursor_y = tab_pos
 
-    def reset_horizontal_tabulations(self):
+    def reset_horizontal_tabulations(self, tab_width=8):
         """Set tabulation widths in character pitch
 
-        default: 1 tab position every 8 characters (8, 16, 24, 32, ...)
+        A maximum of 32 horizontal tabs can be set.
+
+        :key tab_width: Number of characters in a tab.
+            default: 1 tab position every 8 characters (8, 16, 24, 32, ...)
         """
         character_pitch = 1 / 10 if self.proportional_spacing else self.character_pitch
-        self.horizontal_tabulations = [8 * i * character_pitch for i in range(1, 33)]
+        self.horizontal_tabulations = [
+            tab_width * i * character_pitch for i in range(1, 33)
+        ]
 
     def set_horizontal_tabs(self, *args):
         """Set horizontal tab positions (in the current character pitch) at the columns
@@ -1927,6 +1932,85 @@ class ESCParser:
                 tab_height,
                 self.vertical_tabulations[tab_idx],
             )
+
+    def set_fixed_tab_increment(self, _, tab_type_m, increment_n):
+        """Set fixed tab increments - ESC e
+
+        Clears any previous tab settings.
+        Ignored if increment exceeds the max allowed for the current character_pitch,
+        or the current page length.
+
+        :param tab_type_m:
+            m = 0 -> horizontal tabs
+            m = 1 -> vertical tabs
+        :param increment_n: Tab increment
+        """
+        increment_n = increment_n.value[0]
+
+        def set_fixed_horizontal_tab_increment():
+            """Sets horizontal tabs every n characters in the current character pitch
+
+            .. note:: max horizontal tabs = 32
+            """
+            # Maximum tab width (in chars) depends on current pitch
+            if self.condensed:
+                max_n = 36
+            elif self.character_pitch == 1 / 12:
+                max_n = 25
+            else:
+                # 10 cpi and fallback
+                max_n = 21
+
+            if increment_n > max_n:
+                LOGGER.warning(
+                    "Horizontal fixed tab increment %s exceeds maximum %s for current pitch; ignored",
+                    increment_n,
+                    max_n,
+                )
+                return
+
+            # Clear previous tabs
+            self.horizontal_tabulations = [0] * 32
+
+            if increment_n == 0:
+                return
+
+            self.reset_horizontal_tabulations(tab_width=increment_n)
+            return
+
+        def set_fixed_vertical_tab_increment():
+            """Sets vertical tabs every n lines in the current line spacing
+
+            .. note:: max vertical tabs = 16
+            """
+            v_increment = increment_n * self.current_line_spacing
+
+            if v_increment >= self.page_length:
+                LOGGER.warning(
+                    "Vertical fixed tab increment exceeds current page length; ignored"
+                )
+                return
+
+            # Clear previous tabs
+            self.vertical_tabulations = [0] * 16
+
+            if increment_n == 0:
+                return
+
+            for tab_idx in range(16):
+                pos = (tab_idx + 1) * v_increment
+
+                if pos >= self.page_length:
+                    LOGGER.debug("end page detected")
+                    break
+
+                self.vertical_tabulations[tab_idx] = pos
+
+        (
+            set_fixed_horizontal_tab_increment
+            if (tab_type_m.value[0] == 0)
+            else set_fixed_vertical_tab_increment
+        )()
 
     def set_italic(self, *_):
         """Enable italic style - ESC 4"""
