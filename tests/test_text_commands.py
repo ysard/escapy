@@ -326,16 +326,19 @@ def test_horizontal_tabs(tmp_path: Path):
         # default: tabs of 8 columns
         tab + coucou + tab + coucou,
 
-        # 4 tabs of 8 columns (should be aligned with the previous line)
+        # 4 tabs of various width (should be aligned with the previous line) (8, 16, 18, 26, 0)
         esc_htab + b"\x08\x10\x12\x1a\x00",
 
         tab + coucou + tab + coucou,
         tab + pouet  + tab + coucou,
 
-        # 3 tabs of 4 columns
+        # 3 tabs of 4 columns (4, 8, 12, 0)
+        # if a text is wider than the tab, the next tab is used
+        # here the 2nd tab is skipped for the 3rd tab
         esc_htab + b"\x04\x08\x0c\x00",
 
         tab + coucou + tab + coucou,
+        # no tab after the 3rd one, same result
         tab + pouet + tab + tab + coucou,
         tab + pouet + tab + coucou,
 
@@ -347,7 +350,9 @@ def test_horizontal_tabs(tmp_path: Path):
         esc_htab + b"\x50\x00",
         tab + coucou,
 
-        # 1 tab of 1 column + 1 tab of 7 columns
+        # 1 tab of 1 column + 1 tab of 8 columns
+        # Note: the width between the 2 words 'coucou' is greater than 1 char (8-6-1 = 1)
+        # => character pitch calculation problem ?
         esc_htab + b"\x01\x08\x00",
         tab + coucou + tab + coucou,
         # test a 3rd tab
@@ -358,6 +363,7 @@ def test_horizontal_tabs(tmp_path: Path):
     code = esc_reset + b"\r\n".join(lines)
     escapy = ESCParser(code, pins=None, output_file=processed_file)
 
+    # 1 tab of 1 column + 1 tab of 8 columns
     expected = [0.1, 0.8] + [0] * 30
     assert escapy.horizontal_tabulations == expected
 
