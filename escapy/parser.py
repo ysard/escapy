@@ -1963,7 +1963,8 @@ class ESCParser:
 
             if increment_n > max_n:
                 LOGGER.warning(
-                    "Horizontal fixed tab increment %s exceeds maximum %s for current pitch; ignored",
+                    "Horizontal fixed tab increment %s "
+                    "exceeds maximum %s for current pitch; ignored",
                     increment_n,
                     max_n,
                 )
