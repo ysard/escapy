@@ -463,6 +463,73 @@ def test_vertical_tabs(tmp_path: Path, pins: None | int, expected_filename):
     pdf_comparison(processed_file)
 
 
+def test_set_fixed_tab_increment_outside_limits(caplog):
+    """Test set fixed tab increment limits - ESC e
+
+    :param caplog: pytest caplog-fixture
+    :type caplog: <_pytest.logging.LogCaptureFixture>
+    """
+    esc_fixed_tab = b"\x1be"  # ESC e
+    h_fixed_tab = esc_fixed_tab + b"\x00"
+    v_fixed_tab = esc_fixed_tab + b"\x01"
+
+    dataset = [
+        # 22 > 21 in 10 cpi (default)
+        h_fixed_tab + b"\x16",
+        # 26 > 25 in 12 cpi
+        select_12cpi + h_fixed_tab + b"\x1a",
+        # 37 > 36 in condensed mode
+        select_condensed_printing + h_fixed_tab + b"\x25",
+        # > page length (~11.19in);  0x44 * 1/6 (line spacing) ~ 11.33in
+        v_fixed_tab + b"\x44",
+    ]
+
+    # default htabs: 1 tab every 8 columns in 10 cpi, 32 tabs max
+    h_expected = [1 / 10 * 8 * tab_idx for tab_idx in range(1, 33)]
+
+    for code in dataset:
+        escapy = ESCParser(code, pins=None, pdf=False)
+
+        assert escapy.horizontal_tabulations == h_expected
+        assert escapy.vertical_tabulations is None
+
+        print("records:", caplog.records)
+        assert "exceed" in caplog.text
+
+
+def test_set_fixed_tab_increment():
+    """Test set fixed tab increment - ESC e
+
+    .. note:: max horizontal tabs = 32; max vertical tabs = 16
+    """
+    esc_fixed_tab = b"\x1be"  # ESC e
+    h_fixed_tab = esc_fixed_tab + b"\x00"
+    v_fixed_tab = esc_fixed_tab + b"\x01"
+    # default htabs: 1 tab every 8 columns in 10 cpi, 32 tabs max
+    htabs_default = [1 / 10 * 8 * tab_idx for tab_idx in range(1, 33)]
+
+    # Structure: code, expected htabs, expected vtabs
+    dataset = [
+        # Just reset fixed increments
+        (h_fixed_tab + b"\x00" + v_fixed_tab + b"\x00", [0] * 32, [0] * 16),
+        # Set fixed increments: 2 columns, 2 lines
+        (
+            h_fixed_tab + b"\x02" + v_fixed_tab + b"\x02",
+            [1 / 10 * 2 * tab_idx for tab_idx in range(1, 33)],
+            [1 / 6 * 2 * tab_idx for tab_idx in range(1, 17)],
+        ),
+        # After the 1st vtab: > page length (~11.19in);
+        # 0x35 * 2 (tab id) * 1/6 (line spacing) ~ 17.67in
+        (v_fixed_tab + b"\x35", htabs_default, [1 / 6 * 0x35] + [0] * 15),
+    ]
+
+    for code, h_expected, v_expected in dataset:
+        escapy = ESCParser(code, pins=None, pdf=False)
+
+        assert escapy.horizontal_tabulations == h_expected
+        assert escapy.vertical_tabulations == v_expected
+
+
 def test_select_letter_quality_or_draft():
     """ESC x Select LQ or draft"""
     dataset = [
