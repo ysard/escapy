@@ -617,7 +617,6 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
                 # We need to accept the current token and build a DATA token.
                 # The limits of the DATA token are built in previous conditions.
                 interactive.feed_token(token)
-                rewind_offset = -expected_bytes
 
                 lexer_state = interactive.lexer_thread.state
                 token_start_pos = lexer_state.line_ctr.char_pos
@@ -635,7 +634,7 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
                 token.end_pos = token_end_pos
 
                 # Repositioning the lexer head for the next tokens
-                lexer_state.line_ctr.char_pos -= rewind_offset
+                lexer_state.line_ctr.char_pos += expected_bytes
 
                 data_token_flag = False
 
