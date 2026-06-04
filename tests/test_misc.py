@@ -15,6 +15,7 @@
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Miscellaneous tests (global loglevel settings, grammar behaviour)"""
+
 # Standard imports
 from pathlib import Path
 from functools import partial
@@ -65,7 +66,24 @@ def test_no_loglevel(tmp_path: Path, capsys, set_loglevel: None):
     ), "stdout,stderr should be empty in loglevel None"
 
 
-def test_not_implemented_command(tmp_path: Path, caplog):
+@pytest.mark.parametrize(
+    "command, expected_message, pins",
+    [
+        # ESC < : Set unidirectional mode
+        (b"\x1b<", "Tree('set_unidirectional_mode'", None),
+        # DC1 : Select printer
+        # (not supported as a control code, but supported as a printable char)
+        # Test in 9 pins mode because by default thos characters are printed in ESCP2 mode
+        (b"\x11", "select_printer", 9),
+    ],
+    ids=[
+        "NS_set_unidirectional_mode",
+        "NS_select_printer",
+    ],
+)
+def test_not_implemented_command(
+    tmp_path: Path, caplog, command: bytes, expected_message: str, pins: int | None
+):
     """Test ESC command defined into the grammar but not implemented in the parser
 
     A simple output in the LOGGER at the level ERROR should be observed.
@@ -74,12 +92,10 @@ def test_not_implemented_command(tmp_path: Path, caplog):
     :param caplog: pytest caplog-fixture
     :type caplog: _pytest.logging.LogCaptureFixture
     """
-    set_unidirectional_mode_cmd = b"\x1b<"
-
-    lines = [esc_reset, set_unidirectional_mode_cmd]
+    lines = [esc_reset, command]
 
     code = b"".join(lines)
-    _ = ESCParser(code, pdf=False)
+    _ = ESCParser(code, pdf=False, pins=pins)
 
     print("records:", caplog.records)
-    assert "Command not implemented: Tree('set_unidirectional_mode'" in caplog.text
+    assert f"Command not implemented: {expected_message}" in caplog.text
