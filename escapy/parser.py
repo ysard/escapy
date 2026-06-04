@@ -2962,7 +2962,7 @@ class ESCParser:
 
         if condensed == self._condensed:
             # Do not modify settings twice
-            LOGGER.warning("Condensed printing already configured: %s", condensed)
+            LOGGER.debug("Condensed printing already configured: %s", condensed)
             return
 
         if self.double_height and self.pins == 9:
