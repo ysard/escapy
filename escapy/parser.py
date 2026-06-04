@@ -3239,9 +3239,11 @@ class ESCParser:
         .. warning:: This is the only command for which the code can be printable.
             Its status is configured by :meth:`switch_control_codes_printing`.
         """
-        if b"\x11" not in self.control_codes_filter:
-            # The command is not considered as a control code => print it!
+        if 0x11 not in self.control_codes_filter:
             self.binary_blob(Token("DATA", b"\x11"))
+            return
+
+        LOGGER.error("Command not implemented: select_printer")
 
     def control_paper_loading_ejecting(self, *args):
         """Control feeding of continuous and single-sheet paper - ESC EM
