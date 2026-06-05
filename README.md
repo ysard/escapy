@@ -602,7 +602,9 @@ A modification to match this code with the character `♫` could be as follows:
 
 By default, the JSON file (`user_defined_mapping.json`) is created in the current
 folder, but this can be changed in the configuration file.
-A folder containing the image of the bitmap character received can also be created.
+A folder containing the image of the bitmap character received can also be created
+by enabling the option `images_path` in the section `[UserDefinedCharacters]` of
+the configuration file.
 
 ## :u7a7a: Unsupported encodings (Chinese, Japanese, etc.)
 
