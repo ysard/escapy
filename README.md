@@ -141,7 +141,7 @@ development, please follow the link below, with all thanks :
     | ESC B                            | Set vertical tabs                           | :white_check_mark:   |
     | ESC b                            | Set vertical tabs in VFU channels*          | :white_large_square: |
     | ESC /                            | Select vertical tab channel*                | :white_large_square: |
-    | ESC e                            | Set fixed tab increment*                    | :white_large_square: |
+    | ESC e                            | Set fixed tab increment*                    | :white_check_mark:   |
     | ESC a                            | Select justification*                       | :white_large_square: |
     |                                  |                                             |                      |
     | Selecting characters             |                                             |                      |
