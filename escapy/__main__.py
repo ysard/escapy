@@ -36,7 +36,8 @@ LOGGER = cm.logger()
 def choose_config_file(config_file: [Path | None]) -> Path:
     """Get an existing configuration file
 
-    Search the config file in the current directory, then in `~/.local/share/escapy`.
+    Search the config file in the current directory, then in `~/.config/escapy`
+    and in `/etc/escapy` (if installed in posix system).
     If none has been found: create a config file from the embedded one, in the
     user configuration folder and use it.
     The filename is defined in :meth:`escapy.commons.CONFIG_FILE`.
@@ -53,7 +54,7 @@ def choose_config_file(config_file: [Path | None]) -> Path:
             raise SystemExit
         return config_file
 
-    # Search the config file in the current directory, then in ~/.local/share/
+    # Search the config file in the current directory, then in other dirs
     g = [path for path in CONFIG_FILES if path.exists()]
     if not g:
         # If none has been found: create the config file from the embedded one
@@ -145,7 +146,7 @@ def main():  # pragma: no cover
         "--config",
         nargs="?",
         help="configuration file to use. "
-        "(default: ./escapy.conf, ~/.local/share/escapy/escapy.conf)",
+        "(default: ./escapy.conf, ~/.config/escapy/escapy.conf, /etc/escapy/escapy.conf)",
         default=argparse.SUPPRESS,  # Absent by default (handled later)
         type=Path,
     )
