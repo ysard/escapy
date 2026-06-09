@@ -165,8 +165,9 @@ def test_empty_input_file(tmp_path: Path, minimal_config: str):
     }
 
     # Do magic
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
         escapy_entry_point(**cmdline_args)
+    assert pytest_wrapped_e.value.code == 1
 
 
 def test_choose_config_file(tmp_path: Path, minimal_config: str):
@@ -223,6 +224,7 @@ def test_choose_config_file(tmp_path: Path, minimal_config: str):
             _ = choose_config_file(None)
 
         # Test not existing input file from cli
-        with pytest.raises(SystemExit):
+        with pytest.raises(SystemExit) as pytest_wrapped_e:
             # Expect the user file copied from the embedded file (EMBEDDED_CONFIG_FILE)
             _ = choose_config_file(tmp_path / "xxx.conf")
+        assert pytest_wrapped_e.value.code == 1

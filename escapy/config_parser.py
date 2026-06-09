@@ -100,7 +100,7 @@ def parse_config(config: configparser.ConfigParser):
     pins = misc_section.get("pins")
     if pins not in ("9", "24", "48", "", None):
         LOGGER.error("pins: The number of pins is not expected (%s).", pins)
-        raise SystemExit
+        raise SystemExit(1)
 
 
     printable_area_margins_mm = misc_section.get("printable_area_margins_mm")
@@ -113,7 +113,7 @@ def parse_config(config: configparser.ConfigParser):
                 "(top, bottom, left, right) (%s).",
                 printable_area_margins_mm,
             )
-            raise SystemExit
+            raise SystemExit(1)
 
 
     automatic_linefeed = misc_section.get("automatic_linefeed")
@@ -126,7 +126,7 @@ def parse_config(config: configparser.ConfigParser):
             LOGGER.error(
                 "automatic_linefeed: expect false or true (%s)", automatic_linefeed
             )
-            raise SystemExit from exc
+            raise SystemExit(1) from exc
 
     # page_size: We expect a default value A4 here
     page_size = misc_section.get("page_size")
@@ -138,14 +138,14 @@ def parse_config(config: configparser.ConfigParser):
                     "page_size: A known alias or 2 values are expected (width, height) (%s).",
                     page_size,
                 )
-                raise SystemExit
+                raise SystemExit(1)
 
             if len(cleaned_data) != 2 or not all(isfloat(i) for i in cleaned_data):
                 LOGGER.error(
                     "page_size: 2 values are expected (width, height) (%s).",
                     page_size,
                 )
-                raise SystemExit
+                raise SystemExit(1)
     else:
         misc_section["page_size"] = "A4"
 
@@ -158,7 +158,7 @@ def parse_config(config: configparser.ConfigParser):
             single_sheets = misc_section.getboolean("single_sheets")
         except ValueError as exc:
             LOGGER.error("single_sheets: expect false or true (%s)", single_sheets)
-            raise SystemExit from exc
+            raise SystemExit(1) from exc
 
 
     renderer = misc_section.get("renderer")
@@ -188,7 +188,7 @@ def parse_config(config: configparser.ConfigParser):
             LOGGER.error(
                 "UserDefinedCharacters: error accessing images_path (%s)", images_path
             )
-            raise SystemExit from exc
+            raise SystemExit(1) from exc
 
 
     ## Fonts sections

@@ -210,8 +210,9 @@ def test_erroneous_settings(sample_config, tear_down):
     config = configparser.ConfigParser()
     config.read_string(sample_config)
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
         _ = parse_config(config)
+    assert pytest_wrapped_e.value.code == 1
 
 
 @pytest.mark.parametrize(

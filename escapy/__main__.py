@@ -51,7 +51,7 @@ def choose_config_file(config_file: [Path | None]) -> Path:
         # Config file from command line
         if not config_file.exists():
             LOGGER.critical("Configuration file <%s> not found!", config_file)
-            raise SystemExit
+            raise SystemExit(1)
         return config_file
 
     # Search the config file in the current directory, then in other dirs
@@ -75,7 +75,7 @@ def escapy_entry_point(**kwargs):
     esc_prn_file_content = kwargs["esc_prn"].buffer.read()
     if not esc_prn_file_content:
         LOGGER.critical("Input file is empty!")
-        raise SystemExit
+        raise SystemExit(1)
 
     # Parse the config file and preload fonts search routines
     config = load_config(config_file=kwargs["config"])
