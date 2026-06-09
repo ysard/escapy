@@ -1,3 +1,14 @@
+escapy (1.0.3-1) UNRELEASED; urgency=medium
+
+  * Fix lark 1.3.x issue by blocking the update; see #3
+  * Expect error code when SystemExit is raised
+  * Add directive to install the config file in /etc/
+  * Fix localization of local config file at ~/.config instead of ~/.local/share
+  * Add support of ESC e command
+  * Fix DC1 command not skipped if not in printable mode
+
+ -- Ysard <ysard@users.noreply.github.com>  Tue, 9 Jun 2026 16:56:00 +0200
+
 escapy (1.0.2-1) UNRELEASED; urgency=medium
 
   * Fix issue with unexpected vertical dots resolution on WinUAE AmigaOS
