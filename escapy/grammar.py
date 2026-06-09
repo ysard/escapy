@@ -431,7 +431,7 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
                 if graphics_mode == 1:
                     # RLE/TIFF compression
                     token_start_pos = interactive.lexer_thread.state.line_ctr.char_pos
-                    iter_data = iter(interactive.lexer_thread.state.text[token_start_pos:])
+                    iter_data = iter(interactive.lexer_thread.state.text.text[token_start_pos:])
                     data, expected_bytes = decompress_rle_data(iter_data, expected_decompressed_bytes)
                     # print(data, "ret expected", expected_bytes, "curr", len(data))
                 else:
@@ -460,7 +460,7 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
                 elif cmd_bc == 1:
                     # F = 1 then #BC = number of next bytes to read
                     # #BC = 1: number of raster data = n1
-                    nL = lexer_state.text[token_start_pos]
+                    nL = lexer_state.text.text[token_start_pos]
                     expected_decompressed_bytes = nL
 
                     token_start_pos += 1
@@ -468,8 +468,8 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
                     # F = 1 then #BC = number of next bytes to read
                     # #BC = 2: number of raster data = n1 + n2 × 256
                     # Get the next bytes as nL and nH
-                    nL = lexer_state.text[token_start_pos]
-                    nH = lexer_state.text[token_start_pos + 1]
+                    nL = lexer_state.text.text[token_start_pos]
+                    nH = lexer_state.text.text[token_start_pos + 1]
                     expected_decompressed_bytes = (nH << 8) + nL
 
                     token_start_pos += 2
@@ -480,10 +480,10 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
                 data_token_flag = True
 
                 lexer_state.line_ctr.char_pos = token_start_pos
-                iter_data = iter(lexer_state.text[token_start_pos:])
+                iter_data = iter(lexer_state.text.text[token_start_pos:])
                 data, expected_bytes = decompress_rle_data(iter_data, expected_decompressed_bytes)
 
-                # print(lexer_state.text[token_start_pos:])
+                # print(lexer_state.text.text[token_start_pos:])
                 # print("used bytes to decomp", expected_bytes)
                 # print("result, length", data, len(data))
                 # input("pause")
@@ -491,7 +491,7 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
             elif token.type == "MOVY_HEADER":
                 lexer_state = interactive.lexer_thread.state
                 token_start_pos = lexer_state.line_ctr.char_pos
-                iter_data = iter(lexer_state.text[token_start_pos:])
+                iter_data = iter(lexer_state.text.text[token_start_pos:])
 
                 cmd = token.value[0]
                 cmd_bc = cmd & 0x0f
@@ -523,7 +523,7 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
             elif token.type == "MOVX_HEADER":
                 lexer_state = interactive.lexer_thread.state
                 token_start_pos = lexer_state.line_ctr.char_pos
-                iter_data = iter(lexer_state.text[token_start_pos:])
+                iter_data = iter(lexer_state.text.text[token_start_pos:])
 
                 cmd = token.value[0]
                 # Here we get signed values
@@ -577,7 +577,7 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
 
                 # expected_bytes = 0
                 # while expected_char_nb:
-                #     char_width_a1 = lexer_state.text[token_start_pos+expected_bytes+1]
+                #     char_width_a1 = lexer_state.text.text[token_start_pos+expected_bytes+1]
                 #
                 #     char_expected_bytes = column_bytes_size * char_width_a1
                 #     expected_bytes += char_expected_bytes + nb_space_bytes
@@ -588,7 +588,7 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
                 # LOGGER.debug("Total expect %d bytes", expected_bytes)
 
                 expected_bytes = 0
-                iter_data = iter(lexer_state.text[token_start_pos:])
+                iter_data = iter(lexer_state.text.text[token_start_pos:])
                 while expected_char_nb:
                     interactive.feed_token(token)
                     space_left_a0, char_width_a1, space_right_a2 = islice(iter_data, 0, 3)
@@ -622,12 +622,12 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
                 lexer_state = interactive.lexer_thread.state
                 token_start_pos = lexer_state.line_ctr.char_pos
                 token_end_pos = token_start_pos + expected_bytes
-                # print(lexer_state.text, token_start_pos, token_end_pos)
+                # print(lexer_state.text.text, token_start_pos, token_end_pos)
 
                 # Build the new token
                 # NOTE: DO NOT DO THIS, internal value will not be modified !!!
                 # token.value = ...
-                value = lexer_state.text[token_start_pos:token_end_pos]
+                value = lexer_state.text.text[token_start_pos:token_end_pos]
                 token = Token("DATA", value)
 
                 # Not mandatory but useful for debugging
