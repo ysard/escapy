@@ -2571,6 +2571,13 @@ class ESCParser:
         :param cmd_letter: ESC letter in ESC P, ESC M, ESC g commands,
             respectively for 10, 12, 15 cpi character printing.
         """
+        # NOTE: Could fix issues if condensed mode is not exited before
+        # call this function. But the ESC datasheet but the standard explicitly
+        # states that modes must be exited explicitly, not implicitly.
+        # See MPS-1230 doc, p186; https://github.com/GideonZ/1541ultimate/issues/470
+        # For now, a malformed ESC program should behave as the standard expects.
+        # self.condensed = False
+
         match cmd_letter.value:
             case b"P":
                 # 10-cpi character printing

@@ -9,6 +9,7 @@ poc/
 
 # Readme illustrations/assets
 !images/*
+images/*.png
 
 # PyCharm
 .idea/
