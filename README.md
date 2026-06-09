@@ -274,9 +274,18 @@ development, please follow the link below, with all thanks :
       <figcaption>Graphic element magnifications. Two ways of rendering.</figcaption>
     </figure></div>
 
-    NB: Rendering as an image is not yet available, but such a result can be
+    - NB: Rendering as an image is not yet available, but such a result can be
     obtained with GhostScript for this task (see examples).
 
+    - Note regarding color rendering:
+    When two CMYK colored objects overlap in printing, then either the object
+    'on top' will knock out the color of the one underneath it,
+    or the colors of the two objects will mix in the overlapped area.
+    This behaviour can be set using the property overPrint of your PDF viewer.
+    This is **mandatory** for a good rendering of the PDF files built by Escapy.
+    <br>
+    On Okular, since June 2023, the option is under the “Configure Rendering
+    Engines” / “Enable Overprint Preview”
 
 - [x] **Searchable text**
 
