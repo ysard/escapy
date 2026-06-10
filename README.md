@@ -94,7 +94,7 @@ development, please follow the link below, with all thanks :
     Nearly all commands are supported (text, graphics and barcodes).
 
     <details>
-   <summary><b>See details</b></summary>
+   <summary><b>! See details & coverage of the command set !!</b></summary>
 
     *: Not recommended command.<br>
     :white_check_mark:: Implemented.<br>
