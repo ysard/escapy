@@ -1585,6 +1585,11 @@ class ESCParser:
 
         .. seealso:: :meth:`carriage_return`.
         """
+        if self.graphics_mode:
+            self.cursor_x = self.left_margin
+            self.row_pos = 0  # Delta Row mode
+            return
+
         if self.pins == 9:
             self.double_width = False
 
