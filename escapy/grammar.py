@@ -180,6 +180,8 @@ esc_grammar = r"""
         | ESC "?" SELECT_XDPI_GRAPHICS_CMD /[\x00\x01\x02\x03\x04\x06\x07\x20\x21\x26\x27\x28\x47\x48\x49]/ -> reassign_bit_image_mode
         | ESC "(G\x01\x00" /[1\x01]/                 -> set_graphics_mode
         | ESC "(i\x01\x00" BIN_ARG_EX                -> switch_microweave_mode
+        # Not implemented
+        | ESC ACK                                    -> flush_buffers
         # Variable
         | ESC "." PRINT_RASTER_GRAPHICS_HEADER DATA+ -> print_raster_graphics
         # Variable
