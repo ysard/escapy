@@ -94,9 +94,10 @@ development, please follow the link below, with all thanks :
     Nearly all commands are supported (text, graphics and barcodes).
 
     <details>
-   <summary><b>! See details & coverage of the command set !!</b></summary>
+   <summary><b>! See details & coverage of the command set !</b></summary>
 
     *: Not recommended command.<br>
+    ‡: Extended command (added on modern printers)<br>
     :white_check_mark:: Implemented.<br>
     :heavy_exclamation_mark:: Not fully implemented.<br>
     :white_large_square:: Not implemented.<br>
@@ -205,7 +206,8 @@ development, please follow the link below, with all thanks :
     | ESC ( G                          | Select graphics mode                        | :white_check_mark:   |
     | ESC ( i                          | Select MicroWeave print mode                | :white_check_mark:   |
     | ESC .                            | Print raster graphics                       | :white_check_mark:   |
-    | ESC . 2                          | Enter TIFF compressed mode                  | :white_check_mark:   |
+    | ESC . 2                          | Enter TIFF RLE compressed mode              | :white_check_mark:   |
+    | ESC . 3                          | Enter TIFF Delta Row compressed mode‡       | :white_check_mark:   |
     | ESC *                            | Select bit image                            | :white_check_mark:   |
     | ESC ?                            | Reassign bit-image mode*                    | :white_check_mark:   |
     | ESC K                            | Select 60-dpi graphics*                     | :white_check_mark:   |
@@ -214,6 +216,7 @@ development, please follow the link below, with all thanks :
     | ESC Z                            | Select 240-dpi graphics*                    | :white_check_mark:   |
     | ESC ^                            | Select 60/120-dpi, 9-pin graphics           | :white_check_mark:   |
     | ESC r                            | Select printing color                       | :white_check_mark:   |
+    | ESC ACK                          | Flush buffers after MicroWeave print mode‡  | :no_entry_sign:      |
     |                                  |                                             |                      |
     | Printing bar codes               |                                             |                      |
     | ESC ( B                          | Bar code setup and print                    | :white_check_mark:   |
@@ -233,8 +236,9 @@ development, please follow the link below, with all thanks :
     | ESC i                            | Select immediate print mode*                | :no_entry_sign:      |
     |                                  |                                             |                      |
     | Binary mode commands for ESC . 2 |                                             |                      |
-    | raster graphics compression mode |                                             |                      |
+    | & ESC . 3 raster graphics modes  |                                             |                      |
     | `<XFER>`                         | Transfer raster graphics data               | :white_check_mark:   |
+    | `<CLR>`                          | Clear seed row (Delta Row compression)‡     | :white_check_mark:   |
     | `<MOVX>`                         | Set relative horizontal position            | :white_check_mark:   |
     | `<MOVY>`                         | Set relative vertical position              | :white_check_mark:   |
     | `<COLR>`                         | Select printing color                       | :white_check_mark:   |
