@@ -375,6 +375,10 @@ class ESCParser:
         # Graphics #############################################################
         self.graphics_mode = False
         self.microweave_mode = False
+        # Delta Row compression
+        self.delta_row_graphics_mode = False
+        self.seed_rows = None
+        self.row_pos = 0
         # Get horizontal density with dot density value
         self.bit_image_horizontal_resolution_mapping = {
             0: 1 / 60,
@@ -3623,12 +3627,13 @@ class ESCParser:
         return decompressed_data
 
     def print_tiff_raster_graphics(self, *args):
-        """Enter TIFF raster graphics compressed mode (extended graphics mode) - ESC . 2
+        """Enter TIFF raster graphics compressed mode (extended graphics mode) - ESC . 2 / ESC . 3
 
         The following commands are available in TIFF mode (all other codes are ignored):
             Graphics commands:
             <XFER>      Transfer raster graphics data
             <COLR>      Select printing color
+            <CLR>       Clear seed row (Delta Row compression)
 
             Movement commands:
             <MOVX>      Set relative horizontal position
@@ -3644,10 +3649,12 @@ class ESCParser:
         Here, the band height (vertical dot count) is equal to 1. Thus, all the
         received data bytes are for 1 unique line.
 
+        ESC . 3 enables the Delta Row compression mode. See :meth:`populate_seed_row`.
+
         .. note:: Only binary commands can be used after entering TIFF compressed mode.
 
-        .. warning:: Only one image density should be used, and do not change this
-         setting after entering raster graphics mode.
+        .. warning:: Only one image density should be used, and do not change
+         this setting after entering raster graphics mode.
 
         Doc p182, p223, p314, p333.
         """
@@ -3657,6 +3664,13 @@ class ESCParser:
         # Convert dpi to inches: 1/180, 1/360 or 1/720 inches, (180, 360 or 720 dpi)
         self.vertical_resolution = v_res / 3600
         self.horizontal_resolution = h_res / 3600
+
+        if graphics_mode == 3:
+            self.delta_row_graphics_mode = True
+            self.seed_rows = [bytearray()] * len(self.CMYK_colors)
+            self.row_pos = 0
+        else:
+            self.delta_row_graphics_mode = False
 
         if LOGGER.level == DEBUG:
             LOGGER.debug(
@@ -3668,6 +3682,82 @@ class ESCParser:
             # LOGGER.debug("microweave_mode: %s", self.microweave_mode)
             LOGGER.debug("line spacing: %s", self.current_line_spacing)
             LOGGER.debug("start coord: %s, %s", self.cursor_x, self.cursor_y)
+
+    def populate_seed_row(self, delta_patch):
+        """Apply Delta Row algorithm on the current seed row
+
+        Delta Row compression identifies bytes in a row that are different from
+        the preceding row and then transmits only the data that is different.
+        The previous row that has just been sent is called the seed row.
+        The new row that reflects the changes is called the delta row.
+        The delta row becomes the seed row when it is printed.
+
+        Upon entering raster mode, the seed row is zeroed and its width is set
+        to the Source Raster Width.
+
+        Delta Row compression operates on each plane independently; a separate
+        seed row is maintained for each plane.
+
+        Addendum: We do not use delta rows, <XFER> commands directly populate
+        seed rows; then, the printing is triggered by various commands:
+
+            - <MOVY>
+            - <MOVXDOT>
+            - <MOVXBYTE>
+            - <EXIT>
+
+        :param delta_patch: Delta Row decompressed patch
+        :type delta_patch: bytearray
+        """
+        current_row = self.seed_rows[self.color]
+        end = self.row_pos + len(delta_patch)
+        # LOGGER.debug(
+        #     "row pos: %s, row len: %s, patch end: %s",
+        #     self.row_pos, len(current_row), end
+        # )
+
+        if len(current_row) < end:
+            # Buffer is too small for the new data: add space
+            current_row.extend(
+                b"\x00" * (end - len(current_row))
+            )
+        current_row[self.row_pos:end] = delta_patch
+        self.row_pos = end
+
+    def flush_seed_rows(self):
+        """Trigger printing of seed rows (color band buffers)
+
+         - Move the horizontal print position to 0 (left-most print position)
+         after each seed row is printed.
+
+         .. note:: For experiential reasons, we prioritize printing the colors
+            before black (which is printed last).
+
+        .. note:: Specific to Delta Row compression.
+        """
+        if not self.delta_row_graphics_mode:
+            return
+        # This loop is written efficiently (timed); do not modify it.
+        seed_rows = self.seed_rows
+        for idx in range(len(seed_rows) -1, -1, -1):
+            seed_row = seed_rows[idx]
+            if not seed_row:
+                continue
+
+            if idx != self._color:
+                # Do not retrigger useless color change
+                self.color = idx
+
+            # ! Refresh the bytes per line used by the printing function for
+            # the current seed row !
+            self.bytes_per_line = len(seed_row)
+            # LOGGER.debug("expect %s bytes in seed row", self.bytes_per_line)
+
+            self.print_raster_graphics_dots(seed_row)
+
+            # Carriage return
+            self.row_pos = 0
+            self.cursor_x = self.left_margin
 
     def transfer_raster_graphics_data(self, *args):
         """Transfer raster graphics data - <XFER>
@@ -3682,10 +3772,15 @@ class ESCParser:
             - Current data does not affect next raster data.
         """
         data = self.decompress_rle_data(args[1].value)
+
+        if self.delta_row_graphics_mode:
+            self.populate_seed_row(data)
+            return
+
         # Do not chunk the data: all bytes are printed in the same line of 1 dot
         # (v_dot_count_m should be equal to 1)
         self.bytes_per_line = len(data)
-        LOGGER.debug("expect %s bytes", self.bytes_per_line)
+        # LOGGER.debug("expect %s bytes", self.bytes_per_line)
         self.print_raster_graphics_dots(data)
 
     def set_relative_horizontal_position(self, *args):
@@ -3701,6 +3796,11 @@ class ESCParser:
         .. note:: For MOVX/MOVY: 0, 1, or 2 bytes are expected (nL and nH are optional...)
         """
         dot_offset = args[1].value
+        if self.delta_row_graphics_mode:
+            # We're working on the seed row, not on the document
+            self.row_pos += dot_offset
+            return
+
         self.cursor_x += dot_offset * self.movx_unit
 
     def set_relative_vertical_position(self, *args):
@@ -3711,18 +3811,30 @@ class ESCParser:
         negative direction (up).
         - The unit for this command is determined by the ESC ( U set unit command .
 
-        Todo: - After the vertical print position is moved, all seed row(s) are
-            copied to the band buffer.
+        - After the vertical print position is moved, all seed row(s) are
+        copied to the band buffer (Delta Row compression).
+
+        Todo:
             - Settings beyond 22 inches are ignored.
 
         .. note:: For MOVX/MOVY: 0, 1, or 2 bytes are expected (nL and nH are optional...)
         """
+        self.flush_seed_rows()  # Delta Row compression
+
         dot_offset = args[1].value
 
         self._carriage_return()
 
         unit = self.defined_unit if self.defined_unit else 1 / 360
         self.cursor_y -= dot_offset * unit
+
+    def clear_seed_row(self, *_):
+        """Clear the seed row from the current color buffer - <CLR>
+
+        .. note:: Specific to Delta Row compression (<CLR> 1110 0001B).
+        """
+        self.seed_rows[self.color] = bytearray()
+        self._carriage_return()
 
     def set_movx_unit_8dots(self, *_):
         """Set the increment of <MOVX> unit to 8 - <MOVXBYTE>
@@ -3731,10 +3843,11 @@ class ESCParser:
         - Do not move the vertical print position.
         - The unit for this command is determined by the ESC ( U set unit command.
 
-        Todo: Start printing of stored data.
+        - Start printing of stored data (Delta Row compression).
 
         .. seealso:: :meth:`set_movx_unit`
         """
+        self.flush_seed_rows()  # Delta Row compression
         self._carriage_return()
         self.set_movx_unit(8)
 
@@ -3745,10 +3858,11 @@ class ESCParser:
         - Do not move the vertical print position.
         - The unit for this command is determined by the ESC ( U set unit command.
 
-        Todo: Start printing of stored data.
+        - Start printing of stored data (Delta Row compression).
 
         .. seealso:: :meth:`set_movx_unit`
         """
+        self.flush_seed_rows()  # Delta Row compression
         self._carriage_return()
         self.set_movx_unit(1)
 
@@ -3773,7 +3887,7 @@ class ESCParser:
         1000 0010B  0x82    Cyan
         1000 0100B  0x84    Yellow
 
-        Todo: (TIFF format):  Select the band buffer color.
+        - (TIFF format/Delta Row compression): Select the band buffer color.
 
         - Move the horizontal print position to 0 (left-most print position).
         - Parameters other than those listed above are ignored.
@@ -3785,10 +3899,10 @@ class ESCParser:
     def exit_tiff_raster_graphics(self, *_):
         """Exit TIFF compressed raster graphics mode - <EXIT>
 
-        Todo: Start printing of stored data.
-
         - Move the horizontal print position to 0 (left-most print position).
+        - Start printing of stored data (Delta Row compression).
         """
+        self.flush_seed_rows()  # Delta Row compression
         self._carriage_return()
 
     ## bit image

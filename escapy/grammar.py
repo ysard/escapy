@@ -199,13 +199,13 @@ esc_grammar = r"""
 
     tiff_compressed_rule.2: tiff_enter tiff_instruction* exit_ex
     # Not variable
+    # ESC . 2 / ESC . 3
     tiff_enter: ESC "." PRINT_TIFF_RASTER_GRAPHICS_HEADER -> print_tiff_raster_graphics
     exit_ex.2: EXIT_EX      -> exit_tiff_raster_graphics
     tiff_instruction.2: XFER_HEADER DATA+ -> transfer_raster_graphics_data
         | COLR_EX           -> set_printing_color_ex
         | CR_EX             -> carriage_return
-        # Not implemented
-        | CLR_EX            -> clear_ex
+        | CLR_EX            -> clear_seed_row
         | MOVXBYTE_EX       -> set_movx_unit_8dots
         | MOVXDOT_EX        -> set_movx_unit_1dot
         # DATA can be 0,1 or 2 bytes but lark doesn't accept empty (0) terminal,
@@ -285,7 +285,7 @@ esc_grammar = r"""
     SELECT_BIT_IMAGE_9PINS_HEADER: /[\x00\x01].[\x00-\x1f]/
     PRINT_DATA_AS_CHARACTERS_HEADER: /.[\x00-\x7f]/
     PRINT_RASTER_GRAPHICS_HEADER: /[\x00\x01][\x05\x0A\x14]{2}[\x01\x08\x09\x10\x18].[\x00-\x1f]/
-    PRINT_TIFF_RASTER_GRAPHICS_HEADER: /\x02[\x05\x0A\x14]{2}\x01\x00\x00/
+    PRINT_TIFF_RASTER_GRAPHICS_HEADER: /[\x02\x03][\x05\x0A\x14]{2}\x01\x00\x00/
     SELECT_XDPI_GRAPHICS_HEADER: /.[\x00-\x1f]/
     BARCODE_HEADER: /.[\x00-\x1f][\x00-\x07][\x02-\x05]..[\x00-\x1f]./
 
@@ -298,7 +298,6 @@ esc_grammar = r"""
     MOVX_HEADER: /([\x40-\x4f]|[\x51\x52])/
     # 0b1000_0000-0b1000_0100
     COLR_EX: /[\x80-\x84]/
-    # TODO: new command : CLR 1110 0001
     CLR_EX: "\xe1"
     CR_EX: "\xe2"
     EXIT_EX: "\xe3"
