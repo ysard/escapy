@@ -3388,6 +3388,7 @@ class ESCParser:
             ESC @       Initialize printer (exit graphics mode)
             ESC .       Print raster graphics
             ESC . 2     Enter TIFF compressed mode*
+            ESC . 3     Enter TIFF Delta Row compressed mode*
             ESC ( i     Select MicroWeave print mode*
             ESC ( c     Set page format
             ESC ( C     Set page length in defined unit
@@ -3650,11 +3651,14 @@ class ESCParser:
             <MOVXBYTE>  Set <MOVX> unit to 8 dots
             <MOVXDOT>   Set <MOVX> unit to 1 dot
 
-        In graphics mode only via ESC ( G.
-        Here, the band height (vertical dot count) is equal to 1. Thus, all the
+        - Available in graphics mode only via ESC ( G.
+        - Here, the band height (vertical dot count) is equal to 1. Thus, all the
         received data bytes are for 1 unique line.
 
-        ESC . 3 enables the Delta Row compression mode. See :meth:`populate_seed_row`.
+        Graphics modes supported:
+
+            - 2: TIFF compressed mode*
+            - 3: TIFF Delta Row compression mode; see :meth:`populate_seed_row`
 
         .. note:: Only binary commands can be used after entering TIFF compressed mode.
 
