@@ -3888,9 +3888,12 @@ class ESCParser:
         """Select printing color - <COLR>
 
         1000 0000B  0x80    Black
-        1000 0001B  0x80    Magenta
+        1000 0001B  0x81    Magenta
         1000 0010B  0x82    Cyan
         1000 0100B  0x84    Yellow
+
+        1000 1001B  0x89    Light Magenta
+        1000 1010B  0x8a    Light Cyan
 
         - (TIFF format/Delta Row compression): Select the band buffer color.
 
