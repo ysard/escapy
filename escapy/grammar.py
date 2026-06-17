@@ -180,6 +180,10 @@ esc_grammar = r"""
         | ESC "?" SELECT_XDPI_GRAPHICS_CMD /[\x00\x01\x02\x03\x04\x06\x07\x20\x21\x26\x27\x28\x47\x48\x49]/ -> reassign_bit_image_mode
         | ESC "(G\x01\x00" /[1\x01]/                 -> set_graphics_mode
         | ESC "(i\x01\x00" BIN_ARG_EX                -> switch_microweave_mode
+        # Should only be available in graphics mode
+        | ESC "(r\x02\x00\x00" /[\x00-\x04]/         -> set_printing_color
+        # Not implemented, should be invisible (just ignore set color commands)
+        | ESC "(K\x02\x00\x00" /[\x00\x01\x02]/      -> set_monochrome_color_mode
         # Not implemented
         | ESC ACK                                    -> flush_buffers
         # Variable
