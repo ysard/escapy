@@ -496,7 +496,7 @@ folder on your system (see below).
 This folder is created if it doesn't already exist.
 
 On GNU/Linux systems:
-`~/.local/share/escapy/`
+`~/.local/share/escapy/`, `/etc/escapy/escapy.conf`
 
 On Windows systems:
 `C:\\Users\\<YOUR_USERNAME>\\AppData\\Local\\escapy`
