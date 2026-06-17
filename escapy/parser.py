@@ -3739,6 +3739,8 @@ class ESCParser:
          - Move the horizontal print position to 0 (left-most print position)
          after each seed row is printed.
 
+        .. warning:: A command to select the color is expected after this function.
+
          .. note:: For experiential reasons, we prioritize printing the colors
             before black (which is printed last).
 
