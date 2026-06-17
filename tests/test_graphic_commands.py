@@ -576,6 +576,72 @@ def test_print_tiff_raster_graphics(
     pdf_comparison(processed_file)
 
 
+def test_advanced_rle_decompress(tmp_path):
+    """Challenge the parsing and RLE decompression routines"""
+    raster_graphics_tiff = b"\x1b.\x02"
+    v_res_h_res = b"\x14\x14"  # 180 dpi
+    # HERE I CAN NOT put 2 instead of 1, this value is nonsense in TIFF mode;
+    # It SHOULD be fixed automatically and set to 1.
+    # THIS code section CAN'T be tested since the grammar doesn't accept such value.
+    v_dot_count_m = b"\x01"  # nL, hH: height of the band: 1 dot
+    trailing_bytes = b"\x00\x00"
+
+    # Move 10 units down used as a linefeed between the dot lines
+    movy_cmd = b"r\n\x00"
+
+    # Count is inside the 2 next bytes: expect 10 bytes
+    # 0b0011_0000 (0x30) + 2 = 0b0010_0010
+    xfer_cmd_f1_bc2 = b"2\x0a\x00"
+
+    # Data structure (Repeat counters):
+    # - 1 byte out of 2 is a counter;
+    #   the counter causes the next byte to be repeated twice.
+    #   repeat calculation: 256 - 255 + 1 = 2
+    #   So we send 8 bytes and expect 8
+    # - 1 counter byte, data repeated 4 times
+    #   repeat calculation: 256 - 253 + 1 = 4
+    #   So we send 2 bytes and expect 4
+    # Total: We send 10 bytes and expect 12 bytes after decompression.
+    raster_data = b"\xff" * 8 + b"\xfd" + bytearray([0b10101010])
+    expected_bytes_count = 12
+
+    # Test number of data bytes to follow:
+    # 0xf6 (256-246+1 = 11) is greater than the expected bytes to read (10)
+    # 10 bytes must still be read, if not (decompression stop occurs),
+    # 0x0f (SI) is an opcode that will mess the parsing on purpose.
+    raster_data_reading_frame = b"\xf6\x00" + b"\x0f" * 8
+
+    # Used to test the branch of Data-length counters:
+    raster_data_length_counter = b"\x0b" + b"\xff" * 8 + bytearray([0b10101010]) * 4
+    xfer_13bytes = b"2\x0d\x00"
+
+    exit_cmd = b"\xe3"
+
+    code = [
+        graphics_mode,
+        raster_graphics_tiff,
+        v_res_h_res + v_dot_count_m + trailing_bytes,
+
+        # 1 line: repeat counters
+        xfer_cmd_f1_bc2 + raster_data_reading_frame,
+        movy_cmd,
+        # 1 line: repeat counters
+        movy_cmd,
+        xfer_cmd_f1_bc2 + raster_data,
+        # 1 line: data - length counter
+        movy_cmd,
+        xfer_13bytes,
+        raster_data_length_counter,
+
+        exit_cmd,
+    ]
+
+    processed_file = tmp_path / "test_advanced_rle_decompress.pdf"
+    escapy = ESCParser(b"".join(code), dots_as_circles=True, output_file=processed_file)
+    assert escapy.bytes_per_line == expected_bytes_count
+    pdf_comparison(processed_file)
+
+
 @pytest.mark.parametrize(
     "binary_cmd, set_unit_cmd, expected_unit",
     [
