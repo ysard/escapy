@@ -3400,6 +3400,7 @@ class ESCParser:
             ESC U       Turn unidirectional mode on/off
             ESC +       Set n/360-inch line spacing
             ESC ( U     Set unit
+            ESC ( r     Select printing color*
 
             *: available only with the Stylus COLOR and later inkjet printer models
 
