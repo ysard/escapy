@@ -145,11 +145,11 @@ esc_grammar = r"""
         | CAN                               -> cancel_line
         # Not implemented
         | DEL                               -> delete_last_char_in_buffer
-        # Not implemented => already processed in libreprinter
+        # Not implemented
         | ESC "#"                           -> cancel_msb_control
-        # Not implemented => already processed in libreprinter
+        # Not implemented
         | ESC "="                           -> clear_msb
-        # Not implemented => already processed in libreprinter
+        # Not implemented
         | ESC ">"                           -> set_msb
 
 
