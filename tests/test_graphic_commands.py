@@ -538,7 +538,7 @@ def test_print_tiff_raster_graphics(
     movy_cmd = b"r\n\x00"
     # Count is inside the nibble of cmd
     # 0b0010_0000 (0x20) + 10 bytes = 0b0010_1010
-    xfer_cmd_f0_bc10 = b"*"
+    xfer_cmd_f0_bc0 = b"*"
     # Count is inside the next byte nL
     # 0b0011_0000 (0x30) + 1 = 0b0010_0001
     xfer_cmd_f1_bc1 = b"1\x0a"
@@ -555,7 +555,7 @@ def test_print_tiff_raster_graphics(
         v_res_h_res + v_dot_count_m + trailing_bytes,
 
         # 3 lines
-        xfer_cmd_f0_bc10 + raster_data,
+        xfer_cmd_f0_bc0 + raster_data,
         movy_cmd,
         xfer_cmd_f1_bc1 + raster_data,
         movy_cmd,
@@ -821,9 +821,9 @@ def test_global_print_tiff_raster_graphics(tmp_path: Path):
     movy_cmd = b"r\n\x00"
     # Count is inside the nibble of cmd
     # 0b0010_0000 (0x20) + 10 bytes = 0b0010_1010
-    xfer_cmd_f0_bc10 = b"*"
+    xfer_cmd_f0_bc0 = b"*"
     raster_data = b"\xff" * expected_bytes_count
-    xfer_graphics_line = xfer_cmd_f0_bc10 + raster_data
+    xfer_graphics_line = xfer_cmd_f0_bc0 + raster_data
 
     # <EXIT>
     exit_cmd = b"\xe3"
