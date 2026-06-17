@@ -278,6 +278,11 @@ development, please follow the link below, with all thanks :
       <figcaption>Graphic element magnifications. Two ways of rendering.</figcaption>
     </figure></div>
 
+    <div align="center"><figure>
+      <img width="230" src="./images/blazon.webp"><br>
+      <figcaption>Delta Row compression with 720p rendering.</figcaption>
+    </figure></div>
+
     - NB: Rendering as an image is not yet available, but such a result can be
     obtained with GhostScript for this task (see examples).
 
