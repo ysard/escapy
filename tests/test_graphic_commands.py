@@ -487,6 +487,33 @@ def test_print_raster_graphics(format_databytes: bytes, tmp_path: Path):
     pdf_comparison(processed_file)
 
 
+def test_set_printing_color():
+    """Test color editing restrictions
+
+    - ESC ( K: monochrome / color modes
+    - ESC r: set color
+    - ESC ( r: set color in graphics mode
+    """
+    # TODO: Should not allow color editing if enabled
+    set_monochrome_mode = b"\x1b(K\x02\x00\x00\x01"
+    set_color_magenta = b"\x1br\x01"
+    # NOTE: Should not be available if not in graphics mode
+    set_color_magenta_ex = b"\x1b(r\x02\x00\x00\x01"
+
+    dataset = [
+        (set_monochrome_mode, "Black"),
+        (set_monochrome_mode + set_color_magenta, "Magenta"),  # TODO: refused
+        (set_color_magenta, "Magenta"),
+        (set_color_magenta_ex, "Magenta"),
+    ]
+    for code, expected in dataset:
+
+        escapy = ESCParser(esc_reset + code, pdf=False)
+        found = escapy.color_names[escapy.color]
+        print(code, "=>", expected)
+        assert found == expected
+
+
 def test_switch_microweave_mode():
     """Test MicroWeave print mode - ESC ( i"""
     dataset = [
