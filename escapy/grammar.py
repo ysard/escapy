@@ -320,50 +320,6 @@ esc_grammar = r"""
 """
 
 
-def decompress_rle_data(
-    iter_data, expected_decompressed_bytes
-) -> tuple[bytearray, int]:
-    """Decompress the given data bytes (TIFF decompression)
-
-    During compressed mode, the first byte of data must be a counter.
-    If the counter is positive, it is treated as a data-length counter.
-    If the counter is negative (as determined by two’s complement),
-    it is treated as a repeat counter.
-
-    In the first case, the printer read as is the number of bytes specified.
-    In the last case, the printer repeats the following byte of data the
-    specified number of times.
-
-    :param iter_data: Iterator over the data stream.
-    :param expected_decompressed_bytes: The number of bytes that should be
-        decompressed. Iterating on iter_data stops when this number is reached.
-    :type iter_data: Iterator[bytearray]
-    :type expected_decompressed_bytes: int
-    :return: Tuple of decompressed data, and number of bytes read.
-    """
-    decompressed_data = bytearray()
-    bytes_read = 0
-    for counter in iter_data:
-        if counter & 0x80:
-            # Repeat counters: number of times to repeat data
-            repeat = 256 - counter + 1
-            decompressed_data += (next(iter_data)).to_bytes(1) * repeat
-            bytes_read += 1
-        else:
-            # Data-length counters: number of data bytes to follow
-            block_length = counter + 1
-            decompressed_data += bytearray(islice(iter_data, block_length))
-            bytes_read += block_length
-
-        bytes_read += 1
-
-        if len(decompressed_data) >= expected_decompressed_bytes:
-            # We have all the data we needed
-            break
-
-    return decompressed_data, bytes_read
-
-
 def parse_from_stream(parser, code, *args, start=None, **kwargs):
     """Parse interatively the given ESC code and build DATA tokens for commands
     that expect a variable (not predicted) number of bytes.
@@ -423,20 +379,10 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
                 data_token_flag = True
 
             elif token.type == "PRINT_RASTER_GRAPHICS_HEADER":
-                # b"\x01\x14\x14\x18\xa0\x01"
+                # Ex: b"\x01\x14\x14\x18\xa0\x01"
                 graphics_mode, v_res, h_res, v_dot_count_m, nL, nH = token.value
                 h_dot_count = (nH << 8) + nL
-                expected_decompressed_bytes = v_dot_count_m * int((h_dot_count + 7) / 8)
-                # print(f"Expect {expected_decompressed_bytes} bytes")
-                if graphics_mode == 1:
-                    # RLE/TIFF compression
-                    token_start_pos = interactive.lexer_thread.state.line_ctr.char_pos
-                    iter_data = iter(interactive.lexer_thread.state.text[token_start_pos:])
-                    data, expected_bytes = decompress_rle_data(iter_data, expected_decompressed_bytes)
-                    # print(data, "ret expected", expected_bytes, "curr", len(data))
-                else:
-                    # No compression
-                    expected_bytes = expected_decompressed_bytes
+                expected_bytes = v_dot_count_m * int((h_dot_count + 7) / 8)
 
                 LOGGER.debug("Expect %d bytes", expected_bytes)
                 data_token_flag = True
@@ -456,12 +402,12 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
                 token_start_pos = lexer_state.line_ctr.char_pos
                 if not (cmd >> 4) & 1:
                     # #BC = number of raster image data
-                    expected_decompressed_bytes = cmd_bc
+                    expected_bytes = cmd_bc
                 elif cmd_bc == 1:
                     # F = 1 then #BC = number of next bytes to read
                     # #BC = 1: number of raster data = n1
                     nL = lexer_state.text[token_start_pos]
-                    expected_decompressed_bytes = nL
+                    expected_bytes = nL
 
                     token_start_pos += 1
                 elif cmd_bc == 2:
@@ -470,21 +416,19 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
                     # Get the next bytes as nL and nH
                     nL = lexer_state.text[token_start_pos]
                     nH = lexer_state.text[token_start_pos + 1]
-                    expected_decompressed_bytes = (nH << 8) + nL
+                    expected_bytes = (nH << 8) + nL
 
                     token_start_pos += 2
                 else:  # pragma: no cover
                     raise ValueError("<XFER> F or BC (nibble) value not expected!")
 
-                LOGGER.debug("Expect %d decompressed bytes", expected_decompressed_bytes)
+                # Sync lexer's head
+                lexer_state.line_ctr.char_pos = token_start_pos
+
                 data_token_flag = True
 
-                lexer_state.line_ctr.char_pos = token_start_pos
-                iter_data = iter(lexer_state.text[token_start_pos:])
-                data, expected_bytes = decompress_rle_data(iter_data, expected_decompressed_bytes)
-
+                # LOGGER.debug("Expect %d bytes", expected_bytes)
                 # print(lexer_state.text[token_start_pos:])
-                # print("used bytes to decomp", expected_bytes)
                 # print("result, length", data, len(data))
                 # input("pause")
 
