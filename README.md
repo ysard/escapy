@@ -216,6 +216,8 @@ development, please follow the link below, with all thanks :
     | ESC Z                            | Select 240-dpi graphics*                    | :white_check_mark:   |
     | ESC ^                            | Select 60/120-dpi, 9-pin graphics           | :white_check_mark:   |
     | ESC r                            | Select printing color                       | :white_check_mark:   |
+    | ESC ( r                          | Select printing color‡                      | :white_check_mark:   |
+    | ESC ( K                          | Set monochrome/color mode‡                  | :white_large_square: |
     | ESC ACK                          | Flush buffers after MicroWeave print mode‡  | :no_entry_sign:      |
     |                                  |                                             |                      |
     | Printing bar codes               |                                             |                      |
