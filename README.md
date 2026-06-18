@@ -224,6 +224,7 @@ development, please follow the link below, with all thanks :
     | ESC ( B                          | Bar code setup and print                    | :white_check_mark:   |
     |                                  |                                             |                      |
     | Data and memory control          |                                             |                      |
+    | ESC SOH @EJL 1284.4\n@EJL     \n | Exit packet mode                            | :white_check_mark:   |
     | ESC @                            | Initialize printer                          | :white_check_mark:   |
     | CAN                              | Cancel line*                                | :white_large_square: |
     | DEL                              | Delete last character in buffer*            | :white_large_square: |
