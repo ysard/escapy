@@ -41,7 +41,7 @@ doc:
 # development & release cycle
 fullrelease:
 	@# From zest.releaser
-	@echo DO NOT forget to update debian/changelog version before!
+	@echo "\033[5;1;31m*** DO NOT forget to update debian/changelog version before! ***\033[0m"
 	fullrelease
 install:
 	@# Install a project in editable mode.
