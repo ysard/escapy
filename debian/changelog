@@ -1,3 +1,13 @@
+escapy (1.0.4-1) UNRELEASED; urgency=medium
+
+  * Add ESC . 3, ESC ACK, <CLR> as supported new commands related to Delta Row
+   compression for raster graphics.
+  * Fix RLE decompression.
+  * Add ESC ( r, ESC ( K extended commands.
+  * Add Exit Packet mode command.
+
+ -- Ysard <ysard@users.noreply.github.com>  Thu, 18 Jun 2026 13:10:00 +0200
+
 escapy (1.0.3-1) UNRELEASED; urgency=medium
 
   * Fix lark 1.3.x issue by blocking the update; see #3
