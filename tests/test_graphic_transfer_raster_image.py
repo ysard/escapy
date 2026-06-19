@@ -54,7 +54,9 @@ raster_res_cmd = b"\x1b(D\x04\x00"
     ],
 )
 def test_set_raster_resolution(
-    base_unit: int, hv_dividers: bytes, expected_resolutions
+    base_unit: int,
+    hv_dividers: bytes,
+    expected_resolutions: tuple[int | None, int | None],
 ):
     """Test ESC ( D vertical & horizontal resolutions
 
