@@ -37,7 +37,7 @@ esc_grammar = r"""
         | INIT                   -> reset_printer
 
         # Useless: do not implement
-        | ESC "U" BIN_ARG_EX    -> switch_unidirectional_mode
+        | ESC "U" /[\x00-\x02\x30-\x32]/ -> switch_unidirectional_mode
         | ESC "<"               -> set_unidirectional_mode
         | BEL                   -> beeper
         | ESC "9"               -> enable_paperout_detector
