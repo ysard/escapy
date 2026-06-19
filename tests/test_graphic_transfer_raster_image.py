@@ -69,3 +69,72 @@ def test_set_raster_resolution(
     escapy = ESCParser(esc_reset + code, pdf=False)
     assert escapy.vertical_resolution == expected_v_res
     assert escapy.horizontal_resolution == expected_h_res
+
+
+def test_transfer_raster_image(tmp_path: Path):
+    """Global test for a full pdf rendered with transfer raster image - ESC i
+
+    Reminder of the structure of the header:
+
+        r : color of ink
+        c : compression method
+        b : bit length required for each pixel of image data
+    """
+    code = [
+        esc_reset,
+        graphics_mode,
+        # Set unit(1 / 180 inch)
+        b"\x1b(U\x01\x00\x14",
+        # Select dot size(variable1)
+        b"\x1b(e\x02\x00\x00\x10",
+        # Set resolution of Raster mode (180 x 360 DPI)
+        b"\x1b(D\x04\x00\xA0\x05\x08\x04",
+        # A: Black 1line (b11 large size dots)
+        b"\x1bi\x00\x00\x02" + b"\x08\x00\x01\x00" + b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
+        b"\x0d",
+        # relative vertical print position (1/180 inch)
+        b"\x1b(v\x02\x00\x01\x00",
+        # B: Cyan 1line
+        b"\x1bi\x02\x00\x02" + b"\x08\x00\x01\x00" + b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
+        b"\x0d",
+        # relative vertical print position(1 / 180 inch)
+        b"\x1b(v\x02\x00\x01\x00",
+        # C: Magenta 1line
+        b"\x1bi\x01\x00\x02" + b"\x08\x00\x01\x00" + b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
+        b"\x0d",
+        # relative vertical print position (1/180 inch)
+        b"\x1b(v\x02\x00\x01\x00",
+        # D: Yellow 1line
+        b"\x1bi\x04\x00\x02" + b"\x08\x00\x01\x00" + b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
+        b"\x0d",
+        # relative vertical print position (1/180 inch)
+        b"\x1b(v\x02\x00\x01\x00",
+        # E: Black 1line, compression  (b10 medium size dots)
+        b"\x1bi\x00\x01\x02" + b"\x08\x00\x01\x00" + b"\xFF\xaa\xFF\xaa\xFF\xaa\xFF\xaa",
+        b"\x0d",
+        # relative vertical print position (1/180 inch)
+        b"\x1b(v\x02\x00\x01\x00",
+        # E: Black 1line, compression  (b01 small dots)
+        b"\x1bi\x00\x01\x02" + b"\x08\x00\x01\x00" + b"\xFF\x55\xFF\x55\xFF\x55\xFF\x55",
+        b"\x0d",
+        # relative vertical print position (1/180 inch)
+        b"\x1b(v\x02\x00\x01\x00",
+        # E: Black 1line, compression
+        # (b00 no dot, then b01 1 small dot each last 2 bytes (repeated twice))
+        b"\x1bi\x00\x01\x02" + b"\x08\x00\x01\x00" + b"\xFF\x00\xFF\x00\xFF\x00\xFF\x01",
+        b"\x0d",
+        # relative vertical print position (1/180 inch)
+        b"\x1b(v\x02\x00\x01\x00",
+        # E: Black 1line (1 bit length : not dot size control, normal raster print)
+        b"\x1bi\x00\x00\x01" + b"\x08\x00\x01\x00" + b"\xFF\xFF\xFF\xFF\x00\x00\x00\x00",
+        b"\x0d",
+        # relative vertical print position (1/180 inch)
+        b"\x1b(v\x02\x00\x01\x00",
+        # paper eject
+        b"\x0c",
+        esc_reset,
+    ]
+
+    processed_file = tmp_path / "test_transfer_raster_image.pdf"
+    escapy = ESCParser(b"".join(code), dots_as_circles=True, utput_file=processed_file)
+    pdf_comparison(processed_file)
