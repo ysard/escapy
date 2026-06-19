@@ -487,6 +487,41 @@ def test_print_raster_graphics(format_databytes: bytes, tmp_path: Path):
     pdf_comparison(processed_file)
 
 
+@pytest.mark.parametrize(
+    "v_res_h_res, expected_resolutions",
+    [
+        (b"\x05\x0a", (1 / 720, 1 / 360)),
+        (b"\x14\x1e", (1 / 180, 1 / 120)),
+    ],
+    ids=[
+        "720_360dpi",
+        "180_120dpi",
+    ],
+)
+# We want to measure influence on resolutions
+# Cancel the (nonexistent) data printing
+@patch(
+    "escapy.parser.ESCParser.print_raster_graphics_dots",
+    lambda *args, **kwargs: None,
+)
+def test_raster_graphics_resolutions(v_res_h_res: bytes, expected_resolutions):
+    """Test ESC . 0 vertical & horizontal resolutions"""
+    expected_v_res, expected_h_res = expected_resolutions
+
+    raster_graphics = b"\x1b.\x00"
+    v_dot_count_m = b"\x01"  # height of the band: 1 dot (1 line)
+    # nL, hH: Horizontal resolution: 9 bytes of 8 dots = 72 dots
+    # PS: length of decompressed data: vertical * horizontal = 9 bytes * 8 lines
+    #   72 bytes
+    h_dot_count = b"\x48\x00"
+
+    code = raster_graphics + v_res_h_res + v_dot_count_m + h_dot_count
+
+    escapy = ESCParser(esc_reset + code, pdf=False)
+    assert escapy.vertical_resolution == expected_v_res
+    assert escapy.horizontal_resolution == expected_h_res
+
+
 def test_set_printing_color():
     """Test color editing restrictions
 
