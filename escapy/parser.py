@@ -3485,7 +3485,7 @@ class ESCParser:
                 "must be set to 1 (one line) => value NOT corrected"
             )
 
-        # Convert dpi to inches: 1/180, 1/360 or 1/720 inches, (180, 360 or 720 dpi)
+        # Convert dpi to inches: 1/120, 1/180, 1/360 or 1/720 inches
         self.vertical_resolution = v_res / 3600
         self.horizontal_resolution = h_res / 3600
 
@@ -3683,7 +3683,7 @@ class ESCParser:
         # PS: Here v_dot_count_m is equal to 1 (filtered by the grammar)
         # Because data is sent 1 line at a time
         graphics_mode, v_res, h_res, v_dot_count_m, *_ = args[1].value
-        # Convert dpi to inches: 1/180, 1/360 or 1/720 inches, (180, 360 or 720 dpi)
+        # Convert dpi to inches: 1/120, 1/180, 1/360 or 1/720 inches
         self.vertical_resolution = v_res / 3600
         self.horizontal_resolution = h_res / 3600
 
