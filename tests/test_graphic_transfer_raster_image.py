@@ -138,5 +138,5 @@ def test_transfer_raster_image(tmp_path: Path):
     ]
 
     processed_file = tmp_path / "test_transfer_raster_image.pdf"
-    escapy = ESCParser(b"".join(code), dots_as_circles=True, utput_file=processed_file)
+    escapy = ESCParser(b"".join(code), dots_as_circles=True, output_file=processed_file)
     pdf_comparison(processed_file)
