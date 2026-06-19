@@ -15,6 +15,7 @@
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Test page configuration and movements in the printing area"""
+
 # Standard imports
 from struct import pack
 from pathlib import Path
@@ -61,9 +62,23 @@ def test_wrong_commands(format_databytes: bytes):
 @pytest.mark.parametrize(
     "format_databytes, expected_unit",
     [
-        (b"" + cancel_bold, None),
+        # Expect different default values for P,V,H units
+        (b"" + cancel_bold, (1 / 360, 1 / 360, None)),
         (b"\x1b(U\x01\x00\x05" + cancel_bold, 5 / 3600),
         (b"\x1b(U\x01\x00\x14" + cancel_bold, 20 / 3600),
+        # Extended version
+        # 720 / 3 = 240 dpi: refused, expect only few values: keep default values
+        (
+            b"\x1b(U\x05\x00" + b"\x01\x02\x03"
+            + int(720).to_bytes(2, byteorder="little"),
+            (1 / 360, 1 / 360, None),
+        ),
+        # 1/2880, 2/2880 (1/1440), 4/2880 (1/720)
+        (
+            b"\x1b(U\x05\x00" + b"\x01\x02\x04"
+            + int(2880).to_bytes(2, byteorder="little"),
+            (1 / 2880, 2 / 2880, 4 / 2880),
+        ),
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
@@ -71,15 +86,24 @@ def test_wrong_commands(format_databytes: bytes):
         "unit_default",
         "unit_5/3600",
         "unit_20/3600",
+        "unit_ex_ignored",
+        "unit_ex_2880dpi_base",
     ],
 )
 def test_set_unit(format_databytes: bytes, expected_unit: float):
-    """Test ESC ( U
+    """Test ESC ( U, legacy and extended versions
 
     The given value is divided by 3600.
     """
+    if isinstance(expected_unit, tuple):
+        p_expected_unit, v_expected_unit, h_expected_unit = expected_unit
+    else:
+        p_expected_unit = v_expected_unit = h_expected_unit = expected_unit
+
     escapy = ESCParser(format_databytes, pdf=False)
-    assert escapy.defined_unit == expected_unit
+    assert escapy.vertical_unit == v_expected_unit
+    assert escapy.horizontal_unit == h_expected_unit
+    assert escapy.page_management_unit == p_expected_unit
 
 
 @pytest.mark.parametrize(
