@@ -505,9 +505,14 @@ def test_print_raster_graphics(format_databytes: bytes, tmp_path: Path):
     lambda *args, **kwargs: None,
 )
 def test_raster_graphics_resolutions(v_res_h_res: bytes, expected_resolutions):
-    """Test ESC . 0 vertical & horizontal resolutions"""
+    """Test ESC . 0 vertical & horizontal resolutions
+
+    .. seealso:: For ESC i (transfer raster image) related resolutions, see
+        :meth:`.test_graphic_transfer_raster_image.test_set_raster_resolution`.
+    """
     expected_v_res, expected_h_res = expected_resolutions
 
+    # The resolutions are IN the graphic command
     raster_graphics = b"\x1b.\x00"
     v_dot_count_m = b"\x01"  # height of the band: 1 dot (1 line)
     # nL, hH: Horizontal resolution: 9 bytes of 8 dots = 72 dots
