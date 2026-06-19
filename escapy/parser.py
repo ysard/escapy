@@ -17,6 +17,7 @@
 """Main ESC parser routines used to build PDF files"""
 # Standard imports
 import importlib
+from struct import unpack
 from pathlib import Path
 from enum import Enum
 import itertools as it
@@ -259,6 +260,11 @@ class ESCParser:
         self.vertical_tabulations = None
         # Must be None because functions where it is used have their own default values
         self.defined_unit = None
+        self.vertical_unit =  1 / 360
+        # No default value:
+        # Some commands like ESC $, ESC \ require contextual default values
+        self.horizontal_unit = None
+        self.page_management_unit = 1 / 360
         self.current_line_spacing = 1 / 6
 
         if pdf:
@@ -609,10 +615,10 @@ class ESCParser:
                 in constructor)
             single-sheet: top-of-form, last printable line
         """
-        tL, tH, bL, bH = args[1].value
-        unit = self.defined_unit if self.defined_unit else 1 / 360
-        top_margin = ((tH << 8) + tL) * unit
-        bottom_margin = ((bH << 8) + bL) * unit
+        top_margin, bottom_margin = unpack("<HH", args[1].value)
+
+        top_margin *= self.page_management_unit
+        bottom_margin *= self.page_management_unit
 
         # Adapt absolute values to bottom-up system, relative to the page size
         # Ex: on a 11 in height paper, 1 in top margin becomes 10 in top margin.
@@ -665,7 +671,7 @@ class ESCParser:
         self.reset_cursor_y()
         self.page_length = calculated_page_length
 
-    def set_page_length_defined_unit(self, *args):
+    def set_page_length_defined_unit(self, _, token):
         """Set page length in defined unit - ESC ( C
 
         .. seealso:: see defined_unit via ESC ( U
@@ -679,17 +685,15 @@ class ESCParser:
             is at the top-of-form position. Otherwise, the current print position
             becomes the top-of-form position.
         """
-        mL, mH = args[1].value
-        value = (mH << 8) + mL
-        unit = self.defined_unit if self.defined_unit else 1 / 360
-        page_length = value * unit
+        value = int.from_bytes(token.value, byteorder="little")
+        page_length = value * self.page_management_unit
         LOGGER.debug("page length: %s", page_length)
 
         if not 0 < page_length <= 22:
             LOGGER.error(
                 "(%s × (current unit: %s)) must be less than or equal to 22 inches (%s)",
                 value,
-                self.defined_unit,
+                self.page_management_unit,
                 page_length,
             )
             page_length = 22
@@ -889,25 +893,32 @@ class ESCParser:
         # => this will not ignore data but just put the cursor at the correct pos
         self.reset_cursor_x()
 
-    def set_absolute_horizontal_print_position(self, _, nL, nH):
-        """Move the horizontal print position to the position specified - ESC $
+    def set_absolute_horizontal_print_position(self, _, token):
+        """Move the horizontal print position to the position specified - ESC $, ESC ( $ (extended)
+
+        - default defined unit setting for this command is 1/60 inch
+        - Todo: fixed On non-ESC/P 2 printers to 1/60 (currently only on 9 pins)
+        - ignore this command if the specified position is to the right of the
+          right margin.
 
         default defined unit setting for this command is 1/60 inch
         Todo: fixed On non-ESC/P 2 printers to 1/60 (currently only on 9 pins)
         ignore this command if the specified position is to the right of the
         right margin.
         """
-        nL, nH = nL.value[0], nH.value[0]
-        value = (nH << 8) + nL
+        value = int.from_bytes(token.value, byteorder="little")
 
         # Should be 1/60 on non ESCP2 (not just 9 pins)
-        unit = 1 / 60 if not self.defined_unit or self.pins == 9 else self.defined_unit
+        unit = 1 / 60 if not self.horizontal_unit or self.pins == 9 else self.horizontal_unit
         cursor_x = value * unit + self.left_margin
 
         LOGGER.debug("set absolute cursor_x: %s", cursor_x)
 
         if cursor_x > self.right_margin:
-            LOGGER.error("set absolute cursor_x outside right margin! => ignored")
+            LOGGER.error(
+                "set absolute cursor_x outside right margin (%.4f)! => ignored",
+                self.right_margin
+            )
             return
         self.cursor_x = cursor_x
 
@@ -933,8 +944,8 @@ class ESCParser:
             unit = 1 / 120
         else:
             unit = (
-                self.defined_unit
-                if self.defined_unit
+                self.horizontal_unit
+                if self.horizontal_unit
                 else (1 / 180 if self.mode == PrintMode.LQ else 1 / 120)
             )
         cursor_x = value * unit + self.cursor_x
@@ -973,9 +984,8 @@ class ESCParser:
         mL, mH = mL.value[0], mH.value[0]
         value = (mH << 8) + mL
 
-        unit = self.defined_unit if self.defined_unit else 1 / 360
         # sign inverted due to bottom-up
-        cursor_y = -value * unit + self.top_margin
+        cursor_y = -value * self.vertical_unit + self.top_margin
 
         if cursor_y < self.bottom_margin:
             self.next_page()
@@ -1018,8 +1028,7 @@ class ESCParser:
             # up movement sent
             value -= 2**16
 
-        unit = self.defined_unit if self.defined_unit else 1 / 360
-        movement_amplitude = value * unit
+        movement_amplitude = value * self.vertical_unit
 
         if movement_amplitude < 0 and -movement_amplitude > 179 / 360:
             LOGGER.error(
@@ -1075,8 +1084,11 @@ class ESCParser:
         .. note:: ESC/P 2 only
         """
         value = args[1].value[0]
-
-        self.defined_unit = value / 3600
+        unit = value / 3600
+        # Legacy command: set all units with the same value
+        self.page_management_unit = unit
+        self.vertical_unit = unit
+        self.horizontal_unit = unit
 
     def set_18_line_spacing(self, *_):
         """Set the line spacing to 1/8 inch - ESC 0
@@ -3837,8 +3849,7 @@ class ESCParser:
 
         self._carriage_return()
 
-        unit = self.defined_unit if self.defined_unit else 1 / 360
-        self.cursor_y -= dot_offset * unit
+        self.cursor_y -= dot_offset * self.vertical_unit
 
     def clear_seed_row(self, *_):
         """Clear the seed row from the current color buffer - <CLR>
@@ -3888,7 +3899,7 @@ class ESCParser:
             THUS, we can use the ESC ( U setting here (and not in the MOVX command),
             since it can't be changed in the meantime (the command is not allowed).
         """
-        unit = self.defined_unit if self.defined_unit else 1 / 360
+        unit = self.horizontal_unit if self.horizontal_unit else 1 / 360
         self.movx_unit = dot_unit * unit
 
     def set_printing_color_ex(self, *args):
