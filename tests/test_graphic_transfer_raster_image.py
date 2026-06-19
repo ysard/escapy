@@ -81,6 +81,14 @@ def test_transfer_raster_image(tmp_path: Path):
         r : color of ink
         c : compression method
         b : bit length required for each pixel of image data
+
+    - With a bit length of 2, we need to send 8 bytes to get only 32 pixels
+      (2 bits are used for a pixel).
+    - With compression enabled, 0xFF is a counter used to repeat the next byte
+      twice. So a compressed pattern of 8*0xFF gives the same byte array once
+      decompressed.
+    - If bit length is 1, with disabled compression, we need only 4 bytes
+      for the same result (32 pixels).
     """
     code = [
         esc_reset,
@@ -128,6 +136,8 @@ def test_transfer_raster_image(tmp_path: Path):
         # relative vertical print position (1/180 inch)
         b"\x1b(v\x02\x00\x01\x00",
         # E: Black 1line (1 bit length : not dot size control, normal raster print)
+        # Send 4 bytes then white pixels to keep the same pattern since all
+        # bits in all bytes sent are used.
         b"\x1bi\x00\x00\x01" + b"\x08\x00\x01\x00" + b"\xFF\xFF\xFF\xFF\x00\x00\x00\x00",
         b"\x0d",
         # relative vertical print position (1/180 inch)
