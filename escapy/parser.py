@@ -1090,6 +1090,37 @@ class ESCParser:
         self.vertical_unit = unit
         self.horizontal_unit = unit
 
+    def set_unit_ex(self, _, token_pvh, token_base_unit):
+        """Set unit (extended) - ESC ( U
+
+        .. seealso:: :meth:`set_unit`.
+
+        Expected resolutions (dpi): 90, 120, 180, 360, 720, 1440, 2880, 5760
+
+        :param token_pvh: Dividers for page management units, vertical position units,
+            horizontal position units respectively.
+        :param token_base_unit: Dpi value divided by the dividers.
+        """
+        base_unit = int.from_bytes(token_base_unit.value, byteorder="little")
+
+        # Check that calculations give the expected dpi resolutions
+        expected_dpi = frozenset([90, 120, 180, 360, 720, 1440, 2880, 5760])
+        found_dpi = {base_unit / divider for divider in token_pvh.value}
+        if found_dpi - expected_dpi:
+            LOGGER.error(
+                "Unexpected PVH dpi dividers received: <%s> for base unit: %s",
+                token_pvh.value, base_unit
+            )
+            return
+
+        units = [divider / base_unit for divider in token_pvh.value]
+        self.page_management_unit, self.vertical_unit, self.horizontal_unit = units
+
+        LOGGER.debug(
+            "Units; page management: %.7f; vertical : %.7f; horizontal : %.7f",
+            self.page_management_unit, self.vertical_unit, self.horizontal_unit
+        )
+
     def set_18_line_spacing(self, *_):
         """Set the line spacing to 1/8 inch - ESC 0
 

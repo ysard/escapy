@@ -111,9 +111,9 @@ esc_grammar = r"""
 
         # Spacing
         | ESC SP HALF_BYTE_ARG              -> set_intercharacter_space
-        # TODO: see extended standard with nl = 4
         # 5, 10, 20, 30, 40, 50, 60
         | ESC "(U\x01\x00" /[\x05\x0a\x14\x1e\x28\x32\x3c]/ -> set_unit
+        | ESC "(U\x05\x00" /.{3}/ /.{2}/    -> set_unit_ex
 
 
         # Font enhancement
