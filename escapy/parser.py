@@ -3481,6 +3481,38 @@ class ESCParser:
         value = args[1].value[0]
         self.microweave_mode = value in (1, 49)
 
+    def set_raster_resolution(self, _, token_base_unit, token_vh):
+        """Set the raster image resolution (extended) - ESC ( D
+
+        - Influences the processing of data by the ESC i command.
+          ESC . commands set the resolutions themselves.
+        - Settings are returned to the initial states by the ESC @
+          and the ESC ( G commands.
+
+        Expected resolutions (dpi): 120, 360, 720
+
+        :param token_vh: Dividers for vertical position units and
+            horizontal position units respectively.
+        :param token_base_unit: Dpi value divided by the dividers.
+        """
+        base_unit = int.from_bytes(token_base_unit.value, "little")
+
+        v_div, h_div = token_vh.value
+        v_dpi, h_dpi = (base_unit / divider for divider in (v_div, h_div))
+
+        if {v_dpi, h_dpi} - {120, 360, 720}:
+            LOGGER.error(
+                "Unexpected dpi dividers received: %s for base unit %s",
+                token_vh.value,
+                base_unit,
+            )
+            return
+
+        self.vertical_resolution = v_div / base_unit
+        self.horizontal_resolution = h_div / base_unit
+
+        LOGGER.debug("Set raster resolution (dpi): %s x %s", v_dpi, h_dpi)
+
     def print_raster_graphics(self, *args):
         """Print raster graphics - ESC .
 
