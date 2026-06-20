@@ -89,6 +89,11 @@ def test_transfer_raster_image(tmp_path: Path):
       decompressed.
     - If bit length is 1, with disabled compression, we need only 4 bytes
       for the same result (32 pixels).
+
+    .. note:: The original program has been taken from xp410 doc; p24.
+        Additional lines after E, has been added.
+        To ensure accurate rendering, this code relies on a nozzle offset
+        correction algorithm (default color mode).
     """
     code = [
         esc_reset,
@@ -124,18 +129,18 @@ def test_transfer_raster_image(tmp_path: Path):
         b"\x0d",
         # relative vertical print position (1/180 inch)
         b"\x1b(v\x02\x00\x01\x00",
-        # E: Black 1line, compression  (b01 small dots)
+        # F: Black 1line, compression  (b01 small dots)
         b"\x1bi\x00\x01\x02" + b"\x08\x00\x01\x00" + b"\xFF\x55\xFF\x55\xFF\x55\xFF\x55",
         b"\x0d",
         # relative vertical print position (1/180 inch)
         b"\x1b(v\x02\x00\x01\x00",
-        # E: Black 1line, compression
+        # G: Black 1line, compression
         # (b00 no dot, then b01 1 small dot each last 2 bytes (repeated twice))
         b"\x1bi\x00\x01\x02" + b"\x08\x00\x01\x00" + b"\xFF\x00\xFF\x00\xFF\x00\xFF\x01",
         b"\x0d",
         # relative vertical print position (1/180 inch)
         b"\x1b(v\x02\x00\x01\x00",
-        # E: Black 1line (1 bit length : not dot size control, normal raster print)
+        # H: Black 1line (1 bit length : not dot size control, normal raster print)
         # Send 4 bytes then white pixels to keep the same pattern since all
         # bits in all bytes sent are used.
         b"\x1bi\x00\x00\x01" + b"\x08\x00\x01\x00" + b"\xFF\xFF\xFF\xFF\x00\x00\x00\x00",
