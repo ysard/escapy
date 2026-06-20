@@ -185,7 +185,7 @@ esc_grammar = r"""
         | ESC "(D\x04\x00" /.{2}/ /.{2}/             -> set_raster_resolution
         # Should only be available in graphics mode
         | ESC "(r\x02\x00\x00" /[\x00-\x04]/         -> set_printing_color
-        # Not implemented, should be invisible (just ignore set color commands)
+        # NOTE: There is an error in the docs (nL = 2)
         | ESC "(K\x02\x00\x00" /[\x00\x01\x02]/      -> set_monochrome_color_mode
         # Not implemented
         | ESC ACK                                    -> flush_buffers

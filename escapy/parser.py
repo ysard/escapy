@@ -381,6 +381,7 @@ class ESCParser:
         # Graphics #############################################################
         self.graphics_mode = False
         self.microweave_mode = False
+        self.monochrome_mode = False
         # Delta Row compression
         self.delta_row_graphics_mode = False
         self.seed_rows = None
@@ -3513,6 +3514,21 @@ class ESCParser:
 
         LOGGER.debug("Set raster resolution (dpi): %s x %s", v_dpi, h_dpi)
 
+    def set_monochrome_color_mode(self, _, token):
+        """Set monochrome / color modes (extended) - ESC ( K
+
+        This setting is used to simulate the differential activation of nozzles
+        (in number and position) on certain printer models, depending on whether
+        they are in monochrome or color mode.
+
+        .. seealso:: :meth:`get_nozzle_offset`.
+
+        Todo: When monochrome mode is selected, the color selection commands
+          ESC r and ESC (r are ignored.
+        """
+        self.monochrome_mode = token.value == b"\x01"
+        LOGGER.debug("Monochrome: %s", self.monochrome_mode)
+
     def transfer_raster_image(self, _, token_header, token_data):
         """Transfer raster image (extended) - ESC i
 
@@ -4586,6 +4602,8 @@ class ESCParser:
         """
         self.graphics_mode = False
         self.microweave_mode = False
+        self.monochrome_mode = False
+        self.color = 0
 
         # Cancel HMI set_horizontal_motion_index() ESC c command,
         # Cancel multipoint mode,
