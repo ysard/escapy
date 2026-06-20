@@ -3513,6 +3513,39 @@ class ESCParser:
 
         LOGGER.debug("Set raster resolution (dpi): %s x %s", v_dpi, h_dpi)
 
+    def transfer_raster_image(self, _, token_header, token_data):
+        """Transfer raster image (extended) - ESC i
+
+        Print dot graphics in raster format.
+
+        Reminder of the structure of the header:
+
+            r : Color of ink
+            c : Compression method
+            b : Bit length required for each pixel of image data
+
+        .. seealso:: :meth:`print_raster_graphics_dots` if bit length is 1,
+            :meth:`print_raster_graphics_dots_2bpp` if bit length is 2.
+        """
+        color, compression_status, bit_length, h_byte_count, v_dot_count = (
+            unpack("<BBBHH", token_header.value)
+        )
+        LOGGER.debug(
+            "color: %s; compression: %s, bit_len: %s, h_byte_count: %s, v_dot_count: %s",
+            color, compression_status, bit_length, h_byte_count, v_dot_count
+        )
+        self.color = color
+
+        data = token_data.value
+        if compression_status:
+            data = self.decompress_rle_data(data)
+
+        self.bytes_per_line = h_byte_count
+        if bit_length == 1:
+            self.print_raster_graphics_dots(data)
+        else:
+            self.print_raster_graphics_dots_2bpp(data)
+
     def print_raster_graphics(self, *args):
         """Print raster graphics - ESC .
 
@@ -3678,6 +3711,95 @@ class ESCParser:
         # adjusted to reflect the number of the set bits in the last byte.
         printed_dots = h_dot_count if h_dot_count else column_offset - 8 + i
         self.cursor_x = printed_dots * horizontal_resolution
+
+    def print_raster_graphics_dots_2bpp(self, data: bytearray):
+        """Print the dots in the given bytes (2 bits per pixel)
+
+        - With a bit length of 2, we need to send 8 bytes to get only 32 pixels
+          (2 bits are used for a pixel).
+        - For every 2 bits of data, 1 dot may be printed at the pixel location
+          for those 2 bits:
+
+            - 00: No dot
+            - 01: Small dot
+            - 10: Medium dot
+            - 11: Large dot
+
+        .. seealso:: XP410 doc p54.
+
+        :param data: Raw data (not compressed).
+        """
+        code = self.current_pdf._code
+
+        horizontal_resolution = self.horizontal_resolution
+        vertical_resolution = self.vertical_resolution
+
+        cursor_x = self.cursor_x
+        cursor_y = self.cursor_y
+
+        linewidth = horizontal_resolution * 72 * 1.28
+
+        dot_sizes = {
+            1: round(linewidth * 0.50, 2),  # small
+            2: round(linewidth * 1.00, 2),  # medium
+            3: round(linewidth * 1.50, 2),  # large
+        }
+
+        def chunk_this(iterable, length):
+            iterator = iter(iterable)
+            for _ in range(0, len(iterable), length):
+                yield tuple(it.islice(iterator, length))
+
+        y_pos = cursor_y
+        pixel_count = 0
+
+        for line_bytes in chunk_this(data, self.bytes_per_line):
+            # Group the dots by size. This limits the changes of linewidth
+            # setting, thus, the PDF size.
+            paths = {
+                1: [],
+                2: [],
+                3: [],
+            }
+
+            column_offset = 0
+
+            cy = "{:.2f}".format(y_pos * 72).rstrip("0")
+
+            for byte in line_bytes:
+                for pixel_idx in range(4):
+                    # Consume the bits 2 by 2, starting from the MSB
+                    shift = 6 - pixel_idx * 2
+                    dot_type = (byte >> shift) & 0x03
+
+                    if not dot_type:
+                        continue
+
+                    x_pos = cursor_x + (column_offset + pixel_idx) * horizontal_resolution
+
+                    cx = "{:.2f}".format(x_pos * 72).rstrip("0")
+
+                    paths[dot_type].append(
+                        f"{cx} {cy} m {cx} {cy} l"
+                    )
+
+                column_offset += 4
+
+            pixel_count = column_offset
+            y_pos -= vertical_resolution
+
+            # Dump groups of dots
+            for dot_type, segments in paths.items():
+                if not segments:
+                    continue
+
+                code.append(f"1 J {dot_sizes[dot_type]} w")
+                code.extend(segments)
+                code.append("S")
+
+        # NOTE: If padding bits have to be considered, prefer this:
+        # horizontal_pixels = h_byte_count * 4
+        self.cursor_x = pixel_count * horizontal_resolution
 
     @staticmethod
     def decompress_rle_data(compressed_data: bytearray) -> bytearray:

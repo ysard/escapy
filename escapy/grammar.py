@@ -18,6 +18,7 @@
 # Standard imports
 from logging import DEBUG
 from itertools import islice
+from struct import unpack
 
 # Custom imports
 from lark import Lark, Token, UnexpectedToken
@@ -96,8 +97,8 @@ esc_grammar = r"""
         | ESC "J" BYTE_ARG                  -> advance_print_position_vertically
         # not implemented: deleted command
         | ESC "j" BYTE_ARG                  -> reverse_paper_feed
-        # not implemented: deleted command
-        | ESC "i" BIN_ARG                   -> set_immediate_print_mode
+        # not implemented: deleted command, replaced by transfer_raster_image
+        # | ESC "i" BIN_ARG                   -> set_immediate_print_mode
 
 
         # Font selection
@@ -190,6 +191,7 @@ esc_grammar = r"""
         | ESC ACK                                    -> flush_buffers
         # Variable
         | ESC "." PRINT_RASTER_GRAPHICS_HEADER DATA+ -> print_raster_graphics
+        | ESC "i" TRANSFER_RASTER_IMAGE_HEADER DATA+ -> transfer_raster_image
         # Variable
         | ESC SELECT_XDPI_GRAPHICS_CMD SELECT_XDPI_GRAPHICS_HEADER DATA -> select_xdpi_graphics
         # Variable
@@ -297,6 +299,7 @@ esc_grammar = r"""
     PRINT_DATA_AS_CHARACTERS_HEADER: /.[\x00-\x7f]/
     PRINT_RASTER_GRAPHICS_HEADER: /[\x00\x01][\x05\x0A\x14\x1e]{2}[\x01\x08\x09\x10\x18].[\x00-\x1f]/
     PRINT_TIFF_RASTER_GRAPHICS_HEADER: /[\x02\x03][\x05\x0A\x14\x1e]{2}\x01\x00\x00/
+    TRANSFER_RASTER_IMAGE_HEADER: /.[\x00\x01][\x01\x02]..../
     SELECT_XDPI_GRAPHICS_HEADER: /.[\x00-\x1f]/
     BARCODE_HEADER: /.[\x00-\x1f][\x00-\x07][\x02-\x05]..[\x00-\x1f]./
 
@@ -327,6 +330,50 @@ esc_grammar = r"""
     %import common.INT -> NUMBER
     %import common.ESCAPED_STRING   -> STRING
 """
+
+
+def decompress_rle_data(
+    iter_data, expected_decompressed_bytes
+) -> tuple[bytearray, int]:
+    """Decompress the given data bytes (TIFF decompression)
+
+    During compressed mode, the first byte of data must be a counter.
+    If the counter is positive, it is treated as a data-length counter.
+    If the counter is negative (as determined by two’s complement),
+    it is treated as a repeat counter.
+
+    In the first case, the printer read as is the number of bytes specified.
+    In the last case, the printer repeats the following byte of data the
+    specified number of times.
+
+    :param iter_data: Iterator over the data stream.
+    :param expected_decompressed_bytes: The number of bytes that should be
+        decompressed. Iterating on iter_data stops when this number is reached.
+    :type iter_data: Iterator[bytearray]
+    :type expected_decompressed_bytes: int
+    :return: Tuple of decompressed data, and number of bytes read.
+    """
+    decompressed_data = bytearray()
+    bytes_read = 0
+    for counter in iter_data:
+        if counter & 0x80:
+            # Repeat counters: number of times to repeat data
+            repeat = 256 - counter + 1
+            decompressed_data += (next(iter_data)).to_bytes(1) * repeat
+            bytes_read += 1
+        else:
+            # Data-length counters: number of data bytes to follow
+            block_length = counter + 1
+            decompressed_data += bytearray(islice(iter_data, block_length))
+            bytes_read += block_length
+
+        bytes_read += 1
+
+        if len(decompressed_data) == expected_decompressed_bytes:
+            # We have all the data we needed
+            break
+
+    return decompressed_data, bytes_read
 
 
 def parse_from_stream(parser, code, *args, start=None, **kwargs):
@@ -394,6 +441,27 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
                 expected_bytes = v_dot_count_m * int((h_dot_count + 7) / 8)
 
                 LOGGER.debug("Expect %d bytes", expected_bytes)
+                data_token_flag = True
+
+            elif token.type == "TRANSFER_RASTER_IMAGE_HEADER":
+                compression_status, _, h_byte_count, v_dot_count = unpack(
+                    "<BBHH", token.value[1:]
+                )
+                expected_decompressed_bytes = h_byte_count * v_dot_count
+
+                if compression_status == 1:
+                    # RLE/TIFF compression
+                    token_start_pos = interactive.lexer_thread.state.line_ctr.char_pos
+                    iter_data = iter(interactive.lexer_thread.state.text[token_start_pos:])
+                    data, expected_bytes = decompress_rle_data(
+                        iter_data,
+                        expected_decompressed_bytes
+                    )
+                    # LOGGER.debug("Expect %d bytes", expected_bytes)
+                else:
+                    # No compression
+                    expected_bytes = expected_decompressed_bytes
+
                 data_token_flag = True
 
             elif token.type == "BARCODE_HEADER":
