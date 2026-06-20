@@ -75,10 +75,13 @@ def test_no_loglevel(tmp_path: Path, capsys, set_loglevel: None):
         # (not supported as a control code, but supported as a printable char)
         # Test in 9 pins mode because by default thos characters are printed in ESCP2 mode
         (b"\x11", "select_printer", 9),
+        # ESC (m : Set print mode
+        (b"\x1b(m\x01\x00\xff", "Tree('set_print_method'", None)
     ],
     ids=[
         "NS_set_unidirectional_mode",
         "NS_select_printer",
+        "NS_set_print_method",
     ],
 )
 def test_not_implemented_command(
