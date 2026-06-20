@@ -46,6 +46,7 @@ esc_grammar = r"""
         # Implemented nethertheless (it's a control code that can be printable)
         | DC1                   -> select_printer
         | DC3                   -> deselect_printer
+        | ESC "(m\x01\x00" /./  -> set_print_method
 
         # Paper feeding
         | ESC EM /[0124BFR]/    -> control_paper_loading_ejecting
