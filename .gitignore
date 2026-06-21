@@ -36,6 +36,7 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+debian/escapy/
 
 # Installer logs
 pip-log.txt
