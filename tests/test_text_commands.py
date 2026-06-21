@@ -724,6 +724,8 @@ def test_international_charsets(
 
     Custom encoding/decoding codecs are tested here.
     """
+    test_id = f"[{request.node.callspec.id}]"
+
     point_8 = b"\x1bX\x00\x10\x00"  # 0x10 => 16 / 2 = 8
     roman = b"\x1b\x6b\x00"
     select_international_charset_prefix = b"\x1bR"
@@ -740,14 +742,13 @@ def test_international_charsets(
         # lines.append(select_international_charset_prefix + b"\x00")
 
     code = b"\r\n".join(lines)
-    processed_file = tmp_path / "test_international_charset_tables.pdf"
+    processed_file = tmp_path / f"test_international_charset_tables{test_id}.pdf"
     escapy = ESCParser(code, output_file=processed_file)
 
     # Check that the base encoding is in use
     found_encoding = escapy.character_tables[escapy.character_table]
     assert found_encoding == encoding
 
-    test_id = request.node.callspec.id
     pdf_comparison(processed_file, test_id)
 
 

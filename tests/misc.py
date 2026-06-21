@@ -139,20 +139,20 @@ def pdf_comparison(processed_file: Path, test_id: str = ""):
     :param processed_file: Test file Path object. Its name is used to make
         the comparison with an expected file with the same name, expected in
         the test_data directory.
-    :key test_id: Current test id used to name the test file if the same
-        reference file is used in multiple tests.
+    :key test_id: Current test id used to get the reference file from the
+        processed file name.
         This prevents unwanted override accross tests (at least in the same
         parametrized test).
     """
     # Keep track of the generated file in /tmp in case of error
     if test_id:
-        backup_name = processed_file.with_stem(f"{processed_file.stem}{test_id}").name
+        reference_file = Path(DIR_DATA) / processed_file.name.replace(test_id, "")
     else:
-        backup_name = processed_file.name
-    backup_file = Path("/tmp") / backup_name
-    backup_file.write_bytes(processed_file.read_bytes())
+        reference_file = Path(DIR_DATA) / processed_file.name
 
-    ret = is_similar_pdfs(Path(DIR_DATA + processed_file.name), processed_file)
+    ret = is_similar_pdfs(reference_file, processed_file)
+    if not ret:
+        backup_file = Path("/tmp") / processed_file.name
+        backup_file.write_bytes(processed_file.read_bytes())
+
     assert ret, f"Problematic file is saved at <{backup_file}> for further study."
-    # All is ok => delete the generated file
-    backup_file.unlink()

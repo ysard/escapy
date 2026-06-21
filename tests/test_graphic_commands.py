@@ -480,7 +480,9 @@ def test_print_raster_graphics(
 
     Data examples from the doc p313.
     """
-    processed_file = tmp_path / "test_raster_graphics_compress_no_and_rle.pdf"
+    test_id = f"[{request.node.callspec.id}]"
+
+    processed_file = tmp_path / f"test_raster_graphics_compress_no_and_rle{test_id}.pdf"
     escapy = ESCParser(format_databytes, output_file=processed_file)
 
     assert escapy.horizontal_resolution == 1 / 180
@@ -488,7 +490,6 @@ def test_print_raster_graphics(
     assert escapy.bytes_per_line == int((72 + 7) / 8)
     assert escapy.double_speed is False
 
-    test_id = request.node.callspec.id
     pdf_comparison(processed_file, test_id)
 
 
