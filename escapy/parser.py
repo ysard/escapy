@@ -3504,9 +3504,9 @@ class ESCParser:
         v_div, h_div = token_vh.value
         v_dpi, h_dpi = (base_unit / divider for divider in (v_div, h_div))
 
-        if {v_dpi, h_dpi} - {120, 360, 720}:
+        if {v_dpi, h_dpi} - {90, 120, 180, 360, 720}:
             LOGGER.error(
-                "Unexpected dpi dividers received: %s for base unit %s",
+                "Unexpected VH dpi dividers received: %s for base unit %s",
                 token_vh.value,
                 base_unit,
             )
