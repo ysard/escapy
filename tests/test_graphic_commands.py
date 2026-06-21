@@ -469,7 +469,11 @@ def get_raster_data_1dot():
         "24dots_v_band_microweave",
     ],
 )
-def test_print_raster_graphics(format_databytes: bytes, tmp_path: Path):
+def test_print_raster_graphics(
+    format_databytes: bytes,
+    tmp_path: Path,
+    request: "_pytest.fixtures.FixtureRequest"
+):
     """Test raster graphics 0 and 1 modes (no compress, RLE compress modes)
 
     Cover ESC . 0, ESC . 1 commands
@@ -484,7 +488,8 @@ def test_print_raster_graphics(format_databytes: bytes, tmp_path: Path):
     assert escapy.bytes_per_line == int((72 + 7) / 8)
     assert escapy.double_speed is False
 
-    pdf_comparison(processed_file)
+    test_id = request.node.callspec.id
+    pdf_comparison(processed_file, test_id)
 
 
 @pytest.mark.parametrize(

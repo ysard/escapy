@@ -715,7 +715,11 @@ def test_charset_tables(tmp_path: Path):
         "brascii",
     ],
 )
-def test_international_charsets(tmp_path: Path, assign_table_cmd, encoding):
+def test_international_charsets(
+    tmp_path: Path, assign_table_cmd: bytes,
+    encoding: str,
+    request: "_pytest.fixtures.FixtureRequest"
+):
     """Test injection of 12 characters in the current character table (1 by default) - ESC R
 
     Custom encoding/decoding codecs are tested here.
@@ -743,7 +747,8 @@ def test_international_charsets(tmp_path: Path, assign_table_cmd, encoding):
     found_encoding = escapy.character_tables[escapy.character_table]
     assert found_encoding == encoding
 
-    pdf_comparison(processed_file)
+    test_id = request.node.callspec.id
+    pdf_comparison(processed_file, test_id)
 
 
 def test_custom_codec():

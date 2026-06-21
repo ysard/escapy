@@ -131,7 +131,7 @@ def format_databytes(request):
     return databytes
 
 
-def pdf_comparison(processed_file: Path):
+def pdf_comparison(processed_file: Path, test_id: str = ""):
     """Wrapper to compare two PDFs files
 
     In case of error, the wrong pdf and the diff file will be copied in /tmp/.
@@ -139,9 +139,17 @@ def pdf_comparison(processed_file: Path):
     :param processed_file: Test file Path object. Its name is used to make
         the comparison with an expected file with the same name, expected in
         the test_data directory.
+    :key test_id: Current test id used to name the test file if the same
+        reference file is used in multiple tests.
+        This prevents unwanted override accross tests (at least in the same
+        parametrized test).
     """
     # Keep track of the generated file in /tmp in case of error
-    backup_file = Path("/tmp/" + processed_file.name)
+    if test_id:
+        backup_name = processed_file.with_stem(f"{processed_file.stem}{test_id}").name
+    else:
+        backup_name = processed_file.name
+    backup_file = Path("/tmp") / backup_name
     backup_file.write_bytes(processed_file.read_bytes())
 
     ret = is_similar_pdfs(processed_file, Path(DIR_DATA + processed_file.name))
