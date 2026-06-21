@@ -477,6 +477,8 @@ class ESCParser:
             In this mode for ESCP2, only Black, Cyan, Magenta, Yellow are available.
             Non-ESCP2 printers can use any color.
         """
+        if color == self._color:
+            return
         if color >= len(self.CMYK_colors):  # pragma: no cover
             # Color doesn't exist: ignore the command
             LOGGER.error("Color id %s is unknown! Ignore.", color)
@@ -3459,6 +3461,7 @@ class ESCParser:
         """
         self.graphics_mode = True
         self.microweave_mode = False
+        self.color = 0
 
         # Clear tab settings
         self.horizontal_tabulations = [0] * 32
