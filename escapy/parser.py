@@ -478,6 +478,10 @@ class ESCParser:
             Non-ESCP2 printers can use any color.
         """
         if color == self._color:
+            # During a next page change / form feed, color is reset.
+            # If the color is already set to default, it's useless to add PDF
+            # directives. Those directives will force a blank page to be generated
+            # even if there is no data in the page.
             return
         if color >= len(self.CMYK_colors):  # pragma: no cover
             # Color doesn't exist: ignore the command
