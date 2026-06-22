@@ -34,17 +34,20 @@ from .misc import esc_reset, cancel_bold
 # Inject test typefaces
 ESCParser = partial(_ESCParser, available_fonts=typefaces)
 
+AH_header = b"\x1b$"
+RH_header = b"\x1b\\"
 RV_header = b"\x1b(v\x02\x00"
 RV_ex_header = b"\x1b(v\x04\x00"
 AV_header = b"\x1b(V\x02\x00"
 AV_ex_header = b"\x1b(V\x04\x00"
+set_unit_header = b"\x1b(U\x01"
 
 
 @pytest.mark.parametrize(
     "format_databytes",
     [
         # ESC ( U - 70/3600 is a not allowed value
-        b"\x1b(U\x01\x00\x46" + cancel_bold,
+        set_unit_header + b"\x00\x46" + cancel_bold,
         # Set page length in the current line spacing exceeding 0x7f - ESC C
         b"\x1bC\x80",
         # page length in the current line spacing, exceeding 22inch - ESC C NUL
@@ -69,8 +72,8 @@ def test_wrong_commands(format_databytes: bytes):
     [
         # Expect different default values for P,V,H units
         (b"" + cancel_bold, (1 / 360, 1 / 360, None)),
-        (b"\x1b(U\x01\x00\x05" + cancel_bold, 5 / 3600),
-        (b"\x1b(U\x01\x00\x14" + cancel_bold, 20 / 3600),
+        (set_unit_header + b"\x00\x05" + cancel_bold, 5 / 3600),
+        (set_unit_header + b"\x00\x14" + cancel_bold, 20 / 3600),
         # Extended version
         # 720 / 3 = 240 dpi: refused, expect only few values: keep default values
         (
@@ -215,7 +218,7 @@ def test_set_bottom_margin(format_databytes, single_sheet, expected_bottom_margi
         (b"\x1b(c\x04\x00\x08\x02\x78\x0f", A4, (10.24846894138233, 0.692913385826774)),
         # Prepend ESC ( U to set defined unit to 2 / 360
         # hex(11*360/2): 0x7bc
-        (b"\x1b(U\x01\x00\x14" + b"\x1b(c\x04\x00\x08\x02\xbc\x07", A4, (8.804024496937885, 0.692913385826774)),
+        (set_unit_header + b"\x00\x14" + b"\x1b(c\x04\x00\x08\x02\xbc\x07", A4, (8.804024496937885, 0.692913385826774)),
         # top margin >= bottom margin: error, fixed with printable area values
         (b"\x1b(c\x04\x00\x00\x02\x00\x01", A4, (11.442913385826774, 0.25)),
         (b"\x1b(c\x04\x00\x08\x02\x08\x02", A4, (11.442913385826774, 0.25)),
@@ -278,7 +281,7 @@ def test_set_page_format(format_databytes, page_size, expected_margins):
         (b"\x1b(C\x02\x00\x78\x0f", 11),
         # Prepend ESC ( U to set defined unit to 2 / 360
         # hex(11*360/2): 0x7bc
-        (b"\x1b(U\x01\x00\x14" + b"\x1b(C\x02\x00\xbc\x07", 11),
+        (set_unit_header + b"\x00\x14" + b"\x1b(C\x02\x00\xbc\x07", 11),
         # hex(23*360): 0x2058
         # Send a 23inch page length: > 22 inch
         # This value is outside the accepted area, the value will be set to 22.
@@ -379,56 +382,56 @@ def test_set_page_length_inches(format_databytes, expected):
     [
         # Absolute horizontal position - ESC $
         # 1 inch (60/60) for default unit (all models): 1/60
-        (b"\x1b$\x3c\x00", None, 1, 0),
-        (b"\x1b$\x3c\x00", 9, 1, 0),
+        (AH_header + b"\x3c\x00", None, 1, 0),
+        (AH_header + b"\x3c\x00", 9, 1, 0),
         # Prepend ESC ( U to set defined unit to 2/360
         # hex(1*360//2): 0xb4 = 180
-        (b"\x1b(U\x01\x00\x14" + b"\x1b$\xb4\x00", None, 1, 0),
+        (set_unit_header + b"\x00\x14" + AH_header + b"\xb4\x00", None, 1, 0),
         # Prepend ESC ( U to set defined unit to 2/360
         # Outside right margin hex(60*360//2) 60.25inch: ignored
-        (b"\x1b(U\x01\x00\x14" + b"\x1b$\x30\x2a", None, 0, 0),
+        (set_unit_header + b"\x00\x14" + AH_header + b"\x30\x2a", None, 0, 0),
         # defined unit is ignored on 9 pins printers:
         # => same value as it is with a 1/60 unit
-        (b"\x1b(U\x01\x00\x14" + b"\x1b$\x3c\x00", 9, 1, 0),
+        (set_unit_header + b"\x00\x14" + AH_header + b"\x3c\x00", 9, 1, 0),
         #
         # Absolute horizontal position - ESC ( $
         # Set unit to 1/180 (accepted since we use an extended command); +1inch
-        (b"\x1b(U\x01\x00\x14" + b"\x1b($\x04\x00" + pack("<I", 180), None, 1, 0),
+        (set_unit_header + b"\x00\x14" + b"\x1b($\x04\x00" + pack("<I", 180), None, 1, 0),
         #
         # Relative horizontal position - ESC \
         # +2inch absolute, then -1inch relative (-180/180) = 1inch
         # default unit: 1/180
-        (b"\x1b$\x78\x00" + b"\x1b\\" + pack("<h", -180), None, 1, 0),
+        (AH_header + b"\x78\x00" + RH_header + pack("<h", -180), None, 1, 0),
         # 9 pins default unit: 1/120
         # +2inch absolute, then -120/120
-        (b"\x1b$\x78\x00" + b"\x1b\\" + pack("<h", -120), 9, 1, 0),
+        (AH_header + b"\x78\x00" + RH_header + pack("<h", -120), 9, 1, 0),
         # Prepend ESC ( U to set defined unit to 2/360
         # +2inch absolute, then -180/180
-        (b"\x1b$\x78\x00" + b"\x1b(U\x01\x00\x14" + b'\x1b\\' + pack("<h", -180), None, 1, 0),
+        (AH_header + b"\x78\x00" + set_unit_header + b"\x00\x14" + b'\x1b\\' + pack("<h", -180), None, 1, 0),
         # In left margin -400/180inch ~ 2.22: ignored
         # +2inch absolute, then -2.22inch
-        (b"\x1b$\x78\x00" + b"\x1b\\" + pack("<h", -400), None, 2, 0),
+        (AH_header + b"\x78\x00" + RH_header + pack("<h", -400), None, 2, 0),
         # Outside right margin outside printable area (page limit = 8.26, default right margin: 8.01)
         # +8inch relative ( 8*180/180), result: 8.25: ignored
-        (b"\x1b\\" + pack("<h", 1440), None, 0, 0),
+        (RH_header + pack("<h", 1440), None, 0, 0),
         # In the right margin, before the printablea area
         # Define the right margin at 3 cols, send 7inch relative (7*180/180): 7.25: accepted
-        (b"\x1bQ\x03" + b"\x1b\\" + pack("<h", 1260), None, 7, 0),
+        (b"\x1bQ\x03" + RH_header + pack("<h", 1260), None, 7, 0),
         #
         # Relative horizontal position - ESC ( / (extended)
         # Default unit: 1/60
         # +2inch absolute, then -60/60
-        (b"\x1b$\x78\x00" + b"\x1b(/" + pack("<i", -60), None, 1, 0),
+        (AH_header + b"\x78\x00" + b"\x1b(/" + pack("<i", -60), None, 1, 0),
         # Prepend ESC ( U to set defined unit to 2/360
         # Changed unit: 1/180
-        (b"\x1b$\x78\x00" + b"\x1b(U\x01\x00\x14" + b'\x1b(/' + pack("<i", -180), None, 1, 0),
+        (AH_header + b"\x78\x00" + set_unit_header + b"\x00\x14" + b'\x1b(/' + pack("<i", -180), None, 1, 0),
         #
         # Absolute vertical position - ESC ( V
         # 1 inch below top margin 360 (360/360) for default unit: 1/360
         (AV_header + pack("<H", 360), None, 0, -1),
         # Prepend ESC ( U to set defined unit to 2/360
         # 1 inch below top margin 180 (180/180)
-        (b"\x1b(U\x01\x00\x14" + AV_header + pack("<H", 180), None, 0, -1),
+        (set_unit_header + b"\x00\x14" + AV_header + pack("<H", 180), None, 0, -1),
         # 12 inch below top margin: next page
         (AV_header + pack("<H", 12 * 360), None, 0, 0),
         # 1 inch below top margin, then 1/360 inch below top margin:
@@ -454,7 +457,7 @@ def test_set_page_length_inches(format_databytes, expected):
         (RV_header + pack("<h", 360) + RV_header + pack("<h", -360), None, 0, -1),
         # Prepend ESC ( U to set defined unit to 2/360
         # 1 inch down
-        (b"\x1b(U\x01\x00\x14" + RV_header + pack("<h", 180), None, 0, -1),
+        (set_unit_header + b"\x00\x14" + RV_header + pack("<h", 180), None, 0, -1),
         #
         # Relative vertical position - ESC ( v (extended)
         # 1 inch down (360/360) for default unit: 1/360
