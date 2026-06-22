@@ -988,98 +988,147 @@ class ESCParser:
 
         self.cursor_x = cursor_x
 
-    def set_absolute_vertical_print_position(self, _, mL, mH):
+    def _is_invalid_upward_movement(self, delta_y: float | int) -> bool:
+        """Return True if an upward movement must be rejected"""
+        if delta_y >= 0:
+            return False
+
+        if self.compatibility_mode == EscpCompatibility.STRICT_MODERN:
+            LOGGER.error(
+                "set absolute cursor_y movement upwards (%s)! => ignored",
+                delta_y,
+            )
+            return True
+
+        invalid_delta_y = -delta_y > 179 / 360
+        if invalid_delta_y:
+            LOGGER.error(
+                "set absolute cursor_y movement upwards too big (%s)! => ignored",
+                delta_y,
+            )
+        return invalid_delta_y
+
+    def _apply_vertical_position(self, cursor_y: float | int) -> bool:
+        """Validate and apply the given vertical position regarding the bottom margin"""
+        if cursor_y < self.bottom_margin:
+            self.next_page()
+            return False
+
+        self.cursor_y = cursor_y
+        return True
+
+    def set_absolute_vertical_print_position(self, _, token):
         """Moves the vertical print position to the position specified - ESC ( V
 
-        .. note:: ESCP2 only
+        - Default defined unit for this command is 1/360 inch.
+        - The new position is measured in defined units from the current
+          top-margin position.
 
-        default defined unit for this command is 1/360 inch.
-        The new position is measured in defined units from the current top-margin position.
+        The command exists in two forms:
+
+            - Legacy form (2-byte parameter)
+            - Extended form (4-byte parameter)
+
+        Compatibility handling:
+
+            - In legacy compatibility modes, negative movements are accepted
+              according to early ESC/P2 specifications, limited to an upward
+              movement 179/360-inch.
+
+            - Todo In legacy compatibility modes: negative movements are *NOT*
+              accepted after a graphics command is sent on the current line,
+              or above the point where graphics have previously been printed.
+
+            - In modern compatibility mode, upward movements are rejected,
+              matching later ESC/P2 documentation.
+
+            - When compatibility mode is AUTO, reception of an extended
+              command automatically switches the emulator to STRICT_MODERN.
 
         Moving the print position below the bottom-margin:
 
             - continuous paper: move vertical to top margin of next page
             - single-sheet paper: eject
 
-        Ignore this command under the following conditions:
-
-            - move the print position more than 179/360 inch in the negative direction
-            - Todo: move the print position in the negative direction after a
-              graphics command is sent on the current line, or above the point
-              where graphics have previously been printed
-
         .. note::
             Here we use a bottom-up configuration, thus the values must be
             changed in accordingly (origin is at the bottom => signs are inverted!).
         """
-        mL, mH = mL.value[0], mH.value[0]
-        value = (mH << 8) + mL
+        if len(token.value) == 4:
+            self.set_modern_compatibility()
+
+        # Absolute positioning is always decoded as an unsigned offset
+        # from the top margin.
+        # Handle both 2 bytes of legacy cmd and 4 bytes of extended cmd
+        value = int.from_bytes(token.value, byteorder="little")
 
         # sign inverted due to bottom-up
         cursor_y = -value * self.vertical_unit + self.top_margin
+        delta_y = self.cursor_y - cursor_y
 
-        if cursor_y < self.bottom_margin:
-            self.next_page()
+        if self._is_invalid_upward_movement(delta_y):
             return
 
-        movement_amplitude = self.cursor_y - cursor_y
-        if movement_amplitude < 0 and -movement_amplitude > 179 / 360:
-            LOGGER.error(
-                "set absolute cursor_y movement upwards too big (%s)! => ignored",
-                movement_amplitude,
-            )
-            return
+        self._apply_vertical_position(cursor_y)
 
-        self.cursor_y = cursor_y
-
-    def set_relative_vertical_print_position(self, _, mL, mH):
+    def set_relative_vertical_print_position(self, _, token):
         """Moves the vertical print position up or down from the current position - ESC ( v
 
-        .. note:: ESCP2 only
+        - Default defined unit for this command is 1/360 inch.
+        - The new position is measured in defined units from the current
+          top-margin position.
 
-        default defined unit for this command is 1/360 inch.
+        The command exists in two forms:
 
-        Ignore this command under the following conditions:
+            - Legacy form (2-byte parameter)
+            - Extended form (4-byte parameter)
 
-            - move the print position more than 179/360 inch in the negative direction
-            - Todo: move the print position in the negative direction after a
-            graphics command is sent on the current line, or above the point where graphics
-            have previously been printed
-            - would move the print position above the top-margin position
+        Compatibility handling:
+
+            - In legacy compatibility modes, negative movements are accepted
+              according to early ESC/P2 specifications, limited to an upward
+              movement 179/360-inch.
+
+            - Todo In legacy compatibility modes: negative movements are *NOT*
+              accepted after a graphics command is sent on the current line,
+              or above the point where graphics have previously been printed.
+
+            - In modern compatibility mode, upward movements are rejected,
+              matching later ESC/P2 documentation.
+
+            - When compatibility mode is AUTO, reception of an extended
+              command automatically switches the emulator to STRICT_MODERN.
+
+        Moving the print position below the bottom-margin:
+
+            - continuous paper: move vertical to top margin of next page
+            - single-sheet paper: eject
+
+        Moving the print position above the top-margin is not allowed.
 
         .. note::
             Here we use a bottom-up configuration, thus the values must be
             changed in accordingly (origin is at the bottom => signs are inverted!).
             From the original doc: positive = down movement, negative = up movement.
         """
-        mL, mH = mL.value[0], mH.value[0]
-        value = (mH << 8) + mL
-        # Test bit sign
-        if mH & 0x80:
-            # up movement sent
-            value -= 2**16
+        if len(token.value) == 4:
+            self.set_modern_compatibility()
 
-        movement_amplitude = value * self.vertical_unit
+        # Handle both 2 bytes of legacy cmd and 4 bytes of extended cmd
+        value = int.from_bytes(token.value, byteorder="little", signed=True)
+        delta_y = value * self.vertical_unit
 
-        if movement_amplitude < 0 and -movement_amplitude > 179 / 360:
-            LOGGER.error(
-                "set relative cursor_y movement upwards too big (%s)! => ignored",
-                movement_amplitude,
-            )
+        if self._is_invalid_upward_movement(delta_y):
             return
 
         # sign inverted due to bottom-up
-        cursor_y = -movement_amplitude + self.cursor_y
+        cursor_y = -delta_y + self.cursor_y
 
         if cursor_y > self.top_margin:
             LOGGER.error("set relative cursor_y above top-margin! => ignored")
             return
 
-        if cursor_y < self.bottom_margin:
-            self.next_page()
-            return
-
-        self.cursor_y = cursor_y
+        self._apply_vertical_position(cursor_y)
 
     def advance_print_position_vertically(self, *args):
         """Advance the vertical print position n/180 inch - ESC J
