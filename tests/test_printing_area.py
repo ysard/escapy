@@ -374,10 +374,11 @@ def test_set_page_length_inches(format_databytes, expected):
 
 
 @pytest.mark.parametrize(
+    # Offset are set without the top and left margins respectively
     "format_databytes, pins, x_offset, y_offset",
     [
         # Absolute horizontal position - ESC $
-        # 1 inch (60/60) for default unit: 1/60
+        # 1 inch (60/60) for default unit (all models): 1/60
         (b"\x1b$\x3c\x00", None, 1, 0),
         (b"\x1b$\x3c\x00", 9, 1, 0),
         # Prepend ESC ( U to set defined unit to 2/360
@@ -387,8 +388,12 @@ def test_set_page_length_inches(format_databytes, expected):
         # Outside right margin hex(60*360//2) 60.25inch: ignored
         (b"\x1b(U\x01\x00\x14" + b"\x1b$\x30\x2a", None, 0, 0),
         # defined unit is ignored on 9 pins printers:
-        # => same value as it is with a 1/6 unit
+        # => same value as it is with a 1/60 unit
         (b"\x1b(U\x01\x00\x14" + b"\x1b$\x3c\x00", 9, 1, 0),
+        #
+        # Absolute horizontal position - ESC ( $
+        # Set unit to 1/180 (accepted since we use an extended command); +1inch
+        (b"\x1b(U\x01\x00\x14" + b"\x1b($\x04\x00" + pack("<I", 180), None, 1, 0),
         #
         # Relative horizontal position - ESC \
         # +2inch absolute, then -1inch relative (-180/180) = 1inch
@@ -400,9 +405,23 @@ def test_set_page_length_inches(format_databytes, expected):
         # Prepend ESC ( U to set defined unit to 2/360
         # +2inch absolute, then -180/180
         (b"\x1b$\x78\x00" + b"\x1b(U\x01\x00\x14" + b'\x1b\\' + pack("<h", -180), None, 1, 0),
-        # Outside right margin -400/180inch ~ 2.22: ignored
+        # In left margin -400/180inch ~ 2.22: ignored
         # +2inch absolute, then -2.22inch
         (b"\x1b$\x78\x00" + b"\x1b\\" + pack("<h", -400), None, 2, 0),
+        # Outside right margin outside printable area (page limit = 8.26, default right margin: 8.01)
+        # +8inch relative ( 8*180/180), result: 8.25: ignored
+        (b"\x1b\\" + pack("<h", 1440), None, 0, 0),
+        # In the right margin, before the printablea area
+        # Define the right margin at 3 cols, send 7inch relative (7*180/180): 7.25: accepted
+        (b"\x1bQ\x03" + b"\x1b\\" + pack("<h", 1260), None, 7, 0),
+        #
+        # Relative horizontal position - ESC ( / (extended)
+        # Default unit: 1/60
+        # +2inch absolute, then -60/60
+        (b"\x1b$\x78\x00" + b"\x1b(/" + pack("<i", -60), None, 1, 0),
+        # Prepend ESC ( U to set defined unit to 2/360
+        # Changed unit: 1/180
+        (b"\x1b$\x78\x00" + b"\x1b(U\x01\x00\x14" + b'\x1b(/' + pack("<i", -180), None, 1, 0),
         #
         # Absolute vertical position - ESC ( V
         # 1 inch below top margin 360 (360/360) for default unit: 1/360
@@ -468,11 +487,18 @@ def test_set_page_length_inches(format_databytes, expected):
         "AH_1inch+defined_unit",
         "AH_60inch_ignored+defined_unit",
         "AH_not_ignored_9pins+defined_unit",
+        # Absolute horizontal position - ESC ( $ (extended)
+        "AH_ex_1inch",
         # Relative horizontal position - ESC \
         "RH_-1inch",
         "RH_-1inch_9pins",
         "RH_-1inch+defined_unit",
-        "RH_-60inch_ignored+defined_unit",
+        "RH_-in_left_margin_ignored",
+        "RH_outside_printeable_area",
+        "RH_in_right_margin",
+        # Relative horizontal position - ESC ( / (extended)
+        "RH_ex-1inch_default",
+        "RH_ex-1inch+defined_unit",
         # Absolute vertical position - ESC ( V
         "AV_1inch",
         "AV_1inch+defined_unit",
