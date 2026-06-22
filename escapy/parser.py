@@ -155,7 +155,7 @@ class ESCParser:
             find fonts on the system, according to dynamic styles in use.
             See :meth:`escapy.fonts.setup_fonts`.
         :key pins: Number of pins of the printer head (9, 24, 48, None).
-            Use None for default modern ESCP2 printers with nozzles. (default: None).
+            Use None for default modern ESC/P2 printers with nozzles. (default: None).
         :key printable_area_margins_mm: Define printable margins in mm.
             No printing is mechanically possible outside this area.
             The printing area is defined inside; it can be reduced via optional
@@ -197,7 +197,7 @@ class ESCParser:
         # Used to avoid set_font computations triggered by a chain of
         # attribute modifications; See ESC !
         self.set_font_lock = False
-        # Note: There are non-ESCP2 printers that have 24, 48 pins !
+        # Note: There are non-ESC/P2 printers that have 24, 48 pins !
         self.pins = pins
         # Render dots as circles or rectangles
         self.dots_as_circles = dots_as_circles
@@ -348,15 +348,15 @@ class ESCParser:
 
         # Page length setting
         #   effective only when you are using continuous paper.
-        #   Todo 9 pins + cut-sheets feeder = Single-sheets ESCP2
+        #   Todo 9 pins + cut-sheets feeder = Single-sheets ESC/P2
         if self.single_sheet_paper:
-            # Single-sheets ESCP2
+            # Single-sheets ESC/P2
             self.page_length = self.top_margin - self.bottom_margin
             # 9 pins & single sheets: physical = logical
             if self.pins == 9:
                 self.page_length = self.page_height
         else:
-            # Continuous paper ESCP2/ESCP
+            # Continuous paper ESC/P2 & ESC/P
             self.page_length = self.page_height
 
         LOGGER.debug("constructed page length: %s", self.page_length)
@@ -385,7 +385,7 @@ class ESCParser:
         # Allow set operations on control codes
         # This attr store the current character points that MUST NOT be printed
         # About default config:
-        #   ESCP2, ESCP: Codes are treated as printable characters
+        #   ESC/P2, ESC/P: Codes are treated as printable characters
         #   9pins: Codes are treated as control codes; All codes are filtered.
         #       => init with the largest set of codes
         if self.pins == 9:
@@ -498,8 +498,8 @@ class ESCParser:
         """Set the current color id
 
         .. note:: Also available during graphics mode selected with the ESC ( G command.
-            In this mode for ESCP2, only Black, Cyan, Magenta, Yellow are available.
-            Non-ESCP2 printers can use any color.
+            In this mode for ESC/P2, only Black, Cyan, Magenta, Yellow are available.
+            Non-ESC/P2 printers can use any color.
         """
         if color == self._color:
             # During a next page change / form feed, color is reset.
@@ -1133,7 +1133,7 @@ class ESCParser:
     def advance_print_position_vertically(self, *args):
         """Advance the vertical print position n/180 inch - ESC J
 
-        On non-ESC/P 2 printers:
+        On non-ESC/P2 printers:
 
             - 9pins: n / 216
             - Todo: Prints all data in the line buffer
@@ -1607,7 +1607,7 @@ class ESCParser:
         if not text:
             return
 
-        # Handle ESCP2 + ESC X strange behavior: 15cpi + 10.5 or 21pt
+        # Handle ESC/P2 + ESC X strange behavior: 15cpi + 10.5 or 21pt
         # artificially reduce the point size as ROM characters are loaded...
         real_point_size = self._point_size
         effective_point_size = self.point_size
@@ -1694,7 +1694,7 @@ class ESCParser:
     def carriage_return(self, *_):
         """Move the print position to the left-margin position
 
-        Todo: non-ESC/P 2 printers: The printer prints all data in the line buffer
+        Todo: non-ESC/P2 printers: The printer prints all data in the line buffer
         - When automatic line-feed is selected (through DIP-switch or panel setting),
           the CR command is accompanied by a LF command.
           See the `automatic_linefeed` setting.
@@ -1743,7 +1743,7 @@ class ESCParser:
             test if cursor_y below bottom_margin or beyond the end of the
             printable area the printer ejects the paper.
 
-        Todo: non-ESC/P 2 printers: The printer prints all data in the line buffer
+        Todo: non-ESC/P2 printers: The printer prints all data in the line buffer
 
         doc p34, p294
 
@@ -1769,7 +1769,7 @@ class ESCParser:
 
         p34, p294
 
-        ESCP2 + ESC/P:
+        ESC/P2 + ESC/P:
 
             => continuous and pos < bottom margin => top margin (!!!) next page
             => single-sheet: ejects
@@ -1789,7 +1789,7 @@ class ESCParser:
             => single-sheet + loaded manually and below bottom printable
                 => ejects + report remaining distance on next sheet (Todo)
         """
-        # ESCP & 9 pins (Todo: distingo)
+        # ESC/P & 9 pins (Todo: distingo)
         printable_bottom_margin = self.printable_area[1]
         if self.pins == 9 and self.single_sheet_paper:
             if self.cursor_y < printable_bottom_margin:
@@ -1802,7 +1802,7 @@ class ESCParser:
 
         if self.cursor_y < self.bottom_margin:
             self.next_page()
-            # ESCP/9 pins
+            # ESC/P & 9 pins
             # Todo: if continuous: Go to the top-of-form, not the top_margin
             # See form_feed() similar implementation
 
@@ -1812,7 +1812,7 @@ class ESCParser:
 
         On continuous paper:
 
-            ESCP2: top-margin position
+            ESC/P2: top-margin position
             9pins: top-of-form
 
         .. note:: Complete each page with a FF command. Also send a FF command
@@ -1901,14 +1901,14 @@ class ESCParser:
         doc p52
 
         Double-width handling:
-            - ESCP2:
+            - ESC/P2:
             Do NOT cancel double-width when VT functions the same as a CR command
             (normal behavior).
-            - non-ESC/P 2 printers:
+            - non-ESC/P2 printers:
             Cancel double-width when VT functions the same as a CR command.
             (normal behavior).
 
-        Non-ESCP2 printers:
+        Non-ESC/P2 printers:
             - Vertical tabs are measured from the top-of-form position.
               => WONTFIX: on these printers the top-margin is not modifiable
               so the top-of-form IS the top-margin.
@@ -2271,8 +2271,8 @@ class ESCParser:
             before you can use it for user-defined characters.
 
         .. warning::
-            d1 should be in [0, 1, 2, 3] for ESCP2,
-            d1 should be in [0, 1] for ESCP (24/48 pins), 9 pins.
+            d1 should be in [0, 1, 2, 3] for ESC/P2,
+            d1 should be in [0, 1] for ESC/P (24/48 pins), 9 pins.
         """
         d1, d2, d3 = args[1].value
         selected_table = CHARACTER_TABLE_MAPPING[d2, d3]
@@ -2305,7 +2305,7 @@ class ESCParser:
 
         Default tables & actions are listed below:
 
-            ESCP2/ESCP:
+            ESC/P2 & ESC/P:
 
                 0      Italic
                 1      PC437
@@ -2340,13 +2340,13 @@ class ESCParser:
                 or self.pins is None
                 and self.character_tables[2] is None
             ):
-                # - ESC/P 2 printers:
+                # - ESC/P2 printers:
                 #   cannot shift user-defined characters if you have previously
                 #   assigned another character table to table 2 using
                 #   the ESC ( t command. Once you have assigned a registered
                 #   table to Table 2, you cannot use it for user-defined characters
                 #   (until you reset the printer with the ESC @ command).
-                # - 24/48-pin printers, non-ESC/P 2 printers:
+                # - 24/48-pin printers, non-ESC/P2 printers:
                 #   shift user-defined characters unconditionally
                 LOGGER.debug(
                     "Shift user-defined characters "
@@ -2355,7 +2355,7 @@ class ESCParser:
                 self.user_defined.shift_upper_charset()
                 return
             case (2 | 50):
-                # PS: Not available on 9 pins printers; ESCP2 only
+                # PS: Not available on 9 pins printers; ESC/P2 only
                 character_table = 2
             case 3 | 51:
                 character_table = 3
@@ -2413,7 +2413,7 @@ class ESCParser:
             case 0 | 48:
                 self.mode = PrintMode.DRAFT
             case 1 | 49:
-                # LQ: ESCP2/ESCP
+                # LQ: ESC/P2 & ESC/P
                 # NLQ: 9 pins
                 # Todo: 9 pins: Double-strike printing is not possible when NLQ printing is selected
                 self.mode = PrintMode.LQ
@@ -2439,7 +2439,7 @@ class ESCParser:
             Roman, Sans Serif, Roman T, and Sans Serif H not available
             to ESC/P printers.
 
-        ESCP2:
+        ESC/P2:
             0: Roman*
             1: Sans serif*
             2: Courier
@@ -2524,7 +2524,7 @@ class ESCParser:
         − The size of your characters (normal or super/subscript)
         − The print quality of your characters (draft, LQ, or NLQ mode)
 
-        Doc p263, ESCP2: p91, 9pins: p93.
+        Doc p263, ESC/P2: p91, 9pins: p93.
 
         :param header: Header of the command, stores the first & the last
             character codes. Allows to calculate the number of characters set.
@@ -2632,7 +2632,7 @@ class ESCParser:
             For now we do not expect that the typeface change can be postponed
             until the ESC & use.
 
-        ESCP2:
+        ESC/P2:
             Characters copied from locations 0 to 127
         9pins:
             Characters copied from locations 0 to 255;
@@ -2801,14 +2801,14 @@ class ESCParser:
         self.multipoint_mode = False
         # Cancel HMI set_horizontal_motion_index() ESC c command
         self.character_width = None
-        # Return to 10.5-point (in theory for ESCP2/ESCP printers only)
+        # Return to 10.5-point (in theory for ESC/P2 & ESC/P printers only)
         # PS: In fact on 9pins printers, point size can only
         # be 10.5 or 21 (in double-height mode only) (so always 10.5).
         # The implementation should not touch double-height, but my
         # implementation of double-height multiplies the point size by 2;
         # in this case it must be preserved, so overall it doesn't differ
         # from 9pins implementation where nothing is changed...
-        # self.point_size = 10.5  # From the manual's implementation for ESCP2 only
+        # self.point_size = 10.5  # From the manual's implementation for ESC/P2 only
         self.point_size = 21 if self.double_height else 10.5
 
     @staticmethod
@@ -2892,7 +2892,7 @@ class ESCParser:
     def proportional_spacing(self, proportional_spacing: bool):
         """Enable proportional spacing or fixed spacing
 
-        On ESCP2/ESCP printers, when multipoint mode is DISABLED,
+        On ESC/P2 & ESC/P printers, when multipoint mode is DISABLED,
         if you select proportional spacing with the ESC p
         command during draft printing, the printer prints an LQ font instead.
         When you cancel proportional spacing with the ESC p command,
@@ -2907,7 +2907,7 @@ class ESCParser:
         if self.multipoint_mode or self.pins == 9:
             # ESC X (multipoint mode), or 9pins printers
             return
-        # Not multipoint mode and ESCP2
+        # Not multipoint mode and ESC/P2
         if self._proportional_spacing:
             # Force LQ mode if in Draft mode
             self.previous_mode = self.mode
@@ -2928,7 +2928,7 @@ class ESCParser:
         - cancel the HMI set with the ESC c command
         - cancel multipoint mode
 
-        .. note:: ESCP2/ESCP only: If you select proportional spacing with the ESC p
+        .. note:: ESC/P2 & ESC/P only: If you select proportional spacing with the ESC p
             command during draft printing, the printer prints an LQ font instead.
             When you cancel proportional spacing with the ESC p
             command, the printer returns to draft printing.
@@ -3025,7 +3025,7 @@ class ESCParser:
     def select_line_score(self, *args):
         r"""Turn on/off scoring of all characters and spaces following this command - ESC ( -
 
-        - Only ESCP2/ESCP 24/48 pins
+        - Only ESC/P2 & ESC/P 24/48 pins
         - Todo: does not affect graphics characters
         - Each type of scoring is independent of other types; any combination of
           scoring methods may be set simultaneously.
@@ -3080,7 +3080,7 @@ class ESCParser:
         character space; subscript characters are printed in the lower two-thirds.
 
         .. note:: Script printing + proportional mode:
-            For ESCP2, at the time,
+            For ESC/P2, at the time,
             the width of super/subscript characters when using proportional spacing
             differs from that of normal characters; see the super/subscript
             character proportional width table in the Appendix.
@@ -3124,7 +3124,7 @@ class ESCParser:
     def select_character_style(self, *args):
         """Turn on/off outline and shadow printing - ESC q
 
-        - only ESCP2/ESCP 24/48 pins
+        - only ESC/P2 & ESC/P 24/48 pins
         - Todo: does not affect graphics characters
         """
         value = args[1].value[0]
@@ -3165,7 +3165,7 @@ class ESCParser:
         9 pins only:
             - Ignored ("not available" ?!) when proportional spacing is selected.
 
-        ESCP2 only:
+        ESC/P2 only:
             - Reduces character width by about 50% when proportional spacing is selected;
             - Ignored on multipoint (no multipoint mode on 9pins);
             - Ignored if character pitch is selected by ESC g.
@@ -3174,13 +3174,13 @@ class ESCParser:
         :meth:`master_select` (SI, ESC SI, DC2, ESC ! commands).
         """
         if self.character_pitch == 1 / 15 and self.pins != 9:
-            # Ignore due to ESC g action for ESCP2 only
+            # Ignore due to ESC g action for ESC/P2 only
             return
         if self.pins == 9 and self.proportional_spacing:
             return
 
         # Cancel HMI set_horizontal_motion_index() ESC c command
-        # Note: the position is OK: ESC c is only used on ESCP2 printers,
+        # Note: the position is OK: ESC c is only used on ESC/P2 printers,
         # thus, here the command can't be ignored.
         self.character_width = None
 
@@ -3220,7 +3220,7 @@ class ESCParser:
         """Enter condensed mode, in which character width is reduced - SI, ESC SI
 
         Ignored if 15-cpi printing has been selected with the ESC g command
-        (ignored for ESCP2 and not for 9pins).
+        (ignored for ESC/P2 and not for 9pins).
 
         Change character pitch values according to the current pitch:
 
@@ -3261,10 +3261,10 @@ class ESCParser:
             :meth:`switch_double_width_printing`, :meth:`v_tab`.
 
         Double-width handling:
-            - ESCP2:
+            - ESC/P2:
             Do NOT cancel double-width when VT functions the same as a CR command
             (normal behavior).
-            - non-ESC/P 2 printers:
+            - non-ESC/P2 printers:
             Cancel double-width when VT functions the same as a CR command,
             and with a CR command.
             (normal behavior).
@@ -3321,7 +3321,7 @@ class ESCParser:
 
         doc p278
 
-        On Non-ESC/P 2 AND in ESCP2 typefaces not available in multipoint mode,
+        On Non-ESC/P 2 AND in ESC/P2 typefaces not available in multipoint mode,
         ESC w is the only way to modify the point size:
 
             - ESC w 1: Selects double-height (21-point) characters
@@ -3374,7 +3374,7 @@ class ESCParser:
     def print_data_as_characters(self, *args):
         """Print data as characters - ESC ( ^
 
-        - only ESCP2
+        - only ESC/P2
 
         .. warning:: Should ignore data if no character is assigned to that
             character code in the currently selected character table.
@@ -3405,7 +3405,7 @@ class ESCParser:
         Remains in effect even if you change the character table
 
         .. note:: About default config:
-            ESCP2, ESCP: Codes 128 to 159 are treated as printable characters
+            ESC/P2, ESC/P: Codes 128 to 159 are treated as printable characters
             9pins: Codes 128 to 159 are treated as control codes
 
         .. seealso:: :meth:`unset_upper_control_codes_printing`
@@ -3480,7 +3480,7 @@ class ESCParser:
         F   Loads paper from the front tractor
         R   Ejects one sheet of single-sheet paper
 
-        Todo R (ESCP2):
+        Todo R (ESC/P2):
             ejects the currently loaded single-sheet paper without printing data
             from the line buffer; this is not the equivalent of the FF command
             (which does print line-buffer data).
@@ -3496,7 +3496,7 @@ class ESCParser:
     def set_graphics_mode(self, *_):
         r"""Select graphics mode (allowing to print raster graphics) - ESC ( G
 
-        .. note:: only ESCP2
+        .. note:: only ESC/P2
 
         - exit by ESC @
         - turn MicroWeave printing off
@@ -3652,7 +3652,7 @@ class ESCParser:
             - 0: Full graphics mode
             - 1: RLE compressed raster graphics mode
 
-        - ESCP2 only !!
+        - ESC/P2 only !!
         - Todo: available in graphics mode only via ESC ( G
         - Todo: Print data that exceeds the right margin is ignored.
         - When MicroWeave is selected, the image height m must be set to 1.
@@ -4447,7 +4447,7 @@ class ESCParser:
         :param _: ESC byte command
         :param cmd_letter: ESC letter in K,L,Y,Z.
         :param dot_density_m:
-            - ESCP2: 0, 1, 2, 3, 4, 6, 32, 33, 38, 39, 40, 71, 72, 73 ;
+            - ESC/P2: 0, 1, 2, 3, 4, 6, 32, 33, 38, 39, 40, 71, 72, 73 ;
             - 9 pins: 0, 1, 2, 3, 4, 5, 6, 7.
         """
         dot_density_m = dot_density_m.value[0]
@@ -4546,8 +4546,8 @@ class ESCParser:
             6   Green
 
         .. note:: Also available during graphics mode selected with the ESC ( G command.
-            In this mode for ESCP2, only Black, Cyan, Magenta, Yellow are available.
-            Non-ESCP2 printers can use any color.
+            In this mode for ESC/P2, only Black, Cyan, Magenta, Yellow are available.
+            Non-ESC/P2 printers can use any color.
 
         Todo:
             If you change the selected colors after entering raster graphics mode,
