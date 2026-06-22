@@ -460,6 +460,15 @@ class ESCParser:
             LOGGER.info("Switch EscpCompatibility mode to MODERN")
 
     @property
+    def maximum_page_length(self) -> int:
+        """Get the effective maximum page length
+
+        In modern compatibility mode the page length is limited to 44 inches;
+        whereas in legacy modes the value is limited to 22 inches.
+        """
+        return 44 if self.compatibility_mode == EscpCompatibility.STRICT_MODERN else 22
+
+    @property
     def underline(self) -> bool:
         """Get the underline status
 
@@ -703,31 +712,37 @@ class ESCParser:
         self.page_length = calculated_page_length
 
     def set_page_length_defined_unit(self, _, token):
-        """Set page length in defined unit - ESC ( C
+        """Set page length in defined unit (legacy/extended) - ESC ( C
 
-        .. seealso:: see defined_unit via ESC ( U
-        .. note:: The maximum page length is 22 inches.
+        .. seealso:: See defined units via ESC ( U
+        .. note:: The maximum page length is 22 inches on old printers,
+            44 inches on modern ones.
         .. note:: ESC/P 2 only
 
-        cancels the top and bottom-margin settings.
+        - Cancels the top and bottom-margin settings.
+        - Ignored if the page length produced is outside the maximum value.
 
         .. warning:: WONTFIX :
             Set the page length before paper is loaded or when the print position
             is at the top-of-form position. Otherwise, the current print position
             becomes the top-of-form position.
         """
+        if len(token.value) == 4:
+            self.set_modern_compatibility()
+
         value = int.from_bytes(token.value, byteorder="little")
         page_length = value * self.page_management_unit
         LOGGER.debug("page length: %s", page_length)
 
-        if not 0 < page_length <= 22:
+        if not 0 < page_length <= self.maximum_page_length:
             LOGGER.error(
-                "(%s × (current unit: %s)) must be less than or equal to 22 inches (%s)",
+                "(%s × (current unit: %s)) must be less than or equal to %s inches (%s)",
                 value,
                 self.page_management_unit,
+                self.maximum_page_length,
                 page_length,
             )
-            page_length = 22
+            return
 
         self.page_length = page_length
         self.cancel_top_bottom_margins()

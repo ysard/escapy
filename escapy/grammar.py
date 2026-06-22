@@ -66,8 +66,8 @@ esc_grammar = r"""
         | ESC "f" BIN_ARG HALF_BYTE_ARG -> h_v_skip
 
         # Page format
-        # TODO: see extended standard with nl = 4
-        | ESC "(C\x02\x00" /[\x00-\xff]{2}/ -> set_page_length_defined_unit
+        | ESC "(C\x02\x00" /../             -> set_page_length_defined_unit
+        | ESC "(C\x04\x00" /.{4}/           -> set_page_length_defined_unit
         | ESC "(c\x04\x00" /[\x00-\xff]{4}/ -> set_page_format
         | ESC "C" HALF_BYTE_ARG             -> set_page_length_lines
         | ESC "C\x00" /[\x01-\x16]/         -> set_page_length_inches
