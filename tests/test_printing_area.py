@@ -579,5 +579,4 @@ def test_control_paper_loading_ejecting(tmp_path: Path):
     processed_file = tmp_path / "test_2pages.pdf"
     escapy = ESCParser(code, output_file=processed_file)
 
-    # Yeah... 3... but there are 2 pages... (the save method increments the count)
-    assert escapy.current_pdf.getPageNumber() == 3
+    assert escapy.current_pdf.getPageNumber() == 2
