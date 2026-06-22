@@ -34,6 +34,11 @@ from .misc import esc_reset, cancel_bold
 # Inject test typefaces
 ESCParser = partial(_ESCParser, available_fonts=typefaces)
 
+RV_header = b"\x1b(v\x02\x00"
+RV_ex_header = b"\x1b(v\x04\x00"
+AV_header = b"\x1b(V\x02\x00"
+AV_ex_header = b"\x1b(V\x04\x00"
+
 
 @pytest.mark.parametrize(
     "format_databytes",
@@ -401,28 +406,44 @@ def test_set_page_length_inches(format_databytes, expected):
         #
         # Absolute vertical position - ESC ( V
         # 1 inch below top margin 360 (360/360) for default unit: 1/360
-        (b"\x1b(V\x02\x00" + pack("<H", 360), None, 0, -1),
+        (AV_header + pack("<H", 360), None, 0, -1),
         # Prepend ESC ( U to set defined unit to 2/360
         # 1 inch below top margin 180 (180/180)
-        (b"\x1b(U\x01\x00\x14" + b"\x1b(V\x02\x00" + pack("<H", 180), None, 0, -1),
+        (b"\x1b(U\x01\x00\x14" + AV_header + pack("<H", 180), None, 0, -1),
         # 12 inch below top margin: next page
-        (b"\x1b(V\x02\x00" + pack("<H", 12 * 360), None, 0, 0),
+        (AV_header + pack("<H", 12 * 360), None, 0, 0),
         # 1 inch below top margin, then 1/360 inch below top margin:
-        # movement amplitude too large (359/360 inch): ignored
-        (b"\x1b(V\x02\x00" + pack("<H", 360) + b"\x1b(V\x02\x00" + pack("<H", 1), None, 0, -1),
+        # negative movement amplitude too large (-359/360 inch): ignored
+        (AV_header + pack("<H", 360) + AV_header + pack("<H", 1), None, 0, -1),
+        #
+        # Absolute vertical position - ESC ( V (extended)
+        # negative movement amplitude (-1/360 inch): ignored
+        (AV_ex_header + pack("<I", 360) + AV_ex_header + pack("<I", 359), None, 0, -1),
+        # 10 inch
+        (AV_ex_header + pack("<I", 3600), None, 0, -10),
+        # 12 inch below top margin: next page
+        (AV_ex_header + pack("<I", 12 * 360), None, 0, 0),
         #
         # Relative vertical position - ESC ( v
         # 1 inch down (360/360) for default unit: 1/360
-        (b"\x1b(v\x02\x00" + pack("<h", 360), None, 0, -1),
+        (RV_header + pack("<h", 360), None, 0, -1),
         # 179/360 inch up: outside top margin: ignored
-        (b"\x1b(v\x02\x00" + pack("<h", -179), None, 0, 0),
+        (RV_header + pack("<h", -179), None, 0, 0),
         # 12 inch down: outside bottom margin: next page
-        (b"\x1b(v\x02\x00" + pack("<h", 12 * 360), None, 0, 0),
-        # 1 inch up (>179/360): movement amplitude too large: ignored
-        (b"\x1b(v\x02\x00" + pack("<h", -360), None, 0, 0),
+        (RV_header + pack("<h", 12 * 360), None, 0, 0),
+        # 1 inch down + 1 inch up (>179/360): movement amplitude too large:
+        (RV_header + pack("<h", 360) + RV_header + pack("<h", -360), None, 0, -1),
         # Prepend ESC ( U to set defined unit to 2/360
         # 1 inch down
-        (b"\x1b(U\x01\x00\x14" + b"\x1b(v\x02\x00" + pack("<h", 180), None, 0, -1),
+        (b"\x1b(U\x01\x00\x14" + RV_header + pack("<h", 180), None, 0, -1),
+        #
+        # Relative vertical position - ESC ( v (extended)
+        # 1 inch down (360/360) for default unit: 1/360
+        (RV_ex_header + pack("<I", 360), None, 0, -1),
+        # 1 inch down + 1/360 inch up: negative movement amplitude: ignored
+        # In compatibility mode AUTO, extended command switches the mode to STRICT_MODERN
+        (RV_ex_header + pack("<I", 360) + RV_ex_header + pack("<i", -1), None, 0, -1),
+        # TODO add support for negative offset in STRICT_MODERN (refuse) / LEGACY (accept)
         #
         # Advance the vertical print position n/180 inch - ESC J
         # down (255/180)
@@ -457,12 +478,19 @@ def test_set_page_length_inches(format_databytes, expected):
         "AV_1inch+defined_unit",
         "AV_12inch",
         "AV_amplitude_too_large",
+        # Absolute vertical position - ESC ( V (extended)
+        "AV_ex_amplitude_too_large",
+        "AV_ex_10inch",
+        "AV_ex_12inch",
         # Relative vertical position - ESC ( v
         "RV_1inch",
         "RV_-179/360_outside_top_margin",
         "RV_12inch_outside_bottom_margin",
         "RV_-1inch_amplitude_too_large",
         "RV_1inch+defined_unit",
+        # Relative vertical position - ESC ( v (extended)
+        "RV_ex_1inch",
+        "RV_ex_neg_amplitude_ignored",
         # Advance the vertical print position n/180 inch - ESC J
         "AdV_maxoffset",
         "AdV_maxoffset_9pins",
