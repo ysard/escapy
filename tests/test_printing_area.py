@@ -284,8 +284,11 @@ def test_set_page_format(format_databytes, page_size, expected_margins):
         (set_unit_header + b"\x00\x14" + b"\x1b(C\x02\x00\xbc\x07", 11),
         # hex(23*360): 0x2058
         # Send a 23inch page length: > 22 inch
-        # This value is outside the accepted area, the value will be set to 22.
-        (b"\x1b(C\x02\x00\x58\x20", 22),
+        # This value is outside the accepted area, the command is ignored,
+        # the value expected is the default one
+        (b"\x1b(C\x02\x00" + pack("<H", 23 * 360), 11.192913385826774),
+        # Extended version: The limit in modern printers is set to 44inch
+        (b"\x1b(C\x04\x00" + pack("<I", 23 * 360), 23),
         # Test the reset of top/bottom margins, see test_set_page_format
         # for the explanations about the value.
         (b"\x1b(c\x04\x00\x08\x02\x78\x0f" + b"\x1b(C\x02\x00\x78\x0f", 11),
@@ -296,6 +299,7 @@ def test_set_page_format(format_databytes, page_size, expected_margins):
         "accepted_value",
         "accepted_value+defined_unit",
         "23inches",
+        "23inches_ex",
         "reset_top_bottom_margins",
     ],
 )
