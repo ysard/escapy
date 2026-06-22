@@ -57,6 +57,20 @@ from escapy.fonts import open_font
 from escapy.commons import logger
 
 
+class EscpCompatibility(Enum):
+    """ESC/P2 compatibility policy
+
+    - STRICT_MODERN: Strict compatibility with modern printers and extended
+      versions of the commands in the ESC/P2 standard.
+    - LEGACY: Always apply the legacy behavior described in the ESC/P2 standard.
+    - AUTO: Can switch to STRICT_MODERN if conditions are detected, otherwise
+      LEGACY behavior is applied.
+    """
+    STRICT_MODERN = 0
+    LEGACY = 1
+    AUTO = 2
+
+
 class PrintMode(Enum):
     """Printing modes enumeration
 
@@ -172,6 +186,7 @@ class ESCParser:
         :type pdf: bool
         :type output_file: io.TextIOWrapper | str | Path
         """
+        self.compatibility_mode = EscpCompatibility.AUTO
         # Misc #################################################################
         # Prepare for methods search in run_esc_instruction()
         self.dir = frozenset(dir(self))
@@ -434,6 +449,15 @@ class ESCParser:
 
         # Parse it !
         self.run_escp(code)
+
+    def set_modern_compatibility(self):
+        """Switch compatibility mode from AUTO to STRICT_MODERN
+
+        Called if modern/extended commands are detected.
+        """
+        if self.compatibility_mode == EscpCompatibility.AUTO:
+            self.compatibility_mode = EscpCompatibility.STRICT_MODERN
+            LOGGER.info("Switch EscpCompatibility mode to MODERN")
 
     @property
     def underline(self) -> bool:
