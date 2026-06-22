@@ -77,8 +77,10 @@ esc_grammar = r"""
         | ESC "Q" BYTE_ARG                  -> set_right_margin
 
         # Print position motion
-        | ESC "$" /[\x00-\xff]{2}/                  -> set_absolute_horizontal_print_position
-        | ESC "\\" BYTE_ARG BYTE_ARG                -> set_relative_horizontal_print_position
+        | ESC "$" /../                      -> set_absolute_horizontal_print_position
+        | ESC "($\x04\x00" /.{4}/           -> set_absolute_horizontal_print_position
+        | ESC "\\" /../                     -> set_relative_horizontal_print_position
+        | ESC "(/" /.{4}/                   -> set_relative_horizontal_print_position
         | ESC "(V\x02\x00" /../             -> set_absolute_vertical_print_position
         | ESC "(V\x04\x00" /.{4}/           -> set_absolute_vertical_print_position
         | ESC "(v\x02\x00" /../             -> set_relative_vertical_print_position

@@ -927,22 +927,29 @@ class ESCParser:
     def set_absolute_horizontal_print_position(self, _, token):
         """Move the horizontal print position to the position specified - ESC $, ESC ( $ (extended)
 
+        Use the defined unit set by ESC ( U command.
+
         - default defined unit setting for this command is 1/60 inch
-        - Todo: fixed On non-ESC/P 2 printers to 1/60 (currently only on 9 pins)
+        - fixed on non-ESC/P2 printers to 1/60 (not just on 9 pins)
         - ignore this command if the specified position is to the right of the
           right margin.
 
-        default defined unit setting for this command is 1/60 inch
-        Todo: fixed On non-ESC/P 2 printers to 1/60 (currently only on 9 pins)
-        ignore this command if the specified position is to the right of the
-        right margin.
+        - Todo: extended version: The maximum Absolute Horizontal Position (AHP)
+          is 323.074mm or 45790/3600 (12.719 inches) regardless the resolution.
         """
+        if len(token.value) == 4:
+            self.set_modern_compatibility()
+
+        # Absolute positioning is always decoded as an unsigned offset
+        # from the left margin.
         value = int.from_bytes(token.value, byteorder="little")
 
-        # Should be 1/60 on non ESCP2 (not just 9 pins)
-        unit = 1 / 60 if not self.horizontal_unit or self.pins == 9 else self.horizontal_unit
-        cursor_x = value * unit + self.left_margin
+        if self.compatibility_mode == EscpCompatibility.LEGACY or self.pins == 9:
+            unit = 1 / 60
+        else:
+            unit = 1 / 60 if not self.horizontal_unit else self.horizontal_unit
 
+        cursor_x = value * unit + self.left_margin
         LOGGER.debug("set absolute cursor_x: %s", cursor_x)
 
         if cursor_x > self.right_margin:
@@ -953,36 +960,45 @@ class ESCParser:
             return
         self.cursor_x = cursor_x
 
-    def set_relative_horizontal_print_position(self, _, nL, nH):
-        r"""Move the horizontal print position left or right from the current position - ESC \
+    def set_relative_horizontal_print_position(self, _, token):
+        r"""Move the horizontal print position left or right from the current position - ESC \, ESC ( / (extended)
 
         Use the defined unit set by ESC ( U command.
-        Default defined unit for this command is 1/120 inch in draft mode,
-        and 1/180 inch in LQ mode.
-        Fixed to 1/120 on 9 pins.
 
-        ignore this command if it would move the print position outside the printing area.
+        Compatibility handling:
+
+            - The default unit is fixed to 1/120 on 9 pins printers.
+            - On ESC/P2 & ESC/P legacy printers the default unit is set to
+              1/120 inch in draft mode, and 1/180 inch in LQ mode (default).
+            - In modern compatibility mode the default unit is set to 1 / 60.
+
+        Ignore this command if it would move the print position outside the
+        printing area (inside the right margin is allowed).
+
+        Todo: The extended version is only available in graphics mode.
         """
-        nL, nH = nL.value[0], nH.value[0]
-        value = (nH << 8) + nL
+        if len(token.value) == 4:
+            self.set_modern_compatibility()
 
-        # Test bit sign
-        if nH & 0x80:
-            # left movement
-            value -= 2**16
+        # Handle both 2 bytes of legacy cmd and 4 bytes of extended cmd
+        value = int.from_bytes(token.value, byteorder="little", signed=True)
 
-        if self.pins == 9:
+        if self.compatibility_mode == EscpCompatibility.LEGACY or self.pins == 9:
             unit = 1 / 120
+        elif self.compatibility_mode == EscpCompatibility.STRICT_MODERN:
+            unit = 1 / 60 if not self.horizontal_unit else self.horizontal_unit
         else:
             unit = (
                 self.horizontal_unit
                 if self.horizontal_unit
                 else (1 / 180 if self.mode == PrintMode.LQ else 1 / 120)
             )
+
         cursor_x = value * unit + self.cursor_x
         LOGGER.debug("set relative cursor_x: %s", cursor_x)
 
-        if not self.left_margin <= cursor_x < self.right_margin:
+        right = self.printable_area[3]
+        if not self.left_margin <= cursor_x < right:
             LOGGER.error("set relative cursor_x outside defined margins! => ignored")
             return
 
