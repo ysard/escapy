@@ -68,7 +68,9 @@ esc_grammar = r"""
         # Page format
         | ESC "(C\x02\x00" /../             -> set_page_length_defined_unit
         | ESC "(C\x04\x00" /.{4}/           -> set_page_length_defined_unit
-        | ESC "(c\x04\x00" /[\x00-\xff]{4}/ -> set_page_format
+        | ESC "(c\x04\x00" /.{4}/           -> set_page_format
+        | ESC "(c\x08\x00" /.{8}/           -> set_page_format
+
         | ESC "C" HALF_BYTE_ARG             -> set_page_length_lines
         | ESC "C\x00" /[\x01-\x16]/         -> set_page_length_inches
         | ESC "N" HALF_BYTE_ARG             -> set_bottom_margin

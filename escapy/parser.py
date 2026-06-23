@@ -640,76 +640,123 @@ class ESCParser:
         """Move the X cursor to the left edge of the printing area (left-margin)"""
         self._carriage_return()
 
-    def set_page_format(self, *args):
-        """Set top and bottom margins - ESC ( c
+    def set_page_format(self, _, token):
+        """Set top and bottom margins (legacy/extended) - ESC ( c
 
         Doc: p18, p242-p244
+        Doc extended (xp410): p41-42
 
         .. note:: ESC/P 2 only
         .. note:: This command uses values configured "from the top edge of the page".
             Here we use a bottom-up configuration, thus the values must be
             changed in accordingly (origin is at the bottom).
 
+        .. warning:: The maximum position of the bottom margin doesn't seem
+            to be limited by the maximum page length in the extended version!?
+
+            Todo: Extended version is only available in graphics mode.
+
+        .. warning:: WONTFIX :
+            Set the page length before paper is loaded or when the print position
+            is at the top-of-form position. Otherwise, the current print position
+            becomes the top-margin position. Note: top-margin is used here, not
+            top-of-form like in the other functions.
+
+            The ESC/P2 standard update (extended) says that the Y coordinate
+            is shifted to the top-margin. This method is implemented here.
+
         default margins:
             continuous paper: no margins (see `printable_area_margins_mm`
                 in constructor)
             single-sheet: top-of-form, last printable line
         """
-        top_margin, bottom_margin = unpack("<HH", args[1].value)
+        extended_version = len(token.value) == 8
+        if extended_version:
+            self.set_modern_compatibility()
+
+        # We expect limited unsigned values
+        fmt = "<II" if extended_version else "<HH"
+        top_margin, bottom_margin = unpack(fmt, token.value)
+
+        max_value = 0x1fffffff if extended_version else 0x1fff
+        if top_margin > max_value or bottom_margin > max_value:
+            LOGGER.error("margin out of range: %s, %s", top_margin, bottom_margin)
+            return
 
         top_margin *= self.page_management_unit
         bottom_margin *= self.page_management_unit
 
-        # Adapt absolute values to bottom-up system, relative to the page size
-        # Ex: on a 11 in height paper, 1 in top margin becomes 10 in top margin.
-        self.bottom_margin = self.page_height - bottom_margin
-        self.top_margin = self.page_height - top_margin
+        if bottom_margin > self.page_height:
+            # Fix bottom margin using the page length
+            LOGGER.critical(
+                "bottom %s, page geight: %s: fix it",
+                bottom_margin, self.page_height
+            )
+            bottom_margin = top_margin - self.page_length
 
-        printable_top, printable_bottom, *_ = self.printable_area
+        # Adapt absolute values to bottom-up system, relative to the page size
+        # Ex: 11" height paper, 1" top margin becomes 10" in top margin.
+        bottom_margin = self.page_height - bottom_margin
+        top_margin = self.page_height - top_margin
+
+        LOGGER.debug("proposed set margins (top, bottom): %s, %s", top_margin, bottom_margin)
+
         # Bottom-up
-        if not self.top_margin > self.bottom_margin:
-            LOGGER.warning("top margin not > to bottom margin => fix it")
-            # Use printable area limits
-            self.bottom_margin = printable_bottom
-            self.top_margin = printable_top
+        if not top_margin > bottom_margin:
+            LOGGER.warning("top margin < bottom margin: ignored")
+            return
 
         # Check limits
-        if self.bottom_margin < printable_bottom or self.top_margin > printable_top:
-            LOGGER.warning("set margins, raw values: %s, %s", top_margin, bottom_margin)
+        printable_top, printable_bottom, *_ = self.printable_area
+        if bottom_margin < printable_bottom or top_margin > printable_top:
             LOGGER.warning(
-                "set margins (top, bottom) outside printable area: %s, %s, but printable area: %s, %s",
-                self.top_margin, self.bottom_margin, printable_top, printable_bottom
+                "set margins (top, bottom) outside printable area: %s, %s, "
+                "but printable area: %s, %s: ignored",
+                top_margin, bottom_margin,
+                printable_top, printable_bottom
             )
-            # Use printable area limits
-            self.bottom_margin = printable_bottom
-            self.top_margin = printable_top
+            return
 
-        LOGGER.debug("set margins (top, bottom): %s ,%s", self.top_margin, self.bottom_margin)
+        self.top_margin = top_margin
+        self.bottom_margin = bottom_margin
 
         calculated_page_length = self.top_margin - self.bottom_margin
-        LOGGER.debug("calculated page-length: %s", calculated_page_length)
-        if calculated_page_length > 22:
-            # Bottom margin must be less than 22 inches
-            LOGGER.error("bottom margin too low (page_length > 22 in), fix it")
-            self.bottom_margin = self.page_height - 22
-            calculated_page_length = 22
+        max_page_length = self.maximum_page_length
 
-        elif calculated_page_length > self.page_length:  # pragma: no cover
-            # This section should not be reached...
-            # Previous checks should cancel this case.
-            LOGGER.error("set page_length > current page_length (%s)", self.page_length)
-            # Todo: Fix the bottom_margin in this case. The doc is unclear
-            #   with the top edge page notion for which paper.
-            #   For now calculated_page_length is for ALL papers and taken from
-            #   the top_margin, but it could be better to check for continuous
-            #   paper only, and use top edge (page height) instead...
-            # The distance from the top edge of the page to the bottom-margin
-            # position must be less than the page length; otherwise, the end of
-            # the page length becomes the bottom-margin position.
-            self.bottom_margin = self.page_height - self.page_length
+        LOGGER.debug(
+            "calculated page-length: %s (max: %s)",
+            calculated_page_length, max_page_length
+        )
 
-        self.reset_cursor_y()
+        if calculated_page_length > max_page_length:
+            # Todo: ignore the command instead ?
+            # Bottom margin must be less than the max page length
+            LOGGER.error(
+                "bottom margin too low (page_length > %s in): fix it",
+                max_page_length
+            )
+            self.bottom_margin = self.top_margin - max_page_length
+            calculated_page_length = max_page_length
+
+        # Always synchronize the calculated page length
+        # (if greater or lesser than the previous one)
+        # if calculated_page_length > self.page_length:
+        #     LOGGER.error("set page_length > current page_length (%s)", self.page_length)
+        #     # Todo: Fix the bottom_margin in this case. The doc is unclear
+        #     #   with the top edge page notion for which paper.
+        #     #   For now calculated_page_length is for ALL papers and taken from
+        #     #   the top_margin, but it could be better to check for continuous
+        #     #   paper only, and use top edge (page height) instead...
         self.page_length = calculated_page_length
+
+        # Real Epson printers behave differently if ESC ( c is issued
+        # away from top-of-form. This emulator intentionally applies
+        # the logical page-format state directly.
+        # New doc: The printing position in the Y direction is shifted to the
+        # origin of the position management coordinate system (top margin).
+        # It is the current implementation.
+        # Old doc: The current print position becomes the top-margin position.
+        self.reset_cursor_y()
 
     def set_page_length_defined_unit(self, _, token):
         """Set page length in defined unit (legacy/extended) - ESC ( C
