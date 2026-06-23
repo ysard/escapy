@@ -1269,8 +1269,8 @@ class ESCParser:
 
         # Check that calculations give the expected dpi resolutions
         expected_dpi = frozenset([90, 120, 180, 360, 720, 1440, 2880, 5760])
-        found_dpi = {base_unit / divider for divider in token_pvh.value}
-        if found_dpi - expected_dpi:
+        found_dpi = [base_unit / divider for divider in token_pvh.value]
+        if set(found_dpi) - expected_dpi:
             LOGGER.error(
                 "Unexpected PVH dpi dividers received: <%s> for base unit: %s",
                 token_pvh.value, base_unit
@@ -1281,8 +1281,8 @@ class ESCParser:
         self.page_management_unit, self.vertical_unit, self.horizontal_unit = units
 
         LOGGER.debug(
-            "Units; page management: %.7f; vertical : %.7f; horizontal : %.7f",
-            self.page_management_unit, self.vertical_unit, self.horizontal_unit
+            "Units (dpi); page management: %d; vertical : %d; horizontal : %d",
+            *found_dpi
         )
 
     def set_18_line_spacing(self, *_):
@@ -3676,7 +3676,7 @@ class ESCParser:
         self.vertical_resolution = v_div / base_unit
         self.horizontal_resolution = h_div / base_unit
 
-        LOGGER.debug("Set raster resolution (dpi): %s x %s", v_dpi, h_dpi)
+        LOGGER.debug("Set raster resolution (dpi): %d x %d", v_dpi, h_dpi)
 
     def set_monochrome_color_mode(self, _, token):
         """Set monochrome / color modes (extended) - ESC ( K
