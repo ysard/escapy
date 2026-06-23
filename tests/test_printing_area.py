@@ -213,37 +213,58 @@ def test_set_bottom_margin(format_databytes, single_sheet, expected_bottom_margi
 @pytest.mark.parametrize(
     "format_databytes, page_size, expected_margins",
     [
+        # From doc: paper 8.5"x11", top margin 1", bottom margin 10", unit 1/360
+        # Inversed in bottom up coordinates
+        (b"\x1b(c\x04\x00" + pack("<H", 360) + pack("<H", 3600), (8.5 * 72, 11 * 72), (10, 1)),
         # hex(11*360): 0xf78
         # Send bottom margin 11inch, so 11.69-11 = 0.69 in bottom-up system: Correct values
         (b"\x1b(c\x04\x00\x08\x02\x78\x0f", A4, (10.24846894138233, 0.692913385826774)),
         # Prepend ESC ( U to set defined unit to 2 / 360
         # hex(11*360/2): 0x7bc
         (set_unit_header + b"\x00\x14" + b"\x1b(c\x04\x00\x08\x02\xbc\x07", A4, (8.804024496937885, 0.692913385826774)),
-        # top margin >= bottom margin: error, fixed with printable area values
+        # top margin >= bottom margin: error => ignored
         (b"\x1b(c\x04\x00\x00\x02\x00\x01", A4, (11.442913385826774, 0.25)),
         (b"\x1b(c\x04\x00\x08\x02\x08\x02", A4, (11.442913385826774, 0.25)),
         # hex(14*360): 0x13b0
-        # Bottom 14inch: outside printable area => reset values to printable area
+        # Bottom 14inch: outside printable area => ignored
         (b"\x1b(c\x04\x00\x08\x02\xb0\x13", A4, (11.442913385826774, 0.25)),
-        # (b"\x1b(c\x04\x00\x08\x01\x58\x20", A4, (11.442913385826774, 0.25)),
         # hex(23*360): 0x2058
         # Send a 23inch bottom margin on a 23inch height page
         # This value is outside the printable area,
         # The printable margins will set the default bottom_margin to 23 - 0.25 = 22.75
-        # But 22.75 is > to the 22inch absolute limit and will not pass this check!
-        # Bottom margin should be fixed to 22inch, thus 1 inch,
-        # and 22.75 inch for top margin in bottom-up system.
-        (b"\x1b(c\x04\x00\x08\x01\x58\x20", (A4[0], (72 * 23)), (22.75, 1)),
+        # => ignored
+        (b"\x1b(c\x04\x00\x08\x01" + pack("<H", 23 * 360), (A4[0], (72 * 23)), (22.75, 0.25)),
+        # 0.5" top, 22.75" bottom: page length > 22" => fixed to 22, set bottom to 0.5" (for now ??)
+        (b"\x1b(c\x04\x00" + pack("<H", 180) + pack("<H", 8190), (A4[0], (72 * 23)), (22.5, 0.5)),
+        # 23" page height, 10" page length, 0.5" top, 22" bottom:
+        # 21.5" page length > 10" current page length
+        # => accept but update the current page length to 22 (max)
+        (
+                b"\x1b(C\x02\x00" + pack("<H", 3600)
+                + b"\x1b(c\x04\x00" + pack("<H", 180) + pack("<H", 22*360),
+                (A4[0], (72 * 23)), (22.5, 1)
+        ),
+        # Extended command
+        # 0" top margin: outside printablea area (0.25) => ignored
+        (b"\x1b(c\x08\x00\x00\x00\x00\x00" + pack("<I", 3600), (A4[0], 11 * 72), (10.75, 0.25)),
+        # -1/360 top margin: detect erroneous value => ignored
+        (b"\x1b(c\x08\x00" + pack("<i", -1)+ pack("<I", 3600), (A4[0], 11 * 72), (10.75, 0.25)),
+
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
     ids=[
+        "accepted_values_custom_paper",
         "accepted_values",
         "accepted_values+defined_unit",
         "top>bottom",
         "top=bottom",
-        "bottom_margin_outside_printable_area",
+        "bottom_margin<printable_area",
         "23inch_bottom_23inch_height",
+        "23inch>max_page_length",
+        "page_length<current_page_length",
+        "extended_top_margin>printable_area",
+        "signed_negative_value",
     ],
 )
 def test_set_page_format(format_databytes, page_size, expected_margins):
