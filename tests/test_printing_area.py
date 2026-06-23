@@ -310,9 +310,12 @@ def test_set_page_length_defined_unit(format_databytes, expected):
     """
     escapy = ESCParser(format_databytes, pdf=False)
     assert escapy.page_length == expected
-    top_margin, bottom_margin = escapy.printable_area[0:2]
-    assert escapy.top_margin == top_margin
-    assert escapy.bottom_margin == bottom_margin
+    top, bottom = escapy.printable_area[0:2]
+    # Top margin is reset
+    assert escapy.top_margin == top
+    # Bottom margin is implicitely recalculated from the top margin,
+    # with the new page length
+    assert escapy.bottom_margin == top - expected
 
 
 @pytest.mark.parametrize(
@@ -351,9 +354,12 @@ def test_set_page_length_lines(format_databytes, expected):
     """
     escapy = ESCParser(format_databytes, pdf=False)
     assert escapy.page_length == expected
-    top_margin, bottom_margin = escapy.printable_area[0:2]
-    assert escapy.top_margin == top_margin
-    assert escapy.bottom_margin == bottom_margin
+    top, bottom = escapy.printable_area[0:2]
+    # Top margin is reset
+    assert escapy.top_margin == top
+    # Bottom margin is implicitely recalculated from the top margin,
+    # with the new page length
+    assert escapy.bottom_margin == top - expected
 
 
 @pytest.mark.parametrize(
@@ -375,9 +381,12 @@ def test_set_page_length_inches(format_databytes, expected):
     """Set page length in the current line spacing - ESC C NUL"""
     escapy = ESCParser(format_databytes, pdf=False)
     assert escapy.page_length == expected
-    top_margin, bottom_margin = escapy.printable_area[0:2]
-    assert escapy.top_margin == top_margin
-    assert escapy.bottom_margin == bottom_margin
+    top, bottom = escapy.printable_area[0:2]
+    # Top margin is reset
+    assert escapy.top_margin == top
+    # Bottom margin is implicitely recalculated from the top margin,
+    # with the new page length
+    assert escapy.bottom_margin == top - expected
 
 
 @pytest.mark.parametrize(
