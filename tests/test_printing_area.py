@@ -329,8 +329,8 @@ def test_set_page_length_defined_unit(format_databytes, expected):
         # is 138, buch is > to the max expected value: 127.
         # Set the linespacing before to 1inch (60/60) with ESC A.
         # Send a 23inch page length: > 22 inch
-        # This value is outside the accepted area, the value will be set to 22.
-        (b"\x1bA\x3c" + b"\x1bC\x17", 22),
+        # This value is outside the accepted area, the command will be ignored.
+        (b"\x1bA\x3c" + b"\x1bC\x17", 11.192913385826774),
         # Test the reset of top/bottom margins, see test_set_page_format
         # for the explanations about the value.
         (b"\x1b(c\x04\x00\x08\x02\x78\x0f" + b"\x1bC\x42", 11),
@@ -368,7 +368,7 @@ def test_set_page_length_lines(format_databytes, expected):
     indirect=["format_databytes"],
     ids=[
         "1inch",
-        "22inch",
+        "22inches",
     ],
 )
 def test_set_page_length_inches(format_databytes, expected):

@@ -761,14 +761,15 @@ class ESCParser:
         page_length = page_length_lines * self.current_line_spacing
         LOGGER.debug("page length: %s", page_length)
 
-        if not 0 < page_length <= 22:
+        if not 0 < page_length <= self.maximum_page_length:
             LOGGER.error(
-                "(%s × (current line spacing: %s)) must be less than or equal to 22 inches (%s)",
+                "(%s × (current line spacing: %s)) must be less than or equal to %s inches (%s)",
                 page_length_lines,
                 self.current_line_spacing,
+                self.maximum_page_length,
                 page_length,
             )
-            page_length = 22
+            return
 
         self.page_length = page_length
         self.cancel_top_bottom_margins()
@@ -786,12 +787,14 @@ class ESCParser:
         page_length = args[1].value[0]
         LOGGER.debug("page length: %s", page_length)
 
-        if not 0 < page_length <= 22:  # pragma: no cover
+        # Not possible: limited in grammar
+        if not 0 < page_length <= self.maximum_page_length:  # pragma: no cover
             LOGGER.error(
-                "page_length must be less than 22 inches (%s)",
+                "page_length must be less than %s inches (%s)",
+                self.maximum_page_length,
                 page_length,
             )
-            page_length = 22
+            return
 
         self.page_length = page_length
         self.cancel_top_bottom_margins()
