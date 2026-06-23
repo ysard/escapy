@@ -853,11 +853,14 @@ class ESCParser:
     def cancel_top_bottom_margins(self, *_):
         """Cancel the top and bottom margin settings
 
-        Set margins to default settings (printable area)
+         - Top margin is reset to default (from the printable area)
+         - Bottom margin is implicitely recalculated from the top margin,
+           with the current page length.
 
         Todo: do not change the cursors ?
         """
-        self.top_margin, self.bottom_margin, *_ = self.printable_area
+        self.top_margin = self.printable_area[0]
+        self.bottom_margin = self.top_margin - self.page_length
 
     def set_right_margin(self, *args):
         """Set the right margin to n columns in the current character pitch,
