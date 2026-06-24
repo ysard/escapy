@@ -791,8 +791,7 @@ class ESCParser:
             )
             return
 
-        self.page_length = page_length
-        self.cancel_top_bottom_margins()
+        self._apply_page_length(page_length)
 
     def set_page_length_lines(self, *args):
         """Sets the page length to n lines in the current line spacing - ESC C
@@ -818,8 +817,7 @@ class ESCParser:
             )
             return
 
-        self.page_length = page_length
-        self.cancel_top_bottom_margins()
+        self._apply_page_length(page_length)
 
     def set_page_length_inches(self, *args):
         """Sets the page length to n inches - ESC C NUL
@@ -843,8 +841,7 @@ class ESCParser:
             )
             return
 
-        self.page_length = page_length
-        self.cancel_top_bottom_margins()
+        self._apply_page_length(page_length)
 
     def set_bottom_margin(self, *args):
         """Set the bottom margin on continuous paper to n lines (in the current line spacing) - ESC N
@@ -874,7 +871,8 @@ class ESCParser:
         if self.single_sheet_paper:
             return
 
-        self.cancel_top_bottom_margins()
+        # Cancel top & bottom margins
+        self._apply_page_length(self.page_length)
 
         # from the top-of-form position (1st printable line ) of the NEXT page
         # PS: No need to do bottom-up calculations with self.page_height
@@ -898,16 +896,32 @@ class ESCParser:
             self.bottom_margin = 0
 
     def cancel_top_bottom_margins(self, *_):
-        """Cancel the top and bottom margin settings
+        """Cancel the top and bottom margin settings - ESC O"""
+        self._apply_page_length(self.page_length)
 
-         - Top margin is reset to default (from the printable area)
-         - Bottom margin is implicitely recalculated from the top margin,
+    def _apply_page_length(self, page_length) -> bool:
+        """Apply page length, reset top margin & sync bottom margin
+
+        - Top margin is reset to default (from the printable area)
+        - Bottom margin is implicitely recalculated from the top margin,
            with the current page length.
+        - If the calculated bottom margin is outsite the printable area,
+          no values are changed.
 
         Todo: do not change the cursors ?
+
+        :param page_length: Proposed page length.
+        :return: Return True if the value has been accepted and set.
         """
         self.top_margin = self.printable_area[0]
-        self.bottom_margin = self.top_margin - self.page_length
+        bottom_margin = self.top_margin - page_length
+        if bottom_margin < self.printable_area[1]:
+            LOGGER.error("page length pushed the bottom margin out of bounds: ignored")
+            return False
+
+        self.bottom_margin = bottom_margin
+        self.page_length = page_length
+        return True
 
     def set_right_margin(self, *args):
         """Set the right margin to n columns in the current character pitch,

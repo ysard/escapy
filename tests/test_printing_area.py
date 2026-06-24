@@ -295,24 +295,24 @@ def test_set_page_format(format_databytes, page_size, expected_margins):
 
 
 @pytest.mark.parametrize(
-    "format_databytes, expected",
+    "format_databytes, page_size, expected",
     [
         # hex(11*360): 0xf78
         # Send bottom margin 11inch, so 11.69-11 = 0.69: Correct values
-        (b"\x1b(C\x02\x00\x78\x0f", 11),
+        (b"\x1b(C\x02\x00\x78\x0f", A4, 11),
         # Prepend ESC ( U to set defined unit to 2 / 360
         # hex(11*360/2): 0x7bc
-        (set_unit_header + b"\x00\x14" + b"\x1b(C\x02\x00\xbc\x07", 11),
+        (set_unit_header + b"\x00\x14" + b"\x1b(C\x02\x00\xbc\x07", A4, 11),
         # hex(23*360): 0x2058
         # Send a 23inch page length: > 22 inch
-        # This value is outside the accepted area, the command is ignored,
-        # the value expected is the default one
-        (b"\x1b(C\x02\x00" + pack("<H", 23 * 360), 11.192913385826774),
-        # Extended version: The limit in modern printers is set to 44inch
-        (b"\x1b(C\x04\x00" + pack("<I", 23 * 360), 23),
+        # This value is outside the accepted area (and outside the page height),
+        # the command is ignored, the value expected is the default one
+        (b"\x1b(C\x02\x00" + pack("<H", 23 * 360), A4, 11.192913385826774),
+        # Extended version: The limit in modern printers is set to 44inch: accepted
+        (b"\x1b(C\x04\x00" + pack("<I", 23 * 360), (A4[0], (72 * 24)), 23),
         # Test the reset of top/bottom margins, see test_set_page_format
         # for the explanations about the value.
-        (b"\x1b(c\x04\x00\x08\x02\x78\x0f" + b"\x1b(C\x02\x00\x78\x0f", 11),
+        (b"\x1b(c\x04\x00\x08\x02\x78\x0f" + b"\x1b(C\x02\x00\x78\x0f", A4, 11),
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
@@ -324,12 +324,12 @@ def test_set_page_format(format_databytes, page_size, expected_margins):
         "reset_top_bottom_margins",
     ],
 )
-def test_set_page_length_defined_unit(format_databytes, expected):
+def test_set_page_length_defined_unit(format_databytes, page_size, expected):
     """Set page length in defined unit - ESC ( C
 
     .. note:: default unit is 1 / 360.
     """
-    escapy = ESCParser(format_databytes, pdf=False)
+    escapy = ESCParser(format_databytes, page_size=page_size, pdf=False)
     assert escapy.page_length == expected
     top, bottom = escapy.printable_area[0:2]
     # Top margin is reset
@@ -388,8 +388,8 @@ def test_set_page_length_lines(format_databytes, expected):
     [
         # 1inch
         (b"\x1bC\x00\x01", 1),
-        # 22inch
-        (b"\x1bC\x00\x16", 22),
+        # 22inch: outside the page height: ignored
+        (b"\x1bC\x00\x16", 11.192913385826774),
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
