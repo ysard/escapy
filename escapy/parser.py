@@ -24,6 +24,7 @@ import itertools as it
 import codecs
 from functools import lru_cache, partial
 from hashlib import md5
+from math import isclose
 from logging import DEBUG
 
 # Custom imports
@@ -639,6 +640,47 @@ class ESCParser:
     def reset_cursor_x(self):
         """Move the X cursor to the left edge of the printing area (left-margin)"""
         self._carriage_return()
+
+    def set_paper_dimensions(self, _, token):
+        """Set paper dimensions (extended) - ESC ( S
+
+        Used to expand the bottom-margin (3mm) on XP-410. Expected behavior may
+        be different on other models.
+
+        - Todo: available in graphics mode only via ESC ( G
+        - Work effectively only when the defined paper length is the same
+           as the physical paper length measured by the printer.
+        - Todo: If some portion of an image extends beyond the bottom edge of
+           the page, then that extended portion of the image is deleted.
+           => Do not print on the next page!
+        - Paper width is ignored.
+        - WONTFIX: If the defined paper length is shorter than the actual
+            paper length, the portion of an image beyond the defined
+            paper length will be deleted.
+            => Cannot happend since the command is ignored !!?
+        """
+        self.set_modern_compatibility()
+        paper_width, paper_length = unpack("<II", token.value)
+
+        # The page unit is validated
+        paper_width *= self.page_management_unit
+        paper_length *= self.page_management_unit
+
+        LOGGER.critical(self.page_management_unit)
+
+        LOGGER.debug("Set paper dimensions l x w: %s x %s", paper_length, paper_width)
+        LOGGER.debug("Cur paper dimensions l x w: %s x %s", self.page_height, self.page_width)
+
+        if not isclose(self.page_height, paper_length, rel_tol=1e-04):
+            LOGGER.warning(
+                "paper length mismatch: received: %s; current: %s: ignored",
+                paper_length,
+                self.page_height
+            )
+            return
+        # NOTE: Could use page height instead of printable area...
+        self.bottom_margin = max(self.bottom_margin - (3 / 25.4), self.printable_area[1])
+        LOGGER.debug("Expand bottom margin by 3mm: %s", self.bottom_margin)
 
     def set_page_format(self, _, token):
         """Set top and bottom margins (legacy/extended) - ESC ( c

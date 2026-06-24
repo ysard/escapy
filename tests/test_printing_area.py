@@ -42,6 +42,8 @@ AV_header = b"\x1b(V\x02\x00"
 AV_ex_header = b"\x1b(V\x04\x00"
 set_unit_header = b"\x1b(U\x01"
 
+A4_length = A4[1] / 72
+
 
 @pytest.mark.parametrize(
     "format_databytes",
@@ -643,3 +645,40 @@ def test_control_paper_loading_ejecting(tmp_path: Path):
     escapy = ESCParser(code, output_file=processed_file)
 
     assert escapy.current_pdf.getPageNumber() == 2
+
+
+@pytest.mark.parametrize(
+    "format_databytes, expected",
+    [
+        # Paper length mismatch
+        (b"\x1b(S\x08\x00" b"\x00\x00\x00\x00\x00\x00\x00\x00", 0.25),
+        (
+            # Paper length ok, but below printablea area: ignored
+            # Set unit PVH: 1/1440, 1/720, 1/360
+            b"\x1b(U\x05\x00" + b"\x01\x02\x04" + int(1440).to_bytes(2, byteorder="little")
+            # 11906x16838 = 21.0x29.7cm = A4 page format
+            + b"\x1b(S\x08\x00" + pack("<I", 11906) + pack("<I", 16838),
+            0.25
+        ),
+        (
+            # Set page length: 10", bottom margin: 10.25
+            b"\x1b(C\x02\x00" + pack("<H", 3600)
+            # Set unit PVH: 1/1440, 1/720, 1/360
+            + b"\x1b(U\x05\x00" + b"\x01\x02\x04" + int(1440).to_bytes(2, byteorder="little")
+            # 11906x16838 = 21.0x29.7cm = A4 page format
+            + b"\x1b(S\x08\x00" + pack("<I", 11906) + pack("<I", 16838),
+            A4_length - 10.25 - 3 / 25.4
+        ),
+    ],
+    # First param goes in the 'request' param of the fixture format_databytes
+    indirect=["format_databytes"],
+    ids=[
+        "paper_length_mismatch",
+        "too_low",
+        "accepted_value",
+    ],
+)
+def test_set_paper_dimensions(format_databytes, expected):
+    """Bottom margin should be expanded by 3mm"""
+    escapy = ESCParser(format_databytes, pdf=False)
+    assert escapy.bottom_margin == expected
