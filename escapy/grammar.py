@@ -33,6 +33,7 @@ esc_grammar = r"""
     start: instruction+
 
     instruction:  tiff_compressed_rule
+        | remote_mode
         | ANYTHING               -> binary_blob
         | TRASH
         | INIT                   -> reset_printer
@@ -237,6 +238,13 @@ esc_grammar = r"""
         | MOVX_HEADER DATA+ -> set_relative_horizontal_position
         | MOVY_HEADER DATA+ -> set_relative_vertical_position
 
+    remote_mode.2: remote_enter remote_instruction* remote_exit
+    remote_enter: ESC "(R\x08\x00\x00REMOTE1"         -> set_remote_mode
+    remote_exit: ESC "\x00\x00\x00"                   -> exit_remote_mode
+    remote_instruction.2:
+        # Trap for unknown/not implemented commands
+        # NOTE: No DATA+, to avoid a bug when 2 consecutive unknown remote codes are encountered?!
+        | REMOTE_CODE_HEADER DATA
 
     # Text/printable bytes: Everything but ESC or solo control codes
     # As a reminder, here are the ranges of codes that can be switched as
@@ -315,6 +323,12 @@ esc_grammar = r"""
     BARCODE_HEADER: /.[\x00-\x1f][\x00-\x07][\x02-\x05]..[\x00-\x1f]./s
 
     USER_CHARACTERS_HEADER: /[\x00-\x7f]{2}/
+
+    # 2 letters + 2 size bytes, nL nH in little endian
+    REMOTE_CODE_HEADER.-1: /[?A-Z]{2}.\x00/s
+    # Job start: nL = <job name's length> + 2
+    # Job name : nL = <job name's length> + 6
+    REMOTE_JOB_HEADER: /[\x02-\xff]\x00/
 
     #0b00100000-0b00101111
     #0b00110001,0b00110010
@@ -643,6 +657,18 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
                 # Follow the script status to handle user defined characters
                 # variable data size (ESCP2)
                 scripting_status = token.type == "_SCRIPT"
+
+            elif token.type in ("REMOTE_CODE_HEADER", "REMOTE_JOB_HEADER"):
+                # Trap for unsupported REMOTE codes (including the first 2 letters)
+                # nL, nH = token.value[-2:]
+                expected_bytes = unpack("<H", token.value[-2:])[0]
+
+                LOGGER.warning(
+                    "Unknown REMOTE code detected '%s', expected bytes: %d",
+                    token.value[:2].decode(),
+                    expected_bytes
+                )
+                data_token_flag = True
 
             if data_token_flag:
                 # For commands with variable size.
