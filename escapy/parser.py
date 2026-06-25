@@ -274,8 +274,7 @@ class ESCParser:
         self.horizontal_tabulations = None
         self.reset_horizontal_tabulations()
         self.vertical_tabulations = None
-        # Must be None because functions where it is used have their own default values
-        self.defined_unit = None
+        # Units
         self.vertical_unit =  1 / 360
         # No default value:
         # Some commands like ESC $, ESC \ require contextual default values
@@ -1158,7 +1157,7 @@ class ESCParser:
         return True
 
     def set_absolute_vertical_print_position(self, _, token):
-        """Moves the vertical print position to the position specified - ESC ( V
+        """Moves the vertical print position to the position specified (legacy/extended) - ESC ( V
 
         - Default defined unit for this command is 1/360 inch.
         - The new position is measured in defined units from the current
@@ -1289,19 +1288,23 @@ class ESCParser:
 
         The default unit varies depending on the command and print quality:
 
-            ESC ( V            1/360 inch
-            ESC ( v            1/360 inch
-            ESC ( C            1/360 inch
-            ESC ( c            1/360 inch
-            ESC \ (LQ mode)    1/180 inch
-            ESC \ (draft mode) 1/120 inch
-            ESC $              1/60 inch
+            ESC ( V            1/360 inch Set absolute vertical print position
+            ESC ( v            1/360 inch Set relative vertical print position
+            ESC \ (LQ mode)    1/180 inch Set relative horizontal print position
+            ESC \ (draft mode) 1/120 inch .
+            ESC ( /            1/360 inch Set relative horizontal print position
+            ESC $              1/60 inch  Set absolute horizontal print position
+            ESC ( $            1/360 inch .
+            ESC ( C            1/360 inch Set page length defined unit
+            ESC ( c            1/360 inch Set page format
+            ESC ( S            1/360 inch Set paper dimensions
             <MOVX> (dot)       1/360 inch
             <MOVY>             1/360 inch
 
         Values: 5, 10, 20, 30, 40, 50, 60
 
         .. note:: ESC/P 2 only
+        .. seealso:: :meth:`set_unit_ex`.
         """
         value = args[1].value[0]
         unit = value / 3600
@@ -3642,8 +3645,10 @@ class ESCParser:
         - turn MicroWeave printing off
         - clear tab settings
         - clear all user-defined characters
+        - various settings **should be** the same as when the power is turned on
 
         Only available commands:
+
             LF          Line feed
             FF          Form feed
             CR          Carriage return
@@ -3652,18 +3657,25 @@ class ESCParser:
             ESC .       Print raster graphics
             ESC . 2     Enter TIFF compressed mode*
             ESC . 3     Enter TIFF Delta Row compressed mode*
+            ESC i       Transfer raster image*
             ESC ( i     Select MicroWeave print mode*
             ESC ( c     Set page format
             ESC ( C     Set page length in defined unit
             ESC ( V     Set absolute vertical print position
             ESC ( v     Set relative vertical print position
-            ESC \       Set relative vertical print position
+            ESC \       Set relative horizontal print position
+            ESC ( /     Set relative horizontal print position*
             ESC $       Set absolute horizontal print position
+            ESC ( $     Set absolute horizontal print position*
             ESC r       Select printing color
             ESC U       Turn unidirectional mode on/off
             ESC +       Set n/360-inch line spacing
             ESC ( U     Set unit
             ESC ( r     Select printing color*
+            ESC ( K     Set monochrome/color mode*
+            ESC ( e     Set dot size*
+            ESC ( S     Set paper dimensions*
+            ESC ( m     Set print method ID*
 
             *: available only with the Stylus COLOR and later inkjet printer models
 
