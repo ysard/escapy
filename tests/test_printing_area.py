@@ -220,16 +220,16 @@ def test_set_bottom_margin(format_databytes, single_sheet, expected_bottom_margi
         (b"\x1b(c\x04\x00" + pack("<H", 360) + pack("<H", 3600), (8.5 * 72, 11 * 72), (10, 1)),
         # hex(11*360): 0xf78
         # Send bottom margin 11inch, so 11.69-11 = 0.69 in bottom-up system: Correct values
-        (b"\x1b(c\x04\x00\x08\x02\x78\x0f", A4, (10.24846894138233, A4_length - 11)),
+        (b"\x1b(c\x04\x00\x08\x02\x78\x0f", A4, (10.24846894138233, 0.692913385826774)),
         # Prepend ESC ( U to set defined unit to 2 / 360
         # hex(11*360/2): 0x7bc
-        (set_unit_header + b"\x00\x14" + b"\x1b(c\x04\x00\x08\x02\xbc\x07", A4, (8.804024496937885, A4_length - 11)),
+        (set_unit_header + b"\x00\x14" + b"\x1b(c\x04\x00\x08\x02\xbc\x07", A4, (8.804024496937885, 0.692913385826774)),
         # top margin >= bottom margin: error => ignored
-        (b"\x1b(c\x04\x00\x00\x02\x00\x01", A4, (A4_length - 0.25, 0.25)),
-        (b"\x1b(c\x04\x00\x08\x02\x08\x02", A4, (A4_length - 0.25, 0.25)),
+        (b"\x1b(c\x04\x00\x00\x02\x00\x01", A4, (11.442913385826774, 0.25)),
+        (b"\x1b(c\x04\x00\x08\x02\x08\x02", A4, (11.442913385826774, 0.25)),
         # hex(14*360): 0x13b0
         # Bottom 14inch: outside printable area => ignored
-        (b"\x1b(c\x04\x00\x08\x02\xb0\x13", A4, (A4_length - 0.25, 0.25)),
+        (b"\x1b(c\x04\x00\x08\x02\xb0\x13", A4, (11.442913385826774, 0.25)),
         # hex(23*360): 0x2058
         # Send a 23inch bottom margin on a 23inch height page
         # This value is outside the printable area,
@@ -309,7 +309,7 @@ def test_set_page_format(format_databytes, page_size, expected_margins):
         # Send a 23inch page length: > 22 inch
         # This value is outside the accepted area (and outside the page height),
         # the command is ignored, the value expected is the default one
-        (b"\x1b(C\x02\x00" + pack("<H", 23 * 360), A4, A4_length - 0.25),
+        (b"\x1b(C\x02\x00" + pack("<H", 23 * 360), A4, 11.192913385826774),
         # Extended version: The limit in modern printers is set to 44inch: accepted
         (b"\x1b(C\x04\x00" + pack("<I", 23 * 360), (A4[0], (72 * 24)), 23),
         # Test the reset of top/bottom margins, see test_set_page_format
@@ -349,14 +349,14 @@ def test_set_page_length_defined_unit(format_databytes, page_size, expected):
         (b"\x1bC\x42", 11),
         # Prepend ESC 1 to set the linespacing to 7 /72
         # hex(11*72/7): ~113 = 0x71
-        (b"\x1b1C\x71", A4_length - 0.25),
+        (b"\x1b1C\x71", 11.192913385826774),
         # hex(23): 0x17
         # PS: if we keep the current linespacing (1/60), the value for 23inch
         # is 138, buch is > to the max expected value: 127.
         # Set the linespacing before to 1inch (60/60) with ESC A.
         # Send a 23inch page length: > 22 inch
         # This value is outside the accepted area, the command will be ignored.
-        (b"\x1bA\x3c" + b"\x1bC\x17", A4_length - 0.25),
+        (b"\x1bA\x3c" + b"\x1bC\x17", 11.192913385826774),
         # Test the reset of top/bottom margins, see test_set_page_format
         # for the explanations about the value.
         (b"\x1b(c\x04\x00\x08\x02\x78\x0f" + b"\x1bC\x42", 11),
@@ -391,7 +391,7 @@ def test_set_page_length_lines(format_databytes, expected):
         # 1inch
         (b"\x1bC\x00\x01", 1),
         # 22inch: outside the page height: ignored
-        (b"\x1bC\x00\x16", A4_length - 0.25),
+        (b"\x1bC\x00\x16", 11.192913385826774),
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
