@@ -47,7 +47,7 @@ esc_grammar = r"""
         # Implemented nethertheless (it's a control code that can be printable)
         | DC1                   -> select_printer
         | DC3                   -> deselect_printer
-        | ESC "(m\x01\x00" /./  -> set_print_method
+        | ESC "(m\x01\x00" /./s -> set_print_method
 
         # Paper feeding
         | ESC EM /[0124BFR]/    -> control_paper_loading_ejecting
@@ -66,11 +66,11 @@ esc_grammar = r"""
         | ESC "f" BIN_ARG HALF_BYTE_ARG -> h_v_skip
 
         # Page format
-        | ESC "(C\x02\x00" /../             -> set_page_length_defined_unit
-        | ESC "(C\x04\x00" /.{4}/           -> set_page_length_defined_unit
-        | ESC "(c\x04\x00" /.{4}/           -> set_page_format
-        | ESC "(c\x08\x00" /.{8}/           -> set_page_format
-        | ESC "(S\x08\x00" /.{8}/           -> set_paper_dimensions
+        | ESC "(C\x02\x00" /../s            -> set_page_length_defined_unit
+        | ESC "(C\x04\x00" /.{4}/s          -> set_page_length_defined_unit
+        | ESC "(c\x04\x00" /.{4}/s          -> set_page_format
+        | ESC "(c\x08\x00" /.{8}/s          -> set_page_format
+        | ESC "(S\x08\x00" /.{8}/s          -> set_paper_dimensions
         | ESC "C" HALF_BYTE_ARG             -> set_page_length_lines
         | ESC "C\x00" /[\x01-\x16]/         -> set_page_length_inches
         | ESC "N" HALF_BYTE_ARG             -> set_bottom_margin
@@ -79,14 +79,14 @@ esc_grammar = r"""
         | ESC "Q" BYTE_ARG                  -> set_right_margin
 
         # Print position motion
-        | ESC "$" /../                      -> set_absolute_horizontal_print_position
-        | ESC "($\x04\x00" /.{4}/           -> set_absolute_horizontal_print_position
-        | ESC "\\" /../                     -> set_relative_horizontal_print_position
-        | ESC "(/" /.{4}/                   -> set_relative_horizontal_print_position
-        | ESC "(V\x02\x00" /../             -> set_absolute_vertical_print_position
-        | ESC "(V\x04\x00" /.{4}/           -> set_absolute_vertical_print_position
-        | ESC "(v\x02\x00" /../             -> set_relative_vertical_print_position
-        | ESC "(v\x04\x00" /.{4}/           -> set_relative_vertical_print_position
+        | ESC "$" /../s                     -> set_absolute_horizontal_print_position
+        | ESC "($\x04\x00" /.{4}/s          -> set_absolute_horizontal_print_position
+        | ESC "\\" /../s                    -> set_relative_horizontal_print_position
+        | ESC "(/" /.{4}/s                  -> set_relative_horizontal_print_position
+        | ESC "(V\x02\x00" /../s            -> set_absolute_vertical_print_position
+        | ESC "(V\x04\x00" /.{4}/s          -> set_absolute_vertical_print_position
+        | ESC "(v\x02\x00" /../s            -> set_relative_vertical_print_position
+        | ESC "(v\x04\x00" /.{4}/s          -> set_relative_vertical_print_position
         # Variable command but limited by a NUL char
         | ESC "D" /[\x01-\xff]{0,32}\x00/   -> set_horizontal_tabs
         # Variable command but limited by a NUL char
@@ -103,25 +103,24 @@ esc_grammar = r"""
         # not implemented: deleted command
         | ESC "j" BYTE_ARG                  -> reverse_paper_feed
         # not implemented: deleted command, replaced by transfer_raster_image
-        # | ESC "i" BIN_ARG                   -> set_immediate_print_mode
+        # | ESC "i" BIN_ARG                 -> set_immediate_print_mode
 
 
         # Font selection
         # 0-9 10 11 30 31; add 12 (0x0c) for tests purpose
         | ESC "k" /[\x00-\x0c\x1e\x1f]/     -> select_typeface
-        | ESC "X" /[\x00\x01\x05-\x7f][\x00-\xff]{2}/ -> select_font_by_pitch_and_point
+        | ESC "X" /[\x00\x01\x05-\x7f]../s  -> select_font_by_pitch_and_point
         # P: 10cpi, M: 12cpi, g: 15cpi
         | ESC /[PMg]/                       -> select_cpi
         | ESC "p" BIN_ARG_EX                -> switch_proportional_mode
         | ESC "x" BIN_ARG_EX                -> select_letter_quality_or_draft
-        | ESC "c" /[\x00-\xff][\x00-\x04]/  -> set_horizontal_motion_index
+        | ESC "c" /.[\x00-\x04]/s           -> set_horizontal_motion_index
 
         # Spacing
         | ESC SP HALF_BYTE_ARG              -> set_intercharacter_space
         # 5, 10, 20, 30, 40, 50, 60
         | ESC "(U\x01\x00" /[\x05\x0a\x14\x1e\x28\x32\x3c]/ -> set_unit
-        | ESC "(U\x05\x00" /.{3}/ /.{2}/    -> set_unit_ex
-
+        | ESC "(U\x05\x00" /.{3}/s /../s    -> set_unit_ex
 
         # Font enhancement
         | ESC "!" BYTE_ARG                  -> master_select
@@ -161,7 +160,7 @@ esc_grammar = r"""
 
 
         # Character handling
-        | ESC "(t\x03\x00" /[0-3\x00-\x03][\x00-\xff]{2}/ -> assign_character_table
+        | ESC "(t\x03\x00" /[0-3\x00-\x03]../s -> assign_character_table
         | ESC "t" /[0-3\x00-\x03]/          -> select_character_table
         # 0-13, 64
         | ESC "R" /[\x00-\x0d\x40]/         -> select_international_charset
@@ -178,8 +177,11 @@ esc_grammar = r"""
         | ESC "m\x04"                       -> unset_upper_control_codes_printing
 
         # Printing method control
+        | ESC "(i\x01\x00" BIN_ARG_EX                 -> switch_microweave_mode
+        # NOTE: There is an error in the docs (nL = 2)
+        | ESC "(K\x02\x00\x00" /[\x00\x01\x02]/       -> set_monochrome_color_mode
         # No restriction: may vary from one model to another
-        | ESC "(e\x02\x00\x00" /./                   -> set_dot_size
+        | ESC "(e\x02\x00\x00" /./s                   -> set_dot_size
 
         # Graphics
         # Variable
@@ -187,22 +189,20 @@ esc_grammar = r"""
         # Variable
         | ESC "^" SELECT_BIT_IMAGE_9PINS_HEADER DATA+ -> select_bit_image_9pins
         # 2nd byte can be: m = 0, 1, 2, 3, 4, 6, 32, 33, 38, 39, 40, 71, 72, 73 ; 0, 1, 2, 3, 4, 5, 6, 7
-        | ESC "?" SELECT_XDPI_GRAPHICS_CMD /[\x00\x01\x02\x03\x04\x06\x07\x20\x21\x26\x27\x28\x47\x48\x49]/ -> reassign_bit_image_mode
-        | ESC "(G\x01\x00" /[1\x01]/                 -> set_graphics_mode
-        | ESC "(i\x01\x00" BIN_ARG_EX                -> switch_microweave_mode
-        | ESC "(D\x04\x00" /.{2}/ /.{2}/             -> set_raster_resolution
+        | ESC "?" SELECT_XDPI_GRAPHICS_CMD /[\x00-\x07\x20\x21\x26-\x28\x47-\x49]/ -> reassign_bit_image_mode
+        | ESC "(G\x01\x00" /[1\x01]/                  -> set_graphics_mode
+        | ESC "(D\x04\x00" /../s /../s                -> set_raster_resolution
         # Should only be available in graphics mode
-        | ESC "(r\x02\x00\x00" /[\x00-\x04]/         -> set_printing_color
-        # NOTE: There is an error in the docs (nL = 2)
-        | ESC "(K\x02\x00\x00" /[\x00\x01\x02]/      -> set_monochrome_color_mode
+        | ESC "(r\x02\x00\x00" /[\x00-\x04]/          -> set_printing_color
         # Not implemented
-        | ESC ACK                                    -> flush_buffers
+        | ESC ACK                                     -> flush_buffers
         # Variable
-        | ESC "." PRINT_RASTER_GRAPHICS_HEADER DATA+ -> print_raster_graphics
-        | ESC "i" TRANSFER_RASTER_IMAGE_HEADER DATA+ -> transfer_raster_image
+        | ESC "." PRINT_RASTER_GRAPHICS_HEADER DATA+  -> print_raster_graphics
         # Variable
+        | ESC "i" TRANSFER_RASTER_IMAGE_HEADER DATA+  -> transfer_raster_image
+        # Variable
+        # Join ESC * 0, 1, 2, 3 commands
         | ESC SELECT_XDPI_GRAPHICS_CMD SELECT_XDPI_GRAPHICS_HEADER DATA -> select_xdpi_graphics
-        # Variable
         # Similar to ESC * 0
         # | ESC "K" SELECT_XDPI_GRAPHICS_HEADER DATA+ -> select_60dpi_graphics
         # Similar to ESC * 1
@@ -213,22 +213,25 @@ esc_grammar = r"""
         # | ESC "Z" SELECT_XDPI_GRAPHICS_HEADER DATA+ -> select_240dpi_graphics
 
         # Barcode
+        # Variable
         | ESC "(B" BARCODE_HEADER DATA+               -> barcode
 
         # Exit packet mode
         | ESC SOH "@EJL 1284.4\n@EJL     \n"          #-> exit_packet_mode
 
     tiff_compressed_rule.2: tiff_enter tiff_instruction* exit_ex
-    # Not variable
     # ESC . 2 / ESC . 3
     tiff_enter: ESC "." PRINT_TIFF_RASTER_GRAPHICS_HEADER -> print_tiff_raster_graphics
     exit_ex.2: EXIT_EX      -> exit_tiff_raster_graphics
-    tiff_instruction.2: XFER_HEADER DATA+ -> transfer_raster_graphics_data
+    tiff_instruction.2:
+        # Variable
+        | XFER_HEADER DATA+ -> transfer_raster_graphics_data
         | COLR_EX           -> set_printing_color_ex
         | CR_EX             -> carriage_return
         | CLR_EX            -> clear_seed_row
         | MOVXBYTE_EX       -> set_movx_unit_8dots
         | MOVXDOT_EX        -> set_movx_unit_1dot
+        # Variable
         # DATA can be 0,1 or 2 bytes but lark doesn't accept empty (0) terminal,
         # thus we build the DATA token in the grammar between the lexer and the parser
         | MOVX_HEADER DATA+ -> set_relative_horizontal_position
@@ -254,7 +257,7 @@ esc_grammar = r"""
     # Used for extra codes that can be inserted without any meaning, not printable,
     # or without belonging to a command (NUL bytes for example).
     # PS: see the lowest priority assigned
-    TRASH.-2: /[\x00-\xff]/
+    TRASH.-2: /./s
 
     # For user defined characters handling in ESCP2 mode, we need to check
     # the scripting status with the help of these tokens.
@@ -302,14 +305,14 @@ esc_grammar = r"""
     SELECT_XDPI_GRAPHICS_CMD: /[KLYZ]/
 
     # 0 1 2 3 4 5 6 7 32 33 38 39 40 71 72 73 + 64 65 70
-    SELECT_BIT_IMAGE_HEADER: /[\x00\x01\x02\x03\x04\x05\x06\x07\x20\x21\x26\x27\x28\x40\x41\x46\x47\x48\x49][\x00-\xff][\x00-\x1f]/
-    SELECT_BIT_IMAGE_9PINS_HEADER: /[\x00\x01].[\x00-\x1f]/
-    PRINT_DATA_AS_CHARACTERS_HEADER: /.[\x00-\x7f]/
-    PRINT_RASTER_GRAPHICS_HEADER: /[\x00\x01][\x05\x0A\x14\x1e]{2}[\x01\x08\x09\x10\x18].[\x00-\x1f]/
+    SELECT_BIT_IMAGE_HEADER: /[\x00-\x07\x20\x21\x26-\x28\x40\x41\x46-\x49].[\x00-\x1f]/s
+    SELECT_BIT_IMAGE_9PINS_HEADER: /[\x00\x01].[\x00-\x1f]/s
+    PRINT_DATA_AS_CHARACTERS_HEADER: /.[\x00-\x7f]/s
+    PRINT_RASTER_GRAPHICS_HEADER: /[\x00\x01][\x05\x0A\x14\x1e]{2}[\x01\x08\x09\x10\x18].[\x00-\x1f]/s
     PRINT_TIFF_RASTER_GRAPHICS_HEADER: /[\x02\x03][\x05\x0A\x14\x1e]{2}\x01\x00\x00/
-    TRANSFER_RASTER_IMAGE_HEADER: /.[\x00\x01][\x01\x02]..../
-    SELECT_XDPI_GRAPHICS_HEADER: /.[\x00-\x1f]/
-    BARCODE_HEADER: /.[\x00-\x1f][\x00-\x07][\x02-\x05]..[\x00-\x1f]./
+    TRANSFER_RASTER_IMAGE_HEADER: /.[\x00\x01][\x01\x02].{4}/s
+    SELECT_XDPI_GRAPHICS_HEADER: /.[\x00-\x1f]/s
+    BARCODE_HEADER: /.[\x00-\x1f][\x00-\x07][\x02-\x05]..[\x00-\x1f]./s
 
     USER_CHARACTERS_HEADER: /[\x00-\x7f]{2}/
 
@@ -329,9 +332,9 @@ esc_grammar = r"""
     BIN_ARG: /[\x00\x01]/
     BIN_ARG_EX: /[01\x00\x01]/
     HALF_BYTE_ARG: /[\x00-\x7f]/
-    BYTE_ARG: /[\x00-\xff]/
-    # use [\x00-\xff] instead .
-    DATA: /[\x00-\xff]/
+    BYTE_ARG: /./s
+    # use [\x00-\xff] or /./s
+    DATA: /./s
 
 
     %import common.LETTER
