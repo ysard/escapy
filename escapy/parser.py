@@ -914,7 +914,7 @@ class ESCParser:
             return
 
         # Cancel top & bottom margins
-        self._apply_page_length(self.page_length)
+        self.cancel_top_bottom_margins()
 
         # from the top-of-form position (1st printable line ) of the NEXT page
         # PS: No need to do bottom-up calculations with self.page_height
