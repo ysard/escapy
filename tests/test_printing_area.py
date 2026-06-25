@@ -412,6 +412,20 @@ def test_set_page_length_inches(format_databytes, expected):
     assert escapy.bottom_margin == top - expected
 
 
+def test_cancel_top_bottom_margins():
+    """Test the reset of top/bottom margins - ESC O"""
+    # See test_set_page_format for the explanations about the value.
+    # top: 520/360, bottom: 11"
+    code = b"\x1b(c\x04\x00\x08\x02\x78\x0f" + b"\x1bO"
+
+    escapy = ESCParser(esc_reset + code, pdf=False)
+    top, bottom = escapy.printable_area[0:2]
+
+    # Margins are reset to printable area limits
+    assert escapy.top_margin == top
+    assert escapy.bottom_margin == bottom
+
+
 @pytest.mark.parametrize(
     # Offset are set without the top and left margins respectively
     "format_databytes, pins, x_offset, y_offset",

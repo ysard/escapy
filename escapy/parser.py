@@ -939,7 +939,7 @@ class ESCParser:
 
     def cancel_top_bottom_margins(self, *_):
         """Cancel the top and bottom margin settings - ESC O"""
-        self._apply_page_length(self.page_length)
+        self.top_margin, self.bottom_margin = self.printable_area[:2]
 
     def _apply_page_length(self, page_length) -> bool:
         """Apply page length, reset top margin & sync bottom margin
