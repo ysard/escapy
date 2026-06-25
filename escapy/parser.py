@@ -397,6 +397,7 @@ class ESCParser:
         self.graphics_mode = False
         self.microweave_mode = False
         self.monochrome_mode = False
+        self.dot_size = 0x00  # Specific to each printer
         # Delta Row compression
         self.delta_row_graphics_mode = False
         self.seed_rows = None
@@ -3713,6 +3714,31 @@ class ESCParser:
         """
         value = args[1].value[0]
         self.microweave_mode = value in (1, 49)
+
+    def set_dot_size(self, _, token):
+        """Set dot size (extended) - ESC ( e
+
+        Todo: Use it!
+
+        - Default dot sizes are specific to each printer model.
+        - Dot control is valid irrespective of printing mode or printing density.
+        - Default dot size is selected by the ESC @ or ESC (G commands.
+        """
+        self.set_modern_compatibility()
+        # List from XP-410
+        dot_sizes = {
+            0x00: "VSD1_1",
+            0x10: "VSD_UKN",  # added experimentally
+            0x11: "VSD1_2",
+            0x12: "VSD2_2",
+            0x13: "VSD3_2",
+        }
+        value = token.value[0]
+        if value not in dot_sizes:
+            LOGGER.warning("Not expected dot size: <%s>", value)
+            # Set default
+            value = 0x00
+        self.dot_size = value
 
     def set_raster_resolution(self, _, token_base_unit, token_vh):
         """Set the raster image resolution (extended) - ESC ( D

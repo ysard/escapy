@@ -177,6 +177,9 @@ esc_grammar = r"""
         | ESC "m\x00"                       -> set_upper_control_codes_printing
         | ESC "m\x04"                       -> unset_upper_control_codes_printing
 
+        # Printing method control
+        # No restriction: may vary from one model to another
+        | ESC "(e\x02\x00\x00" /./                   -> set_dot_size
 
         # Graphics
         # Variable
