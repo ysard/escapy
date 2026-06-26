@@ -517,7 +517,9 @@ class ESCParser:
             # directives. Those directives will force a blank page to be generated
             # even if there is no data in the page.
             return
-        if color >= len(self.CMYK_colors):  # pragma: no cover
+        if self.monochrome_mode:
+            return
+        if color >= len(self.CMYK_colors):
             # Color doesn't exist: ignore the command
             LOGGER.error("Color id %s is unknown! Ignore.", color)
             return
@@ -3779,13 +3781,18 @@ class ESCParser:
         (in number and position) on certain printer models, depending on whether
         they are in monochrome or color mode.
 
-        .. seealso:: :meth:`get_nozzle_offset`.
+        When monochrome mode is selected, the color selection commands
+        ESC r and ESC (r are ignored.
 
-        Todo: When monochrome mode is selected, the color selection commands
-          ESC r and ESC (r are ignored.
+        .. seealso:: :meth:`get_nozzle_offset`, :meth:`color`.
         """
-        self.monochrome_mode = token.value == b"\x01"
-        LOGGER.debug("Monochrome: %s", self.monochrome_mode)
+        is_monochrome = token.value == b"\x01"
+
+        if is_monochrome:
+            self.color = 0  # Black
+        self.monochrome_mode = is_monochrome
+
+        LOGGER.debug("Monochrome: %s", is_monochrome)
 
     def transfer_raster_image(self, _, token_header, token_data):
         """Transfer raster image (extended) - ESC i

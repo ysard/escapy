@@ -540,7 +540,6 @@ def test_set_printing_color():
     - ESC r: set color
     - ESC ( r: set color in graphics mode
     """
-    # TODO: Should not allow color editing if enabled
     set_monochrome_mode = b"\x1b(K\x02\x00\x00\x01"
     set_color_magenta = b"\x1br\x01"
     # NOTE: Should not be available if not in graphics mode
@@ -548,7 +547,8 @@ def test_set_printing_color():
 
     dataset = [
         (set_monochrome_mode, "Black"),
-        (set_monochrome_mode + set_color_magenta, "Magenta"),  # TODO: refused
+        # Color change is refused in monochrome mode
+        (set_monochrome_mode + set_color_magenta, "Black"),
         (set_color_magenta, "Magenta"),
         (set_color_magenta_ex, "Magenta"),
     ]
