@@ -4849,6 +4849,14 @@ class ESCParser:
         )
         barcode.drawOn(self.current_pdf, self.cursor_x * 72, self.cursor_y * 72)
 
+    def exit_packet_mode(self, *_):
+        """Cancel packet communication protocol (Epson packet mode)
+
+        Sent at the beginning of each job.
+        Used here only to detect a modern printer.
+        """
+        self.set_modern_compatibility()
+
     def reset_printer(self, *_):
         """Reset printer configuration
 

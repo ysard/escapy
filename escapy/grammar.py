@@ -218,7 +218,9 @@ esc_grammar = r"""
         | ESC "(B" BARCODE_HEADER DATA+               -> barcode
 
         # Exit packet mode
-        | ESC SOH "@EJL 1284.4\n@EJL     \n"          #-> exit_packet_mode
+        | ESC SOH "@EJL 1284.4\n@EJL     \n"          -> exit_packet_mode
+        # D4 mode ?
+        | ESC SOH "@EJL 1284.4\n@EJL\n@EJL\n"         -> enter_d4
 
     tiff_compressed_rule.2: tiff_enter tiff_instruction* exit_ex
     # ESC . 2 / ESC . 3
