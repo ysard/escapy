@@ -4014,17 +4014,25 @@ class ESCParser:
 
         horizontal_resolution = self.horizontal_resolution
         vertical_resolution = self.vertical_resolution
+        dots = self.dots_as_circles
 
         cursor_x = self.cursor_x
         cursor_y = self.cursor_y
 
-        linewidth = horizontal_resolution * 72 * 1.28
-
-        dot_sizes = {
-            1: round(linewidth * 0.50, 2),  # small
-            2: round(linewidth * 1.00, 2),  # medium
-            3: round(linewidth * 1.50, 2),  # large
-        }
+        if dots:
+            linewidth = horizontal_resolution * 72 * 1.28
+            dot_sizes = {
+                1: round(linewidth * 0.50, 2),  # small
+                2: round(linewidth * 1.00, 2),  # medium
+                3: round(linewidth * 1.50, 2),  # large
+            }
+        else:
+            unit = self.horizontal_resolution * 72
+            dot_sizes = {
+                1: round(unit * 1, 2),  # small
+                2: round(unit * 1.5, 2),  # medium
+                3: round(unit * 2, 2),  # large
+            }
 
         def chunk_this(iterable, length):
             iterator = iter(iterable)
@@ -4044,7 +4052,6 @@ class ESCParser:
             }
 
             column_offset = 0
-
             cy = "{:.2f}".format(y_pos * 72).rstrip("0")
 
             for byte in line_bytes:
@@ -4061,7 +4068,7 @@ class ESCParser:
                     cx = "{:.2f}".format(x_pos * 72).rstrip("0")
 
                     paths[dot_type].append(
-                        f"{cx} {cy} m {cx} {cy} l"
+                        f"{cx} {cy} m {cx} {cy} l" if dots else f"{cx} {cy}"
                     )
 
                 column_offset += 4
@@ -4074,9 +4081,16 @@ class ESCParser:
                 if not segments:
                     continue
 
-                code.append(f"1 J {dot_sizes[dot_type]} w")
-                code.extend(segments)
-                code.append("S")
+                if dots:
+                    code.append(f"1 J {dot_sizes[dot_type]} w")
+                    code.extend(segments)
+                else:
+                    # Note: No vertical adjustment here, just a square...
+                    size = "{:.2f}".format(dot_sizes[dot_type]).rstrip("0")
+                    rect_suffix = f" {size} {size} re"
+                    code.append(f"{rect_suffix} ".join(segments) + rect_suffix)
+
+                code.append("S" if dots else "f")
 
         # NOTE: If padding bits have to be considered, prefer this:
         # horizontal_pixels = h_byte_count * 4
