@@ -4651,7 +4651,7 @@ class ESCParser:
                 # Similar to ESC * 3
                 self.klyz_densities[3] = dot_density_m
 
-    def select_xdpi_graphics(self, esc, cmd_code, header, data, *_):
+    def select_xdpi_graphics(self, esc, cmd_code, data, *_):
         """Print bit-image graphics in 8-dot columns at various densities - ESC K, L, Y, Z
 
         - ESC K: density of 60 horizontal, p190
@@ -4662,15 +4662,8 @@ class ESCParser:
         .. seealso:: :meth:`reassign_bit_image_mode`, :meth:`configure_bit_image`,
             :meth:`print_bit_image_dots`.
         """
-        nL, nH = header.value
-        expected_bytes = (nH << 8) + nL
         cmd_code = cmd_code.value
         data = data.value
-        if len(data) != expected_bytes:  # pragma: no cover
-            LOGGER.error(
-                "expected_bytes not available !!! expect: %s, found: %s",
-                expected_bytes, len(data)
-            )
 
         cmd_codes_idx_mapping = {
             b"K": 0,
@@ -4701,15 +4694,8 @@ class ESCParser:
 
         Todo: Graphics data that would print beyond the right-margin position is ignored.
         """
-        dot_density_m, nL, nH = args[1].value
-        expected_bytes = (nH << 8) + nL
-
+        dot_density_m, *_ = args[1].value
         data = args[2].value
-        if len(data) != expected_bytes:  # pragma: no cover
-            LOGGER.error(
-                "expected_bytes not available !!! expect: %s, found: %s",
-                expected_bytes, len(data)
-            )
 
         self.configure_bit_image(dot_density_m)
 
@@ -4792,8 +4778,7 @@ class ESCParser:
         not_supported_types = (4,)
 
         (
-            nL,
-            nH,
+            *_,
             barcode_type_k,
             module_width_m,
             space_adjustment_s,
@@ -4801,14 +4786,8 @@ class ESCParser:
             v2,
             control_flag_c,
         ) = header.value
-        expected_bytes = (nH << 8) + nL - 6
 
         data = data.value
-        if len(data) != expected_bytes:  # pragma: no cover
-            LOGGER.error(
-                "expected_bytes not available !!! expect: %s, found: %s",
-                expected_bytes, len(data)
-            )
 
         if barcode_type_k in not_supported_types:
             LOGGER.error("Barcode type %s is NOT supported (yet)!", barcode_types[barcode_type_k])

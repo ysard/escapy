@@ -203,15 +203,15 @@ esc_grammar = r"""
         | ESC "i" TRANSFER_RASTER_IMAGE_HEADER DATA+  -> transfer_raster_image
         # Variable
         # Join ESC * 0, 1, 2, 3 commands
-        | ESC SELECT_XDPI_GRAPHICS_CMD SELECT_XDPI_GRAPHICS_HEADER DATA -> select_xdpi_graphics
+        | ESC SELECT_XDPI_GRAPHICS_CMD _SELECT_XDPI_GRAPHICS_HEADER DATA -> select_xdpi_graphics
         # Similar to ESC * 0
-        # | ESC "K" SELECT_XDPI_GRAPHICS_HEADER DATA+ -> select_60dpi_graphics
+        # | ESC "K" _SELECT_XDPI_GRAPHICS_HEADER DATA+ -> select_60dpi_graphics
         # Similar to ESC * 1
-        # | ESC "L" SELECT_XDPI_GRAPHICS_HEADER DATA+ -> select_120dpi_graphics
+        # | ESC "L" _SELECT_XDPI_GRAPHICS_HEADER DATA+ -> select_120dpi_graphics
         # Similar to ESC * 2
-        # | ESC "Y" SELECT_XDPI_GRAPHICS_HEADER DATA+ -> select_120dpi_double_speed_graphics
+        # | ESC "Y" _SELECT_XDPI_GRAPHICS_HEADER DATA+ -> select_120dpi_double_speed_graphics
         # Similar to ESC * 3
-        # | ESC "Z" SELECT_XDPI_GRAPHICS_HEADER DATA+ -> select_240dpi_graphics
+        # | ESC "Z" _SELECT_XDPI_GRAPHICS_HEADER DATA+ -> select_240dpi_graphics
 
         # Barcode
         # Variable
@@ -328,7 +328,7 @@ esc_grammar = r"""
     PRINT_RASTER_GRAPHICS_HEADER: /[\x00\x01][\x05\x0A\x14\x1e]{2}[\x01\x08\x09\x10\x18].[\x00-\x1f]/s
     PRINT_TIFF_RASTER_GRAPHICS_HEADER: /[\x02\x03][\x05\x0A\x14\x1e]{2}\x01\x00\x00/
     TRANSFER_RASTER_IMAGE_HEADER: /.[\x00\x01][\x01\x02].{4}/s
-    SELECT_XDPI_GRAPHICS_HEADER: /.[\x00-\x1f]/s
+    _SELECT_XDPI_GRAPHICS_HEADER: /.[\x00-\x1f]/s
     BARCODE_HEADER: /.[\x00-\x1f][\x00-\x07][\x02-\x05]..[\x00-\x1f]./s
 
     USER_CHARACTERS_HEADER: /[\x00-\x7f]{2}/
@@ -463,7 +463,7 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
                 )
                 data_token_flag = True
 
-            if token.type in ("PRINT_DATA_AS_CHARACTERS_HEADER", "SELECT_XDPI_GRAPHICS_HEADER"):
+            if token.type in ("PRINT_DATA_AS_CHARACTERS_HEADER", "_SELECT_XDPI_GRAPHICS_HEADER"):
                 nL, nH = token.value
                 expected_bytes = (nH << 8) + nL
                 data_token_flag = True
