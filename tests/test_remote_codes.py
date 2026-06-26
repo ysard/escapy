@@ -61,9 +61,7 @@ def build_remote_program(databytes: bytes) -> bytes:
         EXIT_PACKET_MODE,  # Exit packet mode
         ENTER_D4,
         ENTER_REMOTE_MODE,  # Engage remote mode commands
-    ]
-    commands.append(databytes)
-    commands += [
+        databytes,
         EXIT_REMOTE_MODE,  # Disengage remote control
     ]
     return b"".join(commands)
@@ -79,8 +77,6 @@ def build_remote_program(databytes: bytes) -> bytes:
         # Outside page bounds
         (remote_cmd("FP", b"\x00" + pack("<h", -360)), 0),
     ],
-    # First param goes in the 'request' param of the fixture format_databytes
-    # indirect=["format_databytes"],
     ids=[
         "unit_default",
         "borderless",
