@@ -4857,6 +4857,77 @@ class ESCParser:
         """
         self.set_modern_compatibility()
 
+    def set_remote_mode(self, _):
+        """Enter in remote mode
+
+        Used here only to detect a modern printer.
+        """
+        self.set_modern_compatibility()
+
+    def set_relative_left_margin(self, token):
+        """Specify the horizontal left margin in units of 1/360 inch - FP
+
+        The default value for pos is 0.
+        For borderless printing on printers that support it, a negative value
+        of should be used (ex: -80 : 0xffb0 (BE): 0xb0 0xff (LE))
+        """
+        value = int.from_bytes(token.value, byteorder="little", signed=True)
+
+        left_margin = value * 1 / 360 + self.left_margin
+        LOGGER.debug(
+            "relative left margin: %s (previous: %s)", left_margin, self.left_margin
+        )
+
+        if not 0 <= left_margin < self.page_width:
+            LOGGER.error("relative left margin set outside page bounds")
+            return
+
+        self.left_margin = left_margin
+        self.reset_cursor_x()
+
+    def _apply_pdf_annotations(self, job_type: int, text: str):
+        """Set PDF annotations
+
+        Expected annotations types & corresponding PDF annotations:
+
+            - 0: Hostname - The PDF creator;
+            - 1: Product ID - Not supported for now;
+            - 2: Document name - The PDF title;
+            - 3: Username - The PDF author;
+
+        :param job_type: Annotation type (according to JH command)
+        :param text: Text to insert in the PDF annotations.
+        """
+        if not self.current_pdf:  # pragma: no cover
+            return
+
+        job_funcs = {
+            0: self.current_pdf.setCreator,  # Hostname
+            2: self.current_pdf.setTitle,  # Document name
+            3: self.current_pdf.setAuthor,  # Username
+        }
+        job_funcs.get(job_type, lambda _: None)(text)
+
+    def set_job_name(self, token):
+        """Set PDF annotations - JH
+
+        .. seealso:: :meth:`_apply_pdf_annotations`
+        """
+        job_type = token.value[1]
+        text = token.value[6:].decode("utf8")
+        self._apply_pdf_annotations(job_type, text)
+
+    def start_job(self, token):
+        """Start job - JS
+
+        Currently only set the job name in the PDF annotations.
+
+        .. seealso:: :meth:`_apply_pdf_annotations`
+        """
+        # Remove leading & trailing null chars
+        job_name = token.value[1:-1].decode("utf8")
+        self._apply_pdf_annotations(2, job_name)
+
     def reset_printer(self, *_):
         """Reset printer configuration
 
@@ -4884,7 +4955,7 @@ class ESCParser:
         :param tree: Lark tree of tokens, we use aliases as method names.
         :type tree: <lark.lexer.Tree>
         """
-        if tree.data in ("start", "instruction", "tiff_compressed_rule"):
+        if tree.data in ("start", "instruction", "tiff_compressed_rule", "remote_mode"):
             # Recursive call
             _ = [
                 self.run_esc_instruction(child)

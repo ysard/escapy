@@ -244,6 +244,13 @@ esc_grammar = r"""
     remote_enter: ESC "(R\x08\x00\x00REMOTE1"         -> set_remote_mode
     remote_exit: ESC "\x00\x00\x00"                   -> exit_remote_mode
     remote_instruction.2:
+        | "RS" "\x01\x00\x01"                         -> reset_printer
+        | "FP" "\x03\x00\x00" /../s                   -> set_relative_left_margin
+
+        # Variable
+        | "JH" _REMOTE_JOB_HEADER DATA                -> set_job_name
+        | "JS" _REMOTE_JOB_HEADER DATA                -> start_job
+
         # Trap for unknown/not implemented commands
         # NOTE: No DATA+, to avoid a bug when 2 consecutive unknown remote codes are encountered?!
         | REMOTE_CODE_HEADER DATA
@@ -330,7 +337,7 @@ esc_grammar = r"""
     REMOTE_CODE_HEADER.-1: /[?A-Z]{2}.\x00/s
     # Job start: nL = <job name's length> + 2
     # Job name : nL = <job name's length> + 6
-    REMOTE_JOB_HEADER: /[\x02-\xff]\x00/
+    _REMOTE_JOB_HEADER: /[\x02-\xff]\x00/
 
     #0b00100000-0b00101111
     #0b00110001,0b00110010
@@ -660,7 +667,7 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
                 # variable data size (ESCP2)
                 scripting_status = token.type == "_SCRIPT"
 
-            elif token.type in ("REMOTE_CODE_HEADER", "REMOTE_JOB_HEADER"):
+            elif token.type in ("REMOTE_CODE_HEADER", "_REMOTE_JOB_HEADER"):
                 # Trap for unsupported REMOTE codes (including the first 2 letters)
                 # nL, nH = token.value[-2:]
                 expected_bytes = unpack("<H", token.value[-2:])[0]
