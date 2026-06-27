@@ -177,7 +177,8 @@ esc_grammar = r"""
         | ESC "m\x04"                       -> unset_upper_control_codes_printing
 
         # Printing method control
-        | ESC "(i\x01\x00" BIN_ARG_EX                 -> switch_microweave_mode
+        # Stylus Pro 7000 has additional 2,3,4 modes
+        | ESC "(i\x01\x00" /[0-4\x00-\x04]/           -> switch_microweave_mode
         # NOTE: There is an error in the docs (nL = 2)
         | ESC "(K\x02\x00\x00" /[\x00\x01\x02]/       -> set_monochrome_color_mode
         # No restriction: may vary from one model to another
