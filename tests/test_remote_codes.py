@@ -14,7 +14,10 @@
 #
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.*
-"""Test remote commands"""
+"""Test remote commands
+
+.. note:: See :meth:`test_misc` for the support of unknwon remote commands.
+"""
 
 # Standard imports
 from struct import pack

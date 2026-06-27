@@ -27,6 +27,7 @@ import pytest
 from escapy.commons import log_level
 from escapy.parser import ESCParser as _ESCParser
 from .misc import DIR_DATA, esc_reset, typefaces
+from .test_remote_codes import REMOTE_MODE, EXIT_REMOTE_MODE, remote_cmd
 
 # Inject test typefaces
 ESCParser = partial(_ESCParser, available_fonts=typefaces)
@@ -76,12 +77,19 @@ def test_no_loglevel(tmp_path: Path, capsys, set_loglevel: None):
         # Test in 9 pins mode because by default thos characters are printed in ESCP2 mode
         (b"\x11", "select_printer", 9),
         # ESC (m : Set print mode
-        (b"\x1b(m\x01\x00\xff", "Tree('set_print_method'", None)
+        (b"\x1b(m\x01\x00\xff", "Tree('set_print_method'", None),
+        # Successive and unknown remote commands
+        (
+            REMOTE_MODE + remote_cmd("XX", b"\x00\x00") * 2 + EXIT_REMOTE_MODE,
+            "Tree(Token('RULE', 'remote_instruction')",
+            None,
+        ),
     ],
     ids=[
         "NS_set_unidirectional_mode",
         "NS_select_printer",
         "NS_set_print_method",
+        "NS_remote_commands",
     ],
 )
 def test_not_implemented_command(
