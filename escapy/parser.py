@@ -4729,12 +4729,14 @@ class ESCParser:
             If you change the selected colors after entering raster graphics mode,
             the data buffer will be flushed.
         """
-        if len(token.value) == 2:
-            self.set_modern_compatibility()
-
         # Can handle both legacy and extended values (1 and 2 bytes).
         # Here the color ids are received in big endian!
-        self.color = int.from_bytes(token.value, byteorder="big")
+        color = int.from_bytes(token.value, byteorder="big")
+
+        if len(token.value) == 2:
+            # 0x0102 => 0x12
+            color = color >> 4 | color & 0x0f
+        self.color = color
 
     ## barcode
     def barcode(self, esc, header, data, *_):
