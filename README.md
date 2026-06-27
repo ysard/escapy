@@ -113,13 +113,16 @@ development, please follow the link below, with all thanks :
     | ESC O                            | Cancel bottom margin                        | :white_check_mark:   |
     | ESC Q                            | Set right margin                            | :white_check_mark:   |
     | ESC l                            | Set left margin                             | :white_check_mark:   |
+    | ESC ( S                          | Set paper dimensions‡                       | :white_check_mark:   |
     |                                  |                                             |                      |
     | Moving the print position        |                                             |                      |
     | CR                               | Carriage return                             | :white_check_mark:   |
     | LF                               | Line feed                                   | :white_check_mark:   |
     | FF                               | Form feed                                   | :white_check_mark:   |
     | ESC $                            | Set absolute horizontal print position      | :white_check_mark:   |
+    | ESC ( $                          | Set absolute horizontal print position‡     | :white_check_mark:   |
     | ESC \                            | Set relative horizontal print position      | :white_check_mark:   |
+    | ESC ( /                          | Set relative horizontal print position‡     | :white_check_mark:   |
     | ESC ( V                          | Set absolute vertical print position        | :white_check_mark:   |
     | ESC ( v                          | Set relative vertical print position        | :white_check_mark:   |
     | ESC J                            | Advance print position vertically           | :white_check_mark:   |
@@ -204,8 +207,7 @@ development, please follow the link below, with all thanks :
     |                                  |                                             |                      |
     | Printing color and graphics      |                                             |                      |
     | ESC ( G                          | Select graphics mode                        | :white_check_mark:   |
-    | ESC ( i                          | Select MicroWeave print mode                | :white_check_mark:   |
-    | ESC .                            | Print raster graphics                       | :white_check_mark:   |
+    | ESC . 0 / ESC . 1                | Print raster graphics                       | :white_check_mark:   |
     | ESC . 2                          | Enter TIFF RLE compressed mode              | :white_check_mark:   |
     | ESC . 3                          | Enter TIFF Delta Row compressed mode‡       | :white_check_mark:   |
     | ESC *                            | Select bit image                            | :white_check_mark:   |
@@ -217,14 +219,22 @@ development, please follow the link below, with all thanks :
     | ESC ^                            | Select 60/120-dpi, 9-pin graphics           | :white_check_mark:   |
     | ESC r                            | Select printing color                       | :white_check_mark:   |
     | ESC ( r                          | Select printing color‡                      | :white_check_mark:   |
-    | ESC ( K                          | Set monochrome/color mode‡                  | :white_large_square: |
+    | ESC ( D                          | Set raster resolution‡                      | :white_check_mark:   |
+    | ESC i                            | Transfer raster image‡                      | :white_check_mark:   |
+    |                                  |                                             |                      |
+    | Printing method control          |                                             |                      |
+    | ESC ( i                          | Select MicroWeave print mode                | :white_check_mark:   |
+    | ESC ( e                          | Select Ink Drop Size‡                       | :white_large_square: |
+    | ESC ( K                          | Set monochrome/color mode‡                  | :white_check_mark:   |
     | ESC ACK                          | Flush buffers after MicroWeave print mode‡  | :no_entry_sign:      |
+    | ESC ( m                          | Set print method‡                           | :no_entry_sign:      |
     |                                  |                                             |                      |
     | Printing bar codes               |                                             |                      |
     | ESC ( B                          | Bar code setup and print                    | :white_check_mark:   |
     |                                  |                                             |                      |
     | Data and memory control          |                                             |                      |
     | ESC SOH @EJL 1284.4\n@EJL     \n | Exit packet mode                            | :white_check_mark:   |
+    | ESC SOH @EJL 1284.4\n@EJL\n@EJL\n| Enter D4 mode                               | :white_check_mark:   |
     | ESC @                            | Initialize printer                          | :white_check_mark:   |
     | CAN                              | Cancel line*                                | :white_large_square: |
     | DEL                              | Delete last character in buffer*            | :white_large_square: |
@@ -249,6 +259,17 @@ development, please follow the link below, with all thanks :
     | `<EXIT>`                         | Exit TIFF compressed mode                   | :white_check_mark:   |
     | `<MOVXBYTE>`                     | Set <MOVX> unit to 8 dots                   | :white_check_mark:   |
     | `<MOVXDOT>`                      | Set <MOVX> unit to 1 dot                    | :white_check_mark:   |
+    |                                  |                                             |                      |
+    | Remote commands                  |                                             |                      |
+    | (all commands are supported, but |                                             |                      |
+    | only a few useful ones are       |                                             |                      |
+    | implemented.)                    |                                             |                      |
+    | ESC ( R                          | Set remote mode‡                            | :white_check_mark:   |
+    | ESC NUL NUL NUL                  | Exit remote mode‡                           | :white_check_mark:   |
+    | RS                               | Reset printer‡                              | :white_check_mark:   |
+    | FP                               | Set relative left margin‡                   | :white_check_mark:   |
+    | JH                               | Set job name‡                               | :white_check_mark:   |
+    | JS                               | Start job‡                                  | :white_check_mark:   |
 
     </details>
 
