@@ -19,7 +19,7 @@
 import importlib
 from struct import unpack
 from pathlib import Path
-from enum import Enum
+from enum import Enum, auto
 import itertools as it
 import codecs
 from functools import lru_cache, partial
@@ -67,9 +67,19 @@ class EscpCompatibility(Enum):
     - AUTO: Can switch to STRICT_MODERN if conditions are detected, otherwise
       LEGACY behavior is applied.
     """
+
     STRICT_MODERN = 0
     LEGACY = 1
     AUTO = 2
+
+
+class ModernEvidence(Enum):
+    """Evidence codes used to log the switch between ESC compatibility modes"""
+
+    EXTENDED_COMMAND = auto()
+    EXTENDED_PARAMETER = auto()
+    MODERN_RASTER_COMMAND = auto()
+    REMOTE_COMMAND = auto()
 
 
 class PrintMode(Enum):
@@ -187,7 +197,9 @@ class ESCParser:
         :type pdf: bool
         :type output_file: io.TextIOWrapper | str | Path
         """
-        self.compatibility_mode = EscpCompatibility.AUTO
+        self.compatibility_mode = (
+            EscpCompatibility.AUTO if not pins == 9 else EscpCompatibility.LEGACY
+        )
         # Misc #################################################################
         # Prepare for methods search in run_esc_instruction()
         self.dir = frozenset(dir(self))
@@ -451,14 +463,16 @@ class ESCParser:
         # Parse it !
         self.run_escp(code)
 
-    def set_modern_compatibility(self):
+    def set_modern_compatibility(self, evidence : ModernEvidence | None):
         """Switch compatibility mode from AUTO to STRICT_MODERN
 
         Called if modern/extended commands are detected.
         """
-        if self.compatibility_mode == EscpCompatibility.AUTO:
-            self.compatibility_mode = EscpCompatibility.STRICT_MODERN
-            LOGGER.info("Switch EscpCompatibility mode to MODERN")
+        if self.compatibility_mode != EscpCompatibility.AUTO:
+            return
+
+        self.compatibility_mode = EscpCompatibility.STRICT_MODERN
+        LOGGER.debug("Switching to STRICT_MODERN compatibility (%s)", evidence)
 
     @property
     def maximum_page_length(self) -> int:
@@ -661,7 +675,7 @@ class ESCParser:
             paper length will be deleted.
             => Cannot happend since the command is ignored !!?
         """
-        self.set_modern_compatibility()
+        self.set_modern_compatibility(ModernEvidence.EXTENDED_COMMAND)
         paper_width, paper_length = unpack("<II", token.value)
 
         # The page unit is validated
@@ -714,7 +728,7 @@ class ESCParser:
         """
         extended_version = len(token.value) == 8
         if extended_version:
-            self.set_modern_compatibility()
+            self.set_modern_compatibility(ModernEvidence.EXTENDED_PARAMETER)
 
         # We expect limited unsigned values
         fmt = "<II" if extended_version else "<HH"
@@ -817,7 +831,7 @@ class ESCParser:
             becomes the top-of-form position.
         """
         if len(token.value) == 4:
-            self.set_modern_compatibility()
+            self.set_modern_compatibility(ModernEvidence.EXTENDED_PARAMETER)
 
         value = int.from_bytes(token.value, byteorder="little")
         page_length = value * self.page_management_unit
@@ -1062,7 +1076,7 @@ class ESCParser:
           is 323.074mm or 45790/3600 (12.719 inches) regardless the resolution.
         """
         if len(token.value) == 4:
-            self.set_modern_compatibility()
+            self.set_modern_compatibility(ModernEvidence.EXTENDED_PARAMETER)
 
         # Absolute positioning is always decoded as an unsigned offset
         # from the left margin.
@@ -1102,7 +1116,7 @@ class ESCParser:
         Todo: The extended version is only available in graphics mode.
         """
         if len(token.value) == 4:
-            self.set_modern_compatibility()
+            self.set_modern_compatibility(ModernEvidence.EXTENDED_PARAMETER)
 
         # Handle both 2 bytes of legacy cmd and 4 bytes of extended cmd
         value = int.from_bytes(token.value, byteorder="little", signed=True)
@@ -1195,7 +1209,7 @@ class ESCParser:
             changed in accordingly (origin is at the bottom => signs are inverted!).
         """
         if len(token.value) == 4:
-            self.set_modern_compatibility()
+            self.set_modern_compatibility(ModernEvidence.EXTENDED_PARAMETER)
 
         # Absolute positioning is always decoded as an unsigned offset
         # from the top margin.
@@ -1252,7 +1266,7 @@ class ESCParser:
             From the original doc: positive = down movement, negative = up movement.
         """
         if len(token.value) == 4:
-            self.set_modern_compatibility()
+            self.set_modern_compatibility(ModernEvidence.EXTENDED_PARAMETER)
 
         # Handle both 2 bytes of legacy cmd and 4 bytes of extended cmd
         value = int.from_bytes(token.value, byteorder="little", signed=True)
@@ -1325,6 +1339,7 @@ class ESCParser:
             horizontal position units respectively.
         :param token_base_unit: Dpi value divided by the dividers.
         """
+        self.set_modern_compatibility(ModernEvidence.EXTENDED_COMMAND)
         base_unit = int.from_bytes(token_base_unit.value, byteorder="little")
 
         # Check that calculations give the expected dpi resolutions
@@ -3724,7 +3739,7 @@ class ESCParser:
         - Dot control is valid irrespective of printing mode or printing density.
         - Default dot size is selected by the ESC @ or ESC (G commands.
         """
-        self.set_modern_compatibility()
+        self.set_modern_compatibility(ModernEvidence.EXTENDED_COMMAND)
         # List from XP-410
         dot_sizes = {
             0x00: "VSD1_1",
@@ -3754,6 +3769,7 @@ class ESCParser:
             horizontal position units respectively.
         :param token_base_unit: Dpi value divided by the dividers.
         """
+        self.set_modern_compatibility(ModernEvidence.MODERN_RASTER_COMMAND)
         base_unit = int.from_bytes(token_base_unit.value, "little")
 
         v_div, h_div = token_vh.value
@@ -3784,6 +3800,7 @@ class ESCParser:
 
         .. seealso:: :meth:`get_nozzle_offset`, :meth:`color`.
         """
+        self.set_modern_compatibility(ModernEvidence.EXTENDED_COMMAND)
         is_monochrome = token.value == b"\x01"
 
         if is_monochrome:
@@ -3806,6 +3823,7 @@ class ESCParser:
         .. seealso:: :meth:`print_raster_graphics_dots` if bit length is 1,
             :meth:`print_raster_graphics_dots_2bpp` if bit length is 2.
         """
+        self.set_modern_compatibility(ModernEvidence.MODERN_RASTER_COMMAND)
         color, compression_status, bit_length, h_byte_count, v_dot_count = (
             unpack("<BBBHH", token_header.value)
         )
@@ -4734,6 +4752,7 @@ class ESCParser:
         color = int.from_bytes(token.value, byteorder="big")
 
         if len(token.value) == 2:
+            self.set_modern_compatibility(ModernEvidence.EXTENDED_PARAMETER)
             # 0x0102 => 0x12
             color = color >> 4 | color & 0x0f
         self.color = color
@@ -4852,14 +4871,14 @@ class ESCParser:
         Sent at the beginning of each job.
         Used here only to detect a modern printer.
         """
-        self.set_modern_compatibility()
+        self.set_modern_compatibility(ModernEvidence.EXTENDED_COMMAND)
 
     def set_remote_mode(self, _):
         """Enter in remote mode
 
         Used here only to detect a modern printer.
         """
-        self.set_modern_compatibility()
+        self.set_modern_compatibility(ModernEvidence.REMOTE_COMMAND)
 
     def set_relative_left_margin(self, token):
         """Specify the horizontal left margin in units of 1/360 inch - FP
