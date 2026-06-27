@@ -4382,7 +4382,7 @@ class ESCParser:
         unit = self.horizontal_unit if self.horizontal_unit else 1 / 360
         self.movx_unit = dot_unit * unit
 
-    def set_printing_color_ex(self, *args):
+    def set_printing_color_tiff(self, *args):
         """Select printing color - <COLR>
 
         1000 0000B  0x80    Black
@@ -4390,6 +4390,7 @@ class ESCParser:
         1000 0010B  0x82    Cyan
         1000 0100B  0x84    Yellow
 
+        Taken from legacy program (not verified):
         1000 1001B  0x89    Light Magenta
         1000 1010B  0x8a    Light Cyan
 

@@ -229,7 +229,7 @@ esc_grammar = r"""
     tiff_instruction.2:
         # Variable
         | XFER_HEADER DATA+ -> transfer_raster_graphics_data
-        | COLR_EX           -> set_printing_color_ex
+        | COLR_EX           -> set_printing_color_tiff
         | CR_EX             -> carriage_return
         | CLR_EX            -> clear_seed_row
         | MOVXBYTE_EX       -> set_movx_unit_8dots
