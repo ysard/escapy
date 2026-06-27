@@ -144,7 +144,6 @@ esc_grammar = r"""
         | ESC _SCRIPT BIN_ARG_EX            -> set_script_printing
         | ESC _UNSCRIPT                     -> unset_script_printing
         | ESC "q" /[\x00-\x03]/             -> select_character_style
-        # Also available in graphics
         | ESC "r" /[\x00-\x06]/             -> set_printing_color
 
 
@@ -193,8 +192,8 @@ esc_grammar = r"""
         | ESC "?" SELECT_XDPI_GRAPHICS_CMD /[\x00-\x07\x20\x21\x26-\x28\x47-\x49]/ -> reassign_bit_image_mode
         | ESC "(G\x01\x00" /[1\x01]/                  -> set_graphics_mode
         | ESC "(D\x04\x00" /../s /../s                -> set_raster_resolution
-        # Should only be available in graphics mode
-        | ESC "(r\x02\x00\x00" /[\x00-\x04]/          -> set_printing_color
+        # 1st byte should be 0 or 1 but there can be unknown variants...
+        | ESC "(r\x02\x00" /../s                      -> set_printing_color
         # Not implemented
         | ESC ACK                                     -> flush_buffers
         # Variable

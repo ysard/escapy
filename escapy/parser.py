@@ -4717,29 +4717,25 @@ class ESCParser:
         self.bytes_per_column = 2
         self.print_bit_image_dots(data, extended_dots=True)
 
-    def set_printing_color(self, *args):
-        """Select the color of printing - ESC r
-
-        Available colors:
-
-            0   Black
-            1   Magenta
-            2   Cyan
-            3   Violet
-            4   Yellow
-            5   Red
-            6   Green
+    def set_printing_color(self, _, token):
+        """Select the color of printing - ESC r / ESC ( r (extended)
 
         .. note:: Also available during graphics mode selected with the ESC ( G command.
             In this mode for ESC/P2, only Black, Cyan, Magenta, Yellow are available.
             Non-ESC/P2 printers can use any color.
 
-        Todo:
+            Extended version is only available in graphics mode.
+
+        .. warning:: WONTFIX:
             If you change the selected colors after entering raster graphics mode,
             the data buffer will be flushed.
-
         """
-        self.color = args[1].value[0]
+        if len(token.value) == 2:
+            self.set_modern_compatibility()
+
+        # Can handle both legacy and extended values (1 and 2 bytes).
+        # Here the color ids are received in big endian!
+        self.color = int.from_bytes(token.value, byteorder="big")
 
     ## barcode
     def barcode(self, esc, header, data, *_):
