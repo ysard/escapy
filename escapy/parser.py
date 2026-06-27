@@ -4961,7 +4961,7 @@ class ESCParser:
             # Call the method and send the tokens as arguments
             getattr(self, tree.data)(*tree.children)
         else:
-            LOGGER.error("Command not implemented: %s; value: %s", tree, tree.data)
+            LOGGER.warning("Command not implemented: %s; value: %s", tree, tree.data)
 
     def run_escp(self, program):
         """Parse the printer data bytestream & build a pdf file
