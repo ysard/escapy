@@ -545,6 +545,8 @@ def test_set_printing_color():
     # NOTE: Should not be available if not in graphics mode
     set_color_magenta_ex = b"\x1b(r\x02\x00\x00\x01"
     set_ukn_color_ex = b"\x1b(r\x02\x00\x02\x02"
+    # Extra color codes: \x01\x01: 0x11 (Light Magenta)
+    set_light_magenta_ex = b"\x1b(r\x02\x00\x01\x01"
 
     dataset = [
         (set_monochrome_mode, "Black"),
@@ -554,6 +556,7 @@ def test_set_printing_color():
         (set_color_magenta_ex, "Magenta"),
         # Unknown color: ignored
         (set_color_magenta + set_ukn_color_ex, "Magenta"),
+        (set_light_magenta_ex, "Light Magenta"),
     ]
     for code, expected in dataset:
         escapy = ESCParser(esc_reset + code, pdf=False)
