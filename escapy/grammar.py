@@ -667,7 +667,7 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
                 # variable data size (ESCP2)
                 scripting_status = token.type == "_SCRIPT"
 
-            elif token.type in ("REMOTE_CODE_HEADER", "_REMOTE_JOB_HEADER"):
+            elif token.type == "REMOTE_CODE_HEADER":
                 # Trap for unsupported REMOTE codes (including the first 2 letters)
                 # nL, nH = token.value[-2:]
                 expected_bytes = unpack("<H", token.value[-2:])[0]
@@ -677,6 +677,10 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
                     token.value[:2].decode(),
                     expected_bytes
                 )
+                data_token_flag = True
+
+            elif token.type == "_REMOTE_JOB_HEADER":
+                expected_bytes = unpack("<H", token.value[-2:])[0]
                 data_token_flag = True
 
             if data_token_flag:
