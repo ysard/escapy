@@ -668,8 +668,6 @@ class ESCParser:
         paper_width *= self.page_management_unit
         paper_length *= self.page_management_unit
 
-        LOGGER.critical(self.page_management_unit)
-
         LOGGER.debug("Set paper dimensions l x w: %s x %s", paper_length, paper_width)
         LOGGER.debug("Cur paper dimensions l x w: %s x %s", self.page_height, self.page_width)
 
