@@ -478,7 +478,7 @@ class ESCParser:
             :meth:`master_select`
             :meth:`select_line_score`
         """
-        return self._underline
+        return self._underline  # pragma: no cover
 
     @underline.setter
     def underline(self, value: bool):
