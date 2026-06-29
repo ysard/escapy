@@ -35,7 +35,7 @@ from escapy.commons import (
 LOGGER = logger()
 
 
-def load_config(config_file=EMBEDDED_CONFIG_FILE):
+def load_config(config_file: Path = EMBEDDED_CONFIG_FILE):
     """Load configuration file and set default settings
 
     :key config_file: Path of the configuration file to load.
@@ -71,7 +71,7 @@ def parse_config(config: configparser.ConfigParser):
     """
     # rb = parser.getint('section', 'rb') if parser.has_option('section', 'rb') else None
 
-    def to_tuple(config_str) -> str | None:
+    def to_tuple(config_str) -> list | str:
         """Get a tuple of values if the given param is not empty and not None"""
         return config_str.split(",") if config_str else ""
 
@@ -134,6 +134,7 @@ def parse_config(config: configparser.ConfigParser):
     if page_size:
         if page_size not in PAGESIZE_MAPPING:
             if len(cleaned_data) == 1:
+                # Unknown alias
                 LOGGER.error(
                     "page_size: A known alias or 2 values are expected (width, height) (%s).",
                     page_size,
@@ -245,7 +246,7 @@ def build_parser_params(config) -> dict:
     :type config: configparser.ConfigParser
     """
 
-    def to_tuple(config_str) -> tuple[float] | None:
+    def to_tuple(config_str) -> tuple[float, ...] | None:
         """Get a tuple of numeric values if the given param is not empty and not None"""
         return tuple(map(float, config_str.split(","))) if config_str else None
 
