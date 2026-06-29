@@ -17,15 +17,10 @@
 """Test barcodes printing"""
 # Standard imports
 from pathlib import Path
-from functools import partial
 
 # Local imports
-from escapy.parser import ESCParser as _ESCParser
-from .misc import esc_reset, typefaces
+from .misc import esc_reset, ESCParser
 from .misc import pdf_comparison
-
-# Inject test typefaces
-ESCParser = partial(_ESCParser, available_fonts=typefaces)
 
 
 def test_ean_barcodes(tmp_path: Path):

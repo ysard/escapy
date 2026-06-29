@@ -18,19 +18,15 @@
 
 # Standard imports
 from pathlib import Path
-from functools import partial
 
 # Custom imports
 import pytest
 
 # Local imports
 from escapy.commons import log_level
-from escapy.parser import ESCParser as _ESCParser
-from .misc import DIR_DATA, esc_reset, typefaces
+from .misc import DIR_DATA, esc_reset
+from .misc import ESCParser
 from .test_remote_codes import REMOTE_MODE, EXIT_REMOTE_MODE, remote_cmd
-
-# Inject test typefaces
-ESCParser = partial(_ESCParser, available_fonts=typefaces)
 
 
 @pytest.fixture

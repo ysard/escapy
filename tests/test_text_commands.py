@@ -19,7 +19,6 @@
 import itertools as it
 from pathlib import Path
 import struct
-from functools import partial
 
 # Custom imports
 import pytest
@@ -38,6 +37,7 @@ from escapy.fonts import rptlab_times
 # Support custom encodings; DO NOT import abicomp, see test_charset_tables
 from escapy.encodings import brascii, mazovia, iscii, cp774
 from .misc import format_databytes, pdf_comparison
+from .misc import ESCParser, default_printer_profile, typefaces
 from .misc import (
     esc_reset,
     cancel_bold,
@@ -52,13 +52,9 @@ from .misc import (
     reset_double_width_m,
     double_height,
     reset_double_height,
-    typefaces,
     noto_devanagari_font_def,
     noto_font_def,
 )
-
-# Inject test typefaces
-ESCParser = partial(_ESCParser, available_fonts=typefaces)
 
 
 @pytest.mark.parametrize(
@@ -691,7 +687,7 @@ def test_charset_tables(tmp_path: Path):
     available_fonts = dict(typefaces)
     available_fonts[31] = noto_devanagari_font_def
 
-    _ESCParser(code, output_file=processed_file, available_fonts=available_fonts)
+    _ESCParser(code, default_printer_profile, output_file=processed_file, available_fonts=available_fonts)
     pdf_comparison(processed_file)
 
 
@@ -1699,6 +1695,7 @@ def test_character_pitch(tmp_path: Path, condensed_fallback, expected_filename):
 
     _ESCParser(
         code,
+        default_printer_profile,
         condensed_fallback=condensed_fallback,
         output_file=processed_file,
         available_fonts=available_fonts,
@@ -1790,6 +1787,7 @@ def test_multipoint_mode(tmp_path: Path):
 
     _ESCParser(
         code,
+        default_printer_profile,
         output_file=processed_file,
         available_fonts=available_fonts,
     )

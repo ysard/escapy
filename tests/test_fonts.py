@@ -5,8 +5,7 @@ from pathlib import Path
 import pytest
 
 # Local imports
-from escapy.parser import ESCParser
-from .misc import format_databytes
+from escapy.parser import ESCParser as _ESCParser
 from escapy.fonts import (
     open_font,
     find_font,
@@ -14,6 +13,7 @@ from escapy.fonts import (
     rptlab_times,
     rptlab_courier,
 )
+from .misc import format_databytes, default_printer_profile
 from .test_config_parser import sample_config
 
 

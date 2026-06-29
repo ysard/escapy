@@ -28,12 +28,8 @@ from functools import partial
 import pytest
 
 # Local imports
-from escapy.parser import ESCParser as _ESCParser
 from escapy.parser import EscpCompatibility
-from .misc import typefaces
-
-# Inject test typefaces
-ESCParser = partial(_ESCParser, available_fonts=typefaces)
+from .misc import ESCParser
 
 
 def remote_cmd(cmd: str, args: bytes) -> bytes:

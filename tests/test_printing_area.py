@@ -27,12 +27,9 @@ from lark.exceptions import UnexpectedToken
 from reportlab.lib.pagesizes import A4
 
 # Local imports
-from escapy.parser import ESCParser as _ESCParser
-from .misc import format_databytes, typefaces
+from .misc import format_databytes
+from .misc import ESCParser
 from .misc import esc_reset, cancel_bold
-
-# Inject test typefaces
-ESCParser = partial(_ESCParser, available_fonts=typefaces)
 
 AH_header = b"\x1b$"
 RH_header = b"\x1b\\"

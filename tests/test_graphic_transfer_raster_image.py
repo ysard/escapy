@@ -23,16 +23,12 @@ Tested mode:
 
 # Standard imports
 from pathlib import Path
-from functools import partial
 import pytest
 
 # Local imports
-from escapy.parser import ESCParser as _ESCParser
 from .misc import pdf_comparison
-from .misc import graphics_mode, esc_reset, typefaces
-
-# Inject test typefaces
-ESCParser = partial(_ESCParser, available_fonts=typefaces)
+from .misc import graphics_mode, esc_reset
+from .misc import ESCParser
 
 raster_res_cmd = b"\x1b(D\x04\x00"
 

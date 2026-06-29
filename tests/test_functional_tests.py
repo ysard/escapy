@@ -18,7 +18,6 @@
 # Standard imports
 import sys
 from pathlib import Path
-from functools import partial
 from unittest.mock import patch
 
 # Custom imports
@@ -27,12 +26,9 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.pagesizes import landscape
 
 # Local imports
-from escapy.parser import ESCParser as _ESCParser
 from escapy.__main__ import escapy_entry_point, choose_config_file
-from .misc import DIR_DATA, pdf_comparison, typefaces
-
-# Inject test typefaces
-ESCParser = partial(_ESCParser, available_fonts=typefaces)
+from .misc import DIR_DATA, pdf_comparison
+from .misc import ESCParser
 
 
 @pytest.mark.parametrize(

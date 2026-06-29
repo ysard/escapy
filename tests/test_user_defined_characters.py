@@ -28,10 +28,8 @@ from escapy.commons import RAM_CHARACTERS_TABLE
 from escapy.parser import ESCParser as _ESCParser, PrintMode, PrintScripting
 from escapy.user_defined_characters import RAMCharacters
 from escapy.encodings import ram_codec
-from .misc import esc_reset, pdf_comparison, typefaces
-
-# Inject test typefaces
-ESCParser = partial(_ESCParser, available_fonts=typefaces)
+from .misc import esc_reset, pdf_comparison
+from .misc import ESCParser, default_printer_profile
 
 
 def normal_char_data() -> bytes:
@@ -597,6 +595,7 @@ def test_select_user_defined_set(tmp_path: Path, normal_char_data: bytes):
     processed_file = tmp_path / "test_select_user_defined_set.pdf"
     _ = _ESCParser(
         code,
+        default_printer_profile,
         pins=None,
         available_fonts=fonts,
         userdef_db_filepath=mocked_db_file,

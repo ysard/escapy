@@ -27,7 +27,6 @@ Tested modes:
 import struct
 from pathlib import Path
 from unittest.mock import patch
-from functools import partial
 
 # Custom imports
 import pytest
@@ -36,10 +35,8 @@ from lark.exceptions import UnexpectedToken
 # Local imports
 from escapy.parser import ESCParser as _ESCParser
 from .misc import format_databytes, pdf_comparison
-from .misc import esc_reset, cancel_bold, graphics_mode, typefaces
-
-# Inject test typefaces
-ESCParser = partial(_ESCParser, available_fonts=typefaces)
+from .misc import esc_reset, cancel_bold, graphics_mode
+from .misc import ESCParser
 
 
 DECOMPRESSED_DATA = [
