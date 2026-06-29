@@ -69,12 +69,12 @@ def load_printer_profile(config: ConfigParser, profile_dir: Path) -> None:
     LOGGER.debug("Expect the printer profile: %s in %s", profile_name, dirs)
 
     # Default profile
-    config.read([d / "generic.ini" for d in dirs])
+    config.read([d / "generic.conf" for d in dirs])
     if profile_name == "generic":
         return
 
     # More specific values override the previous ones
-    profile_path_found = config.read([d / f"{profile_name}.ini" for d in dirs])
+    profile_path_found = config.read([d / f"{profile_name}.conf" for d in dirs])
     if not profile_path_found:
         LOGGER.error("Printer profile was not found: %s", profile_name)
     else:
