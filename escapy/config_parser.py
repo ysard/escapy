@@ -31,6 +31,7 @@ from escapy.commons import (
     PAGESIZE_MAPPING,
     USER_DEFINED_DB_FILE,
 )
+from escapy.printer_profile import load_printer_profile
 
 LOGGER = logger()
 
@@ -46,6 +47,8 @@ def load_config(config_file: Path = EMBEDDED_CONFIG_FILE):
     """
     config = configparser.ConfigParser(allow_no_value=True)
     config.read(config_file)
+    # Fill the configuration with the selected printer profile
+    load_printer_profile(config, config_file.parent)
     return parse_config(config)
 
 

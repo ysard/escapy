@@ -32,7 +32,6 @@ import numpy as np
 from PIL import Image
 from lark import Token
 from reportlab.lib import colors
-from reportlab.lib.colors import PCMYKColorSep
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase import pdfmetrics
@@ -55,6 +54,7 @@ from escapy.commons import (
 )
 from escapy.encodings.i18n_codecs import getregentry
 from escapy.fonts import open_font
+from escapy.printer_profile import PrinterProfile
 from escapy.commons import logger
 
 
@@ -143,7 +143,8 @@ class ESCParser:
 
     def __init__(
         self,
-        code,
+        code: bytes,
+        printer_profile: PrinterProfile,
         available_fonts=None,
         pins=None,
         printable_area_margins_mm=None,
@@ -243,33 +244,11 @@ class ESCParser:
         self.double_height = False
         self._color = 0  # Black
 
-        self.color_names = [
-            "Black",
-            "Magenta",
-            "Cyan",
-            "Violet",
-            "Yellow",
-            "Red",
-            "Green",
-        ]
-        self.RGB_colors = [
-            "#000000",  # Black
-            "#ff00ff",  # Magenta
-            "#00ffff",  # Cyan
-            "#8F00FF",  # Violet
-            "#ffff00",  # Yellow
-            "#ff0000",  # Red
-            "#00ff00",  # Green
-        ]
-        self.CMYK_colors = [
-            PCMYKColorSep(0, 0, 0, 100),  # Black
-            PCMYKColorSep(0, 100, 0, 0),  # Magenta
-            PCMYKColorSep(100, 0, 0, 0),  # Cyan
-            PCMYKColorSep(44, 100, 0, 0, spotName="VIOLET"),
-            PCMYKColorSep(0, 0, 100, 0),  # Yellow
-            PCMYKColorSep(0, 100, 100, 0, spotName="RED"),
-            PCMYKColorSep(100, 0, 100, 0, spotName="GREEN"),
-        ]
+        self.color_names = printer_profile.color_names
+        self.RGB_colors = printer_profile.RGB_colors
+        self.CMYK_colors = printer_profile.CMYK_colors
+        self.nozzle_offsets = printer_profile.nozzle_offsets
+        self.nozzle_offsets_monochrome = printer_profile.nozzle_offsets_monochrome
 
         # Font rendering #######################################################
         # Scalable fonts status
@@ -521,6 +500,22 @@ class ESCParser:
     def color(self, color: int):
         """Set the current color id
 
+        Example of available colors:
+
+            0   Black
+            1   Magenta
+            2   Cyan
+            3   Violet
+            4   Yellow
+            5   Red, Black2
+            6   Green, Black3
+            7   Red
+            8   Blue
+            9   Gloss optimizer
+            17/11H  Light magenta
+            18/12H  Light cyan
+            64/40H  Photo black
+
         .. note:: Also available during graphics mode selected with the ESC ( G command.
             In this mode for ESC/P2, only Black, Cyan, Magenta, Yellow are available.
             Non-ESC/P2 printers can use any color.
@@ -533,7 +528,7 @@ class ESCParser:
             return
         if self.monochrome_mode:
             return
-        if color >= len(self.CMYK_colors):
+        if color not in self.CMYK_colors:
             # Color doesn't exist: ignore the command
             LOGGER.error("Color id %s is unknown! Ignore.", color)
             return

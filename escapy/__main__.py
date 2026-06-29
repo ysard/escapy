@@ -21,10 +21,12 @@ import argparse
 from pathlib import Path
 import sys
 import shutil
+# import os
 
 # Custom imports
 from escapy import __version__
 from escapy.config_parser import load_config, build_parser_params
+from escapy.printer_profile import get_printer_profile
 from escapy.fonts import setup_fonts
 from escapy.parser import ESCParser
 import escapy.commons as cm
@@ -57,15 +59,23 @@ def choose_config_file(config_file: [Path | None]) -> Path:
     # Search the config file in the current directory, then in other dirs
     g = [path for path in CONFIG_FILES if path.exists()]
     if not g:
-        # If none has been found: create the config file from the embedded one
-        # LOGGER.debug("Initialize new default config at <%s>", USER_CONFIG_FILE)
-        USER_CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy(EMBEDDED_CONFIG_FILE, USER_CONFIG_FILE)
+        # If none has been found: Restore the files from the embedded directory.
+        LOGGER.debug(
+            "Initialize new default config at <%s> from <%s>",
+            USER_CONFIG_FILE,
+            EMBEDDED_CONFIG_FILE.parent,
+        )
+        # LOGGER.debug(os.listdir(EMBEDDED_CONFIG_FILE.parent))
+        shutil.copytree(
+            EMBEDDED_CONFIG_FILE.parent, USER_CONFIG_FILE.parent, dirs_exist_ok=True
+        )
+        if not USER_CONFIG_FILE.exists():
+            raise FileNotFoundError("Missing embedded config file!")
         return USER_CONFIG_FILE
 
     # Use the first file found
     config_file = g[0]
-    # LOGGER.debug("Use config at <%s>", config_file)
+    LOGGER.debug("Use config at <%s>", config_file)
     return config_file
 
 
@@ -77,9 +87,10 @@ def escapy_entry_point(**kwargs):
         LOGGER.critical("Input file is empty!")
         raise SystemExit(1)
 
-    # Parse the config file and preload fonts search routines
+    # Parse the config file, preload fonts search routines, load printer profile.
     config = load_config(config_file=kwargs["config"])
     configured_fonts = setup_fonts(config)
+    printer_profile = get_printer_profile(config)
 
     params = build_parser_params(config)
     params.update(kwargs)
@@ -87,6 +98,7 @@ def escapy_entry_point(**kwargs):
     LOGGER.info("EscaPy start; %s", __version__)
     ESCParser(
         esc_prn_file_content,
+        printer_profile,
         available_fonts=configured_fonts,
         output_file=kwargs["output"],
         **params,
