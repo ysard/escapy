@@ -441,7 +441,7 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
             )
             raise exc
         else:
-            # print(token.type, token.value)
+            # LOGGER.debug((token.type, token.value))
 
             if token.type in ("SELECT_BIT_IMAGE_HEADER", "SELECT_BIT_IMAGE_9PINS_HEADER"):
                 dot_density_m, nL, nH = token.value
