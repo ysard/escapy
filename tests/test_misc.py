@@ -93,7 +93,7 @@ def test_not_implemented_command(
 ):
     """Test ESC command defined into the grammar but not implemented in the parser
 
-    A simple output in the LOGGER at the level ERROR should be observed.
+    A simple output in the LOGGER at the level WARNING should be observed.
 
     :param tmp_path: Path of temporary working dir returned by a pytest fixture.
     :param caplog: pytest caplog-fixture

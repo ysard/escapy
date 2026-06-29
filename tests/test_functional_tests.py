@@ -216,7 +216,7 @@ def test_choose_config_file(tmp_path: Path, minimal_config: str):
             # Delete the user AND the embedded files
             user_config_file.unlink()
             embedded_config_file.unlink()
-            # Expect the user file copied from the embedded file (EMBEDDED_CONFIG_FILE)
+            # Should raise a FileNotFoundError
             _ = choose_config_file(None)
 
         # Test not existing input file from cli
