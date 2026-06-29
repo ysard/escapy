@@ -211,8 +211,11 @@ def test_not_expected_font_struct_format(tmp_path, erroneous_fonts, format_datab
     exception should be raised.
     """
     output_file = tmp_path / "output.pdf"
-    with pytest.raises((KeyError, TypeError)):
-        _ = ESCParser(
-            format_databytes, available_fonts=erroneous_fonts, output_file=output_file
+    with pytest.raises((KeyError, TypeError), match=r"'proportional'|.*object is not callable.*"):
+        _ = _ESCParser(
+            format_databytes,
+            default_printer_profile,
+            available_fonts=erroneous_fonts,
+            output_file=output_file
         )
         print(_.typeface, _.proportional_spacing, _.current_pdf._fontname)
