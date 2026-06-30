@@ -4436,7 +4436,13 @@ class ESCParser:
         - Parameters other than those listed above are ignored.
         - Combinations of colors are not available and will be ignored.
         """
-        self.color = args[0].value[0] & 0x0f
+        # Map Light* color ids to usual ids
+        mapping = {
+            9: 0x11,  # Light Magenta
+            10: 0x12,  # Light Cyan
+        }
+        color_id = args[0].value[0] & 0x0f
+        self.color = mapping.get(color_id, color_id)
         self._carriage_return()
 
     def exit_tiff_raster_graphics(self, *_):
