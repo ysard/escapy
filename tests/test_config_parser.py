@@ -77,9 +77,6 @@ def sample_config(request):
     # Default sections are expected from the given string
     yield parse_config(config)
 
-    # Restore previous loglevel for further tests
-    log_level("debug")
-
 
 @pytest.fixture()
 def tear_down():
