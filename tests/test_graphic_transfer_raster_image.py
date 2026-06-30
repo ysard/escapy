@@ -158,7 +158,7 @@ def test_transfer_raster_image(
       for the same result (32 pixels).
 
     .. note:: The original program has been taken from xp410 doc; p24.
-        Additional lines after E, has been added.
+        Additional lines after D, has been added.
         To ensure accurate rendering, this code relies on a nozzle offset
         correction algorithm (default color mode).
     """
@@ -187,8 +187,8 @@ def test_transfer_raster_image(
         b"\x0d",
         # relative vertical print position (1/180 inch)
         b"\x1b(v\x02\x00\x01\x00",
-        # D: Yellow 1line
-        b"\x1bi\x04\x00\x02" + b"\x08\x00\x01\x00" + b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
+        # D: Yellow 1line, compression (Test data-length counter: 7 + 1 bytes expected)
+        b"\x1bi\x04\x01\x02" + b"\x08\x00\x01\x00" + b"\x07\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
         b"\x0d",
         # relative vertical print position (1/180 inch)
         b"\x1b(v\x02\x00\x01\x00",
