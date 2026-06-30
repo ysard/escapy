@@ -33,9 +33,10 @@ class EnumsEncoder(json.JSONEncoder):
     """Properly encode the PrintMode & PrintScripting enumeration to a JSON file"""
 
     def default(self, o):
+        """Subclasss override, return a serializable object for o"""
         if isinstance(o, (PrintMode, PrintScripting)):
             return o.value
-        return json.JSONEncoder.default(self, o)  # pragma: no cover
+        return super().default(self, o)  # pragma: no cover
 
 
 class RAMCharacters:
