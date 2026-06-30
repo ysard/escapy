@@ -77,12 +77,25 @@ def test_full_file_conversion(
 
 
 @pytest.fixture()
-def minimal_config() -> str:
+def minimal_config(tmp_path) -> str:
     """Generate a minimal configuration
 
-    - misc section is mandatory
-    - fonfigure the default font
+    - `misc` section is mandatory
+    - Configure the default font
+    - Generate a minimal `generic.conf` printer profile in the current working
+      directory (this is not the subject of these tests, but it is required).
     """
+    printer_profile = """
+        [colors]
+        0: black
+        [color:black]
+        display = Black
+        offset = 0
+        rgb = #000000
+        cmyk = 0,0,0,100
+        """
+    (tmp_path / "generic.conf").write_text(printer_profile)
+
     return """[misc]
         loglevel = debug
         [Roman]

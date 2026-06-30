@@ -25,11 +25,12 @@ from reportlab.lib.colors import PCMYKColorSep
 
 # Local imports
 from escapy.printer_profile import (
+    load_printer_profile,
     get_printer_profile,
     PrinterProfile,
 )
 from escapy.config_parser import load_config, debug_config_file
-from escapy.commons import log_level
+from escapy.commons import log_level, EMBEDDED_CONFIG_FILE
 
 from .test_config_parser import tear_down
 from .misc import default_printer_profile
@@ -70,6 +71,51 @@ def test_default_file(tear_down):
     # In fine, the PrinterProfile object should be the same.
     printer_profile = get_printer_profile(sample_config)
     assert printer_profile == default_printer_profile
+
+
+@pytest.mark.parametrize(
+    "profile, expected_section",
+    [
+        ("generic", "colors"),
+        ("xp410", "color:black2"),
+        # Unknown profile
+        # Generic profile should still be loaded
+        ("unknown", "color:black"),
+    ],
+    ids=["generic", "xp410", "unknown"],
+)
+def test_load_printer_profile(profile, expected_section):
+    """Test the loading of profiles
+
+    :param profile: Profile name to be loaded
+    :param expected_section: Expected section in the given profile
+    """
+    config = configparser.ConfigParser()
+    config.read_string(
+        f"""
+        [printer]
+        profile = {profile}
+        """
+    )
+
+    load_printer_profile(config, EMBEDDED_CONFIG_FILE.parent)
+
+    assert config.has_section(expected_section)
+
+
+def test_missing_generic_profile(tmp_path):
+    """The generic profile is mandatory"""
+    config = configparser.ConfigParser()
+    config.read_string(
+        """
+        [printer]
+        profile = generic
+        """
+    )
+
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        load_printer_profile(config, tmp_path)
+    assert pytest_wrapped_e.value.code == 1
 
 
 @pytest.mark.parametrize(
