@@ -474,7 +474,7 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
                 h_dot_count = (nH << 8) + nL
                 expected_bytes = v_dot_count_m * int((h_dot_count + 7) / 8)
 
-                LOGGER.debug("Expect %d bytes", expected_bytes)
+                # LOGGER.debug("Expect %d bytes", expected_bytes)
                 data_token_flag = True
 
             elif token.type == "TRANSFER_RASTER_IMAGE_HEADER":
@@ -502,7 +502,7 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
                 nL, nH, *_ = token.value
                 expected_bytes = (nH << 8) + nL - 6
 
-                LOGGER.debug("Expect %d bytes", expected_bytes)
+                # LOGGER.debug("Expect %d bytes", expected_bytes)
                 data_token_flag = True
 
             elif token.type == "XFER_HEADER":
@@ -669,7 +669,6 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
 
             elif token.type == "REMOTE_CODE_HEADER":
                 # Trap for unsupported REMOTE codes (including the first 2 letters)
-                # nL, nH = token.value[-2:]
                 expected_bytes = unpack("<H", token.value[-2:])[0]
 
                 LOGGER.warning(
