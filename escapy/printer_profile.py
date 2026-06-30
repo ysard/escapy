@@ -56,7 +56,9 @@ def load_printer_profile(config: configparser.ConfigParser, profile_dir: Path) -
         `profile` key are used to load a specific profile.
     :param profile_dir: The directory from which the current configuration file
         has been read. The printer profiles are first searched for in this
-        folder.
+        folder. Then they are searched in a `profiles` directory in the same
+        directory, then in usual system directories.
+    :raises: SystemExit: If the generic profile hasn't been found.
     """
     # First, search for profiles in the same folder as the currently used
     # configuration file;
@@ -68,8 +70,11 @@ def load_printer_profile(config: configparser.ConfigParser, profile_dir: Path) -
     profile_name = config.get("printer", "profile", fallback="generic")
     LOGGER.debug("Expect the printer profile: %s in %s", profile_name, dirs)
 
-    # Default profile
-    config.read([d / "generic.conf" for d in dirs])
+    # Always read the default profile first
+    profile_path_found = config.read([d / "generic.conf" for d in dirs])
+    if not profile_path_found:
+        LOGGER.error("Couldn't find the 'generic' profile")
+        raise SystemExit(1)
     if profile_name == "generic":
         return
 
