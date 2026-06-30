@@ -87,7 +87,20 @@ def load_printer_profile(config: configparser.ConfigParser, profile_dir: Path) -
 
 
 def get_printer_profile(config: configparser.ConfigParser) -> PrinterProfile:
-    """Build printer color profile from the given config"""
+    """Build printer color profile from the given config
+
+    Expected keys in each color section:
+
+    - rgb: RGB color code (starting with a #);
+    - cmyk: CMYK channels (4 coma separated values).
+
+    Optional keys:
+
+    - display: Human readable name;
+    - offset: Nozzle position adjustement offset.
+
+    :raises SystemExit: If required keys are not found.
+    """
     color_names = {}
     RGB_colors = {}
     CMYK_colors = {}
