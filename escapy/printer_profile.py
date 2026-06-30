@@ -24,7 +24,7 @@ Functions:
 
 # Standard imports
 from pathlib import Path
-from configparser import ConfigParser
+import configparser
 from dataclasses import dataclass
 
 # Custom imports
@@ -48,7 +48,7 @@ class PrinterProfile:
     nozzle_offsets_monochrome: dict[int, float | int]
 
 
-def load_printer_profile(config: ConfigParser, profile_dir: Path) -> None:
+def load_printer_profile(config: configparser.ConfigParser, profile_dir: Path) -> None:
     """Read a printer profile file, check and set default values
 
     :param config: The current configuration that will be updated by the
@@ -81,7 +81,7 @@ def load_printer_profile(config: ConfigParser, profile_dir: Path) -> None:
         LOGGER.debug("Use the printer profile at <%s>", profile_path_found[0])
 
 
-def get_printer_profile(config: ConfigParser) -> PrinterProfile:
+def get_printer_profile(config: configparser.ConfigParser) -> PrinterProfile:
     """Build printer color profile from the given config"""
     color_names = {}
     RGB_colors = {}
@@ -89,8 +89,11 @@ def get_printer_profile(config: ConfigParser) -> PrinterProfile:
     nozzle_offsets = {}
     nozzle_offsets_monochrome = {}
 
-    colors_section = config["colors"]
+    if not config.has_section("colors"):
+        LOGGER.error("colors section was not found!")
+        raise SystemExit(1)
 
+    colors_section = config["colors"]
     for color_id_str, logical_name in colors_section.items():
 
         section = f"color:{logical_name}"
@@ -100,7 +103,7 @@ def get_printer_profile(config: ConfigParser) -> PrinterProfile:
                 color_id_str,
                 logical_name,
             )
-            continue
+            raise SystemExit(1)
 
         color_id = int(color_id_str, 0)
 
@@ -119,9 +122,15 @@ def get_printer_profile(config: ConfigParser) -> PrinterProfile:
 
         offset = config.getint(section, "offset", fallback=0)
 
-        cmyk = tuple(int(x.strip()) for x in config.get(section, "cmyk").split(","))
-
-        rgb = config.get(section, "rgb")
+        try:
+            cmyk = tuple(int(x.strip()) for x in config.get(section, "cmyk").split(","))
+            rgb = config.get(section, "rgb")
+        except configparser.NoOptionError as e:
+            LOGGER.exception(e)
+            raise SystemExit(1) from e
+        except ValueError as e:
+            LOGGER.error("Couldn't parse 'cmyk' values in section: '%s'", section)
+            raise SystemExit(1) from e
 
         color_names[color_id] = display
 
