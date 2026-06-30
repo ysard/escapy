@@ -55,7 +55,12 @@ def default_config():
         # Default: image creation is disabled
         # "images_path": "",
     }
-    return misc_section, roman_section, userdef_section
+
+    printer_section = {
+        "profile": "generic",
+    }
+
+    return misc_section, roman_section, userdef_section, printer_section
 
 
 @pytest.fixture()
@@ -101,6 +106,8 @@ def test_default_file(tear_down):
         expected_misc_section,
         expected_roman_section,
         expected_userdef_section,
+        # Currently not added explicitely, handled by a fallback
+        expected_printer_section,
     ) = default_config()
 
     # Transtype for easier debugging (original object has a different string rep)
@@ -108,11 +115,13 @@ def test_default_file(tear_down):
     found_roman_section = dict(sample_config["Roman"])
     found_sansserif_section = dict(sample_config["Sans serif"])
     found_userdef_section = dict(sample_config["UserDefinedCharacters"])
+    # found_printer_section = dict(sample_config["printer"])
 
     assert found_misc_section == expected_misc_section
     assert found_roman_section == expected_roman_section
     assert found_sansserif_section == expected_roman_section
     assert found_userdef_section == expected_userdef_section
+    # assert found_printer_section == expected_printer_section
 
 
 @pytest.mark.parametrize(
