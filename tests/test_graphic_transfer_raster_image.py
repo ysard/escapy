@@ -22,15 +22,28 @@ Tested mode:
 """
 
 # Standard imports
+import configparser
 from pathlib import Path
+
+# Custom imports
 import pytest
 
 # Local imports
+from escapy.printer_profile import (
+    load_printer_profile,
+    get_printer_profile,
+    PrinterProfile,
+)
+from escapy.commons import EMBEDDED_CONFIG_FILE
+from escapy.parser import ESCParser as _ESCParser
 from .misc import pdf_comparison
 from .misc import graphics_mode, esc_reset
-from .misc import ESCParser
+from .misc import ESCParser, typefaces
 
 raster_res_cmd = b"\x1b(D\x04\x00"
+set_monochrome_cmd = b"\x1b(K\x02\x00\x00\x01"
+set_monochrome_off_cmd = b"\x1b(K\x02\x00\x00\x02"
+set_monochrom_default_cmd = b"\x1b(K\x02\x00\x00\x00"
 
 
 @pytest.mark.parametrize(
@@ -69,7 +82,65 @@ def test_set_raster_resolution(
     assert escapy.horizontal_resolution == expected_h_res
 
 
-def test_transfer_raster_image(tmp_path: Path):
+@pytest.fixture()
+def profile(request):
+    """Fixture to parse config string and return an initialised PrinterProfile object
+
+    :return: Printer profile built from the given configuration string
+    :rtype: Generator[PrinterProfile]
+    """
+    config = configparser.ConfigParser()
+    config.read_string(f"""
+        [printer]
+        profile = {request.param}
+        """)
+
+    load_printer_profile(config, EMBEDDED_CONFIG_FILE.parent)
+
+    yield get_printer_profile(config)
+
+
+@pytest.mark.parametrize(
+    # Profile: Use the available profile to fix nozzle offsets & define colors.
+    # Ink dots will be drawn as circles if True, or as rectangles otherwise.
+    "profile, dots_as_circles, monochrome_mode, expected_filename",
+    [
+        # No nozzle fix, dots
+        ("generic", True, b"", "test_transfer_raster_image_no_nozzle_fix.pdf"),
+        # Ink dots will be drawn according to the physical positions of the nozzles
+        # Nozzle fix, dots
+        ("xp410", True, set_monochrome_off_cmd, "test_transfer_raster_image.pdf"),
+        # Nozzle fix, rectangles
+        (
+            "xp410",
+            False,
+            set_monochrom_default_cmd,
+            "test_transfer_raster_image_rectangles.pdf",
+        ),
+        # Monochrome on: all black, offset is 0 for this color in this mode
+        # Thus, the result is similar to no nozzle fix, but all in black.
+        (
+            "xp410",
+            True,
+            set_monochrome_cmd,
+            "test_transfer_raster_image_monochrome.pdf",
+        ),
+    ],
+    ids=[
+        "no_nozzle_offset_fix",
+        "nozzle_offset_fix",
+        "nozzle_offset_fix_rectangles",
+        "nozzle_offset_fix_monochrome",
+    ],
+    indirect=["profile"],  # Send profile name to the fixture
+)
+def test_transfer_raster_image(
+    tmp_path: Path,
+    profile: PrinterProfile,
+    dots_as_circles: bool,
+    monochrome_mode: bytes,
+    expected_filename: str,
+):
     """Global test for a full pdf rendered with transfer raster image - ESC i
 
     Reminder of the structure of the header:
@@ -94,6 +165,7 @@ def test_transfer_raster_image(tmp_path: Path):
     code = [
         esc_reset,
         graphics_mode,
+        monochrome_mode,
         # Set unit(1 / 180 inch)
         b"\x1b(U\x01\x00\x14",
         # Select dot size(variable1)
@@ -148,6 +220,17 @@ def test_transfer_raster_image(tmp_path: Path):
         esc_reset,
     ]
 
-    processed_file = tmp_path / "test_transfer_raster_image.pdf"
-    escapy = ESCParser(b"".join(code), dots_as_circles=True, output_file=processed_file)
+    print(profile)
+
+    processed_file = tmp_path / expected_filename
+
+    # Inject test typefaces & printer profile
+    _ESCParser(
+        b"".join(code),
+        printer_profile=profile,
+        dots_as_circles=dots_as_circles,
+        output_file=processed_file,
+        available_fonts=typefaces,
+    )
+
     pdf_comparison(processed_file)
