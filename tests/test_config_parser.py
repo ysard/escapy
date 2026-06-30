@@ -83,6 +83,7 @@ def sample_config(request):
 
 @pytest.fixture()
 def tear_down():
+    """Fixture to restore the DEBUG log level after the test is complete"""
     yield None
 
     # Restore previous loglevel for further tests
