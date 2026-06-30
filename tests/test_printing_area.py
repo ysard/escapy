@@ -32,6 +32,7 @@ from .misc import ESCParser
 from .misc import esc_reset, cancel_bold
 
 AH_header = b"\x1b$"
+AH_ex_header = b"\x1b($\x04\x00"
 RH_header = b"\x1b\\"
 RV_header = b"\x1b(v\x02\x00"
 RV_ex_header = b"\x1b(v\x04\x00"
@@ -443,7 +444,9 @@ def test_cancel_top_bottom_margins():
         #
         # Absolute horizontal position - ESC ( $
         # Set unit to 1/180 (accepted since we use an extended command); +1inch
-        (set_unit_header + b"\x00\x14" + b"\x1b($\x04\x00" + pack("<I", 180), None, 1, 0),
+        (set_unit_header + b"\x00\x14" + AH_ex_header + pack("<I", 180), None, 1, 0),
+        # Set unit to 1/720, (7.75inches (7.75*720=5580), in 720p)
+        (set_unit_header + b"\x00\x05" + AH_ex_header + pack("<I", 5580), None, 7.75, 0),
         #
         # Relative horizontal position - ESC \
         # +2inch absolute, then -1inch relative (-180/180) = 1inch
@@ -539,6 +542,7 @@ def test_cancel_top_bottom_margins():
         "AH_not_ignored_9pins+defined_unit",
         # Absolute horizontal position - ESC ( $ (extended)
         "AH_ex_1inch",
+        "AH_ex_7.75inch",
         # Relative horizontal position - ESC \
         "RH_-1inch",
         "RH_-1inch_9pins",
