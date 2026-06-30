@@ -574,6 +574,10 @@ class ESCParser:
 
     @point_size.setter
     def point_size(self, point_size: float):
+        """Set the current font point size
+
+        .. seealso:: :meth:`point_size`.
+        """
         self._point_size = point_size
         if self.current_pdf:
             # Redefine the current font (can't just update the point size)
@@ -4071,6 +4075,7 @@ class ESCParser:
             }
 
         def chunk_this(iterable, length):
+            """Split iterable in chunks of equal sizes"""
             iterator = iter(iterable)
             for _ in range(0, len(iterable), length):
                 yield tuple(it.islice(iterator, length))
