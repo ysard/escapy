@@ -1,0 +1,2 @@
+#! /usr/bin/dh-exec
+escapy/data/*                    etc/escapy/
