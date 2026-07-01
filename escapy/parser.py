@@ -899,7 +899,9 @@ class ESCParser:
         self._apply_page_length(page_length)
 
     def set_bottom_margin(self, *args):
-        """Set the bottom margin on continuous paper to n lines (in the current line spacing) - ESC N
+        """Set the bottom margin on continuous paper to n lines - ESC N
+
+        The vertical displacement unit is the current line spacing.
 
         Sets a bottom margin in inch (n lines * line spacing) above the next page’s
         top-of-form position.
@@ -2711,7 +2713,7 @@ class ESCParser:
         # Draft 9 pins characters:
         # k = a1
         if self.pins == 9:
-            colum_bytes_size = 3 if self.mode == PrintMode.LQ else 1
+            column_bytes_size = 3 if self.mode == PrintMode.LQ else 1
         else:
             column_bytes_size = 2 if self.scripting else 3
 
@@ -2881,7 +2883,7 @@ class ESCParser:
 
         self.cancel_multipoint_mode()
 
-    def select_font_by_pitch_and_point(self, *args):
+    def select_font_by_pitch_and_point(self, _, token):
         """Put the printer in multipoint (scalable font) mode, and select the
         pitch and point attributes of the font - ESC X
 
@@ -2923,7 +2925,7 @@ class ESCParser:
         ESC k is ignored if typeface is not available in scalable/multipoint mode.
         See the decorator :meth:`multipoint_mode_ignore`.
         """
-        m, nL, nH = args[1].value
+        m, point_size = unpack("<BH", token.value)
 
         # Allow the use of scalable fonts
         self.multipoint_mode = True
@@ -2938,8 +2940,7 @@ class ESCParser:
             self.proportional_spacing = False
 
         # Point size
-        point_size = ((nH << 8) + nL) / 2
-
+        point_size /= 2
         if point_size:
             self.point_size = point_size
 
@@ -2979,12 +2980,12 @@ class ESCParser:
         def modified_func(self, *args, **kwargs):
             """Returned modified function"""
             if self.multipoint_mode:
-                return
+                return None
             return func(self, *args, **kwargs)
 
         return modified_func
 
-    def set_horizontal_motion_index(self, *args):
+    def set_horizontal_motion_index(self, _, token):
         """Set the character width (HMI) - ESC c
 
         HMI: determine the fixed distance to move the horizontal position when
@@ -3011,8 +3012,7 @@ class ESCParser:
           See :meth:`point_size`, :meth:`binary_blob`,
           meth:`select_font_by_pitch_and_point` implementations.
         """
-        nL, nH = args[1].value
-        value = (nH << 8) + nL
+        value = unpack("<H", token.value)[0]
         hmi = value / 360
 
         if not 0 < hmi <= 3:
@@ -3165,7 +3165,9 @@ class ESCParser:
         self.set_font()
 
     def set_double_strike_printing(self, *_):
-        """Print each dot twice, with the second slightly below the first, creating bolder characters - ESC G
+        """Print each dot twice, creating bolder characters - ESC G
+
+        Print each dot twice, with the second slightly below the first.
 
         Todo: 9 pins:
             LQ/NLQ mode overrides double-strike printing;
@@ -3546,7 +3548,8 @@ class ESCParser:
             Ex: cp437 has no graphic character under in the interval 0x01-0x1f,
             0x7f.
             These characters should be injected after the decoding process.
-            See: `Stackoverflow question <https://stackoverflow.com/questions/46942721/is-cp437-decoding-broken-for-control-characters>`_
+            See: `Stackoverflow question
+            <https://stackoverflow.com/questions/46942721/is-cp437-decoding-broken-for-control-characters>`_
 
         doc p157
         """
@@ -3867,7 +3870,7 @@ class ESCParser:
         else:
             self.print_raster_graphics_dots_2bpp(data)
 
-    def print_raster_graphics(self, *args):
+    def print_raster_graphics(self, _, token_header, token_data):
         """Print raster graphics - ESC .
 
         Doc p179, p304, examples p335
@@ -3891,7 +3894,9 @@ class ESCParser:
         """
         # v_dot_count_m (number of rows of dots): 1, 8, or 24
         # (9 or 16 can be encountered on some configs, see #2)
-        graphics_mode, v_res, h_res, v_dot_count_m, nL, nH = args[1].value
+        graphics_mode, v_res, h_res, v_dot_count_m, h_dot_count = (
+            unpack("<BBBBH", token_header.value)
+        )
         if self.microweave_mode and v_dot_count_m != 1:
             # In these settings, one raster line printed at a time
             # However we assume that the data is formatted for the given
@@ -3906,8 +3911,7 @@ class ESCParser:
         self.vertical_resolution = v_res / 3600
         self.horizontal_resolution = h_res / 3600
 
-        # Number of columns of dots
-        h_dot_count = (nH << 8) + nL
+        # Number of columns of dots: h_dot_count
         # Used by print_raster_graphics_dots() to chunk data stream
         self.bytes_per_line = int((h_dot_count + 7) / 8)
 
@@ -3930,7 +3934,7 @@ class ESCParser:
             LOGGER.debug("line spacing: %s", self.current_line_spacing)
             LOGGER.debug("start coord: %s, %s", self.cursor_x, self.cursor_y)
 
-        data = args[2].value
+        data = token_data.value
         if graphics_mode == 1:
             # Decompress RLE compressed data
             data = self.decompress_rle_data(data)
@@ -4483,8 +4487,8 @@ class ESCParser:
 
         doc p184, p298 (full table)
         """
-        dot_density_m, nL, nH = args[1].value
-        dot_columns_nb = (nH << 8) + nL
+        dot_density_m, dot_columns_nb = unpack("<BH", args[1].value)
+
 
         # Configure the bit image printing mode according to the given dot density
         self.configure_bit_image(dot_density_m)
@@ -4658,7 +4662,8 @@ class ESCParser:
         # Get horizontal resolution via a mapping
         self.horizontal_resolution = self.bit_image_horizontal_resolution_mapping[dot_density_m]
 
-        # Get vertical resolution & expected bytes per column (influences the number of dots per column)
+        # Get vertical resolution & expected bytes per column
+        # (influences the number of dots per column)
         if dot_density_m < 32:
             # For 9 pins, fixed resolution
             self.vertical_resolution = 1 / 72 if self.pins == 9 else 1 / 60
@@ -4789,7 +4794,7 @@ class ESCParser:
         self.color = color
 
     ## barcode
-    def barcode(self, esc, header, data, *_):
+    def barcode(self, _, header, data):
         """Print bar codes - ESC ( B
 
         doc p202, p315
