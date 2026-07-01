@@ -484,7 +484,7 @@ def test_print_raster_graphics(
 
     assert escapy.horizontal_resolution == 1 / 180
     assert escapy.vertical_resolution == 1 / 180
-    assert escapy.bytes_per_line == int((72 + 7) / 8)
+    assert escapy._bytes_per_line == int((72 + 7) / 8)
     assert escapy.double_speed is False
 
     pdf_comparison(processed_file, test_id)
@@ -646,7 +646,7 @@ def test_print_tiff_raster_graphics(
 
     assert escapy.horizontal_resolution == 1 / 180
     assert escapy.vertical_resolution == 1 / 180
-    assert escapy.bytes_per_line == expected_bytes_count
+    assert escapy._bytes_per_line == expected_bytes_count
 
     pdf_comparison(processed_file)
 
@@ -713,7 +713,7 @@ def test_advanced_rle_decompress(tmp_path):
 
     processed_file = tmp_path / "test_advanced_rle_decompress.pdf"
     escapy = ESCParser(b"".join(code), dots_as_circles=True, output_file=processed_file)
-    assert escapy.bytes_per_line == expected_bytes_count
+    assert escapy._bytes_per_line == expected_bytes_count
     pdf_comparison(processed_file)
 
 

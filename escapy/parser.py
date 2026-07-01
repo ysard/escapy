@@ -425,8 +425,8 @@ class ESCParser:
         # (ESC K,L,Y,Z)
         self.klyz_densities = [0, 1, 2, 3]
 
-        self.bytes_per_line = 0
-        self.bytes_per_column = 0
+        self._bytes_per_line = 0  # For raster graphics tests only
+        self.bytes_per_column = 0  # For bit image only
         self.movx_unit = 1 / 360
 
         # Absolute position from the page left edge
@@ -3864,11 +3864,11 @@ class ESCParser:
         if compression_status:
             data = self.decompress_rle_data(data)
 
-        self.bytes_per_line = h_byte_count
+        bytes_per_line = h_byte_count
         if bit_length == 1:
-            self.print_raster_graphics_dots(data)
+            self.print_raster_graphics_dots(data, bytes_per_line)
         else:
-            self.print_raster_graphics_dots_2bpp(data)
+            self.print_raster_graphics_dots_2bpp(data, bytes_per_line)
 
     def print_raster_graphics(self, _, token_header, token_data):
         """Print raster graphics - ESC .
@@ -3913,10 +3913,10 @@ class ESCParser:
 
         # Number of columns of dots: h_dot_count
         # Used by print_raster_graphics_dots() to chunk data stream
-        self.bytes_per_line = int((h_dot_count + 7) / 8)
+        bytes_per_line = int((h_dot_count + 7) / 8)
 
         if LOGGER.level == DEBUG:
-            expected_bytes = v_dot_count_m * self.bytes_per_line
+            expected_bytes = v_dot_count_m * bytes_per_line
 
             LOGGER.debug(
                 "expect %s bytes (%s dots = %s byte(s) per line)",
@@ -3940,9 +3940,14 @@ class ESCParser:
             data = self.decompress_rle_data(data)
 
         # Print dots on the canvas
-        self.print_raster_graphics_dots(data, h_dot_count=h_dot_count)
+        self.print_raster_graphics_dots(data, bytes_per_line, h_dot_count=h_dot_count)
 
-    def print_raster_graphics_dots(self, data, h_dot_count=None):
+    def print_raster_graphics_dots(
+        self,
+        data: bytearray,
+        bytes_per_line: int,
+        h_dot_count: int | None=None
+    ):
         """Print the dots in the given bytes
 
         Unlike bitimage printing, raster mode prints the bytes received from
@@ -3960,12 +3965,12 @@ class ESCParser:
             See explanations on :meth:`print_bit_image_dots`.
 
         :param data: Decompressed data bytes (1 byte for 8 dots).
+        :param bytes_per_line: Used to iterate over the data line by line.
         :key h_dot_count: (default: None) Total number of dots for the given line(s)
             Used to move the cursor_x after the data has been printed.
             Can be None if the number is unknown (See ESC . 2 TIFF mode).
-        :type data: bytearray
-        :type h_dot_count: int
         """
+        self._bytes_per_line = bytes_per_line  # For tests
         code = self.current_pdf._code
         horizontal_resolution = self.horizontal_resolution
         vertical_resolution = self.vertical_resolution
@@ -3997,7 +4002,7 @@ class ESCParser:
 
         # Iterate on bytes inside lines
         # Iterate on lines first
-        for line_bytes in chunk_this(data, self.bytes_per_line):
+        for line_bytes in chunk_this(data, bytes_per_line):
             # Keep track of the x position in the current line
             column_offset = 0
             cy = "{:.2f}".format(y_pos * 72).rstrip("0")
@@ -4037,7 +4042,7 @@ class ESCParser:
         printed_dots = h_dot_count if h_dot_count else column_offset - 8 + i
         self.cursor_x = printed_dots * horizontal_resolution
 
-    def print_raster_graphics_dots_2bpp(self, data: bytearray):
+    def print_raster_graphics_dots_2bpp(self, data: bytearray, bytes_per_line: int):
         """Print the dots in the given bytes (2 bits per pixel)
 
         - With a bit length of 2, we need to send 8 bytes to get only 32 pixels
@@ -4053,7 +4058,9 @@ class ESCParser:
         .. seealso:: XP410 doc p54.
 
         :param data: Raw data (not compressed).
+        :param bytes_per_line: Used to iterate over the data line by line.
         """
+        self._bytes_per_line = bytes_per_line  # For tests
         code = self.current_pdf._code
 
         horizontal_resolution = self.horizontal_resolution
@@ -4087,7 +4094,7 @@ class ESCParser:
         y_pos = cursor_y - self.get_nozzle_offset()
         pixel_count = 0
 
-        for line_bytes in chunk_this(data, self.bytes_per_line):
+        for line_bytes in chunk_this(data, bytes_per_line):
             # Group the dots by size. This limits the changes of linewidth
             # setting, thus, the PDF size.
             paths = {
@@ -4297,12 +4304,10 @@ class ESCParser:
                 # Do not retrigger useless color change
                 self.color = idx
 
-            # ! Refresh the bytes per line used by the printing function for
-            # the current seed row !
-            self.bytes_per_line = len(seed_row)
-            # LOGGER.debug("expect %s bytes in seed row", self.bytes_per_line)
-
-            self.print_raster_graphics_dots(seed_row)
+            # Send the bytes per line for the current seed row
+            bytes_per_line = len(seed_row)
+            # LOGGER.debug("expect %s bytes in seed row", bytes_per_line)
+            self.print_raster_graphics_dots(seed_row, bytes_per_line)
 
             # Carriage return
             self.row_pos = 0
@@ -4328,9 +4333,9 @@ class ESCParser:
 
         # Do not chunk the data: all bytes are printed in the same line of 1 dot
         # (v_dot_count_m should be equal to 1)
-        self.bytes_per_line = len(data)
-        # LOGGER.debug("expect %s bytes", self.bytes_per_line)
-        self.print_raster_graphics_dots(data)
+        bytes_per_line = len(data)
+        # LOGGER.debug("expect %s bytes", bytes_per_line)
+        self.print_raster_graphics_dots(data, bytes_per_line)
 
     def set_relative_horizontal_position(self, *args):
         """Set relative horizontal position - <MOVX>
