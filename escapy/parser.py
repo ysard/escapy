@@ -534,9 +534,16 @@ class ESCParser:
             # Color doesn't exist: ignore the command
             LOGGER.error("Color id %s is unknown! Ignore.", color)
             return
-        if self.graphics_mode and self.pins != 9 and color not in (0, 1, 2, 4):
-            LOGGER.warning("Color id %s not allowed in ESC ( G raster graphics mode")
-            return
+        if self.graphics_mode and self.compatibility_mode == EscpCompatibility.AUTO:
+            # Apparently, there are no restrictions in 9-pin mode;
+            # Modern printers have unpredictable set of colors, including
+            # black or light colors usable in graphics mode;
+            # It appears that only intermediate ESC/P2 printers are restricted
+            # to CMYK only.
+            if color not in (0, 1, 2, 4):
+                LOGGER.warning(
+                    "Color id %s not allowed in ESC ( G raster graphics mode", color)
+                return
 
         self._color = color
         LOGGER.debug("Update color: %d (%s)", color, self.color_names[color])
