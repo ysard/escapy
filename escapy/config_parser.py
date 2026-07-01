@@ -102,7 +102,7 @@ def parse_config(config: configparser.ConfigParser):
 
     pins = misc_section.get("pins")
     if pins not in ("9", "24", "48", "", None):
-        LOGGER.error("pins: The number of pins is not expected (%s).", pins)
+        LOGGER.critical("pins: The number of pins is not expected (%s).", pins)
         raise SystemExit(1)
 
 
@@ -111,7 +111,7 @@ def parse_config(config: configparser.ConfigParser):
     if printable_area_margins_mm:
 
         if len(cleaned_data) != 4 or not all(isfloat(i) for i in cleaned_data):
-            LOGGER.error(
+            LOGGER.critical(
                 "printable_area_margins_mm: 4 values are expected "
                 "(top, bottom, left, right) (%s).",
                 printable_area_margins_mm,
@@ -126,7 +126,7 @@ def parse_config(config: configparser.ConfigParser):
         try:
             automatic_linefeed = misc_section.getboolean("automatic_linefeed")
         except ValueError as exc:
-            LOGGER.error(
+            LOGGER.critical(
                 "automatic_linefeed: expect false or true (%s)", automatic_linefeed
             )
             raise SystemExit(1) from exc
@@ -138,14 +138,14 @@ def parse_config(config: configparser.ConfigParser):
         if page_size not in PAGESIZE_MAPPING:
             if len(cleaned_data) == 1:
                 # Unknown alias
-                LOGGER.error(
+                LOGGER.critical(
                     "page_size: A known alias or 2 values are expected (width, height) (%s).",
                     page_size,
                 )
                 raise SystemExit(1)
 
             if len(cleaned_data) != 2 or not all(isfloat(i) for i in cleaned_data):
-                LOGGER.error(
+                LOGGER.critical(
                     "page_size: 2 values are expected (width, height) (%s).",
                     page_size,
                 )
@@ -161,7 +161,7 @@ def parse_config(config: configparser.ConfigParser):
         try:
             single_sheets = misc_section.getboolean("single_sheets")
         except ValueError as exc:
-            LOGGER.error("single_sheets: expect false or true (%s)", single_sheets)
+            LOGGER.critical("single_sheets: expect false or true (%s)", single_sheets)
             raise SystemExit(1) from exc
 
 
@@ -189,7 +189,7 @@ def parse_config(config: configparser.ConfigParser):
         try:
             Path(images_path).mkdir(exist_ok=True)
         except Exception as exc:
-            LOGGER.error(
+            LOGGER.critical(
                 "UserDefinedCharacters: error accessing images_path (%s)", images_path
             )
             raise SystemExit(1) from exc

@@ -73,7 +73,7 @@ def load_printer_profile(config: configparser.ConfigParser, profile_dir: Path) -
     # Always read the default profile first
     profile_path_found = config.read([d / "generic.conf" for d in dirs])
     if not profile_path_found:
-        LOGGER.error("Couldn't find the 'generic' profile")
+        LOGGER.critical("Couldn't find the 'generic' profile")
         raise SystemExit(1)
     if profile_name == "generic":
         return
@@ -108,7 +108,7 @@ def get_printer_profile(config: configparser.ConfigParser) -> PrinterProfile:
     nozzle_offsets_monochrome = {}
 
     if not config.has_section("colors"):
-        LOGGER.error("colors section was not found!")
+        LOGGER.critical("colors section was not found!")
         raise SystemExit(1)
 
     colors_section = config["colors"]
@@ -116,7 +116,7 @@ def get_printer_profile(config: configparser.ConfigParser) -> PrinterProfile:
 
         section = f"color:{logical_name}"
         if not config.has_section(section):
-            LOGGER.error(
+            LOGGER.critical(
                 "Color <%s:%s> is not available in the profile!",
                 color_id_str,
                 logical_name,
@@ -147,7 +147,7 @@ def get_printer_profile(config: configparser.ConfigParser) -> PrinterProfile:
             LOGGER.exception(e)
             raise SystemExit(1) from e
         except ValueError as e:
-            LOGGER.error("Couldn't parse 'cmyk' values in section: '%s'", section)
+            LOGGER.critical("Couldn't parse 'cmyk' values in section: '%s'", section)
             raise SystemExit(1) from e
 
         color_names[color_id] = display
