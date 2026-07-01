@@ -163,6 +163,8 @@ class ESCParser:
 
         :param code: Binary code to be parsed.
             Expected format: ESC/P, ESC/P2, ESC/P 9 Pins.
+        :param printer_profile: Printer profile containing color descriptions
+            and nozzle offsets.
         :key available_fonts: A structure that stores preconfigured methods to
             find fonts on the system, according to dynamic styles in use.
             See :meth:`escapy.fonts.setup_fonts`.
