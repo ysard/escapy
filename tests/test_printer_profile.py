@@ -18,6 +18,8 @@
 
 # Standard imports
 import configparser
+from pathlib import Path
+from unittest.mock import patch
 
 # Custom imports
 import pytest
@@ -103,7 +105,7 @@ def test_load_printer_profile(profile, expected_section):
     assert config.has_section(expected_section)
 
 
-def test_missing_generic_profile(tmp_path):
+def test_missing_generic_profile(tmp_path: Path):
     """The generic profile is mandatory"""
     config = configparser.ConfigParser()
     config.read_string(
@@ -113,9 +115,20 @@ def test_missing_generic_profile(tmp_path):
         """
     )
 
-    with pytest.raises(SystemExit) as pytest_wrapped_e:
-        load_printer_profile(config, tmp_path)
-    assert pytest_wrapped_e.value.code == 1
+    # `load_printer_profile` searches config files alongside the known
+    # configuration files (in folders named `profiles`).
+    # Let's create 2 known config files without profiles.
+    config_file = Path("config.conf")
+    user_config_file = tmp_path / "user" / config_file
+    config_files = [tmp_path / config_file, user_config_file]
+
+    with patch.multiple(
+        "escapy.printer_profile",
+        CONFIG_FILES=config_files,
+    ):
+        with pytest.raises(SystemExit) as pytest_wrapped_e:
+            load_printer_profile(config, tmp_path)
+        assert pytest_wrapped_e.value.code == 1
 
 
 @pytest.mark.parametrize(
