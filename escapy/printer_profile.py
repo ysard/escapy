@@ -97,7 +97,7 @@ def get_printer_profile(config: configparser.ConfigParser) -> PrinterProfile:
     Optional keys:
 
     - display: Human readable name;
-    - offset: Nozzle position adjustement offset.
+    - offset: Nozzle position adjustement offset (in 1/180th of an inch).
 
     :raises SystemExit: If required keys are not found.
     """
