@@ -19,7 +19,6 @@
 import itertools as it
 from pathlib import Path
 import struct
-from functools import partial
 
 # Custom imports
 import pytest
@@ -38,6 +37,7 @@ from escapy.fonts import rptlab_times
 # Support custom encodings; DO NOT import abicomp, see test_charset_tables
 from escapy.encodings import brascii, mazovia, iscii, cp774
 from .misc import format_databytes, pdf_comparison
+from .misc import ESCParser, default_printer_profile, typefaces
 from .misc import (
     esc_reset,
     cancel_bold,
@@ -52,13 +52,9 @@ from .misc import (
     reset_double_width_m,
     double_height,
     reset_double_height,
-    typefaces,
     noto_devanagari_font_def,
     noto_font_def,
 )
-
-# Inject test typefaces
-ESCParser = partial(_ESCParser, available_fonts=typefaces)
 
 
 @pytest.mark.parametrize(
@@ -691,7 +687,7 @@ def test_charset_tables(tmp_path: Path):
     available_fonts = dict(typefaces)
     available_fonts[31] = noto_devanagari_font_def
 
-    _ESCParser(code, output_file=processed_file, available_fonts=available_fonts)
+    _ESCParser(code, default_printer_profile, output_file=processed_file, available_fonts=available_fonts)
     pdf_comparison(processed_file)
 
 
@@ -715,11 +711,17 @@ def test_charset_tables(tmp_path: Path):
         "brascii",
     ],
 )
-def test_international_charsets(tmp_path: Path, assign_table_cmd, encoding):
+def test_international_charsets(
+    tmp_path: Path, assign_table_cmd: bytes,
+    encoding: str,
+    request: "_pytest.fixtures.FixtureRequest"
+):
     """Test injection of 12 characters in the current character table (1 by default) - ESC R
 
     Custom encoding/decoding codecs are tested here.
     """
+    test_id = f"[{request.node.callspec.id}]"
+
     point_8 = b"\x1bX\x00\x10\x00"  # 0x10 => 16 / 2 = 8
     roman = b"\x1b\x6b\x00"
     select_international_charset_prefix = b"\x1bR"
@@ -736,14 +738,14 @@ def test_international_charsets(tmp_path: Path, assign_table_cmd, encoding):
         # lines.append(select_international_charset_prefix + b"\x00")
 
     code = b"\r\n".join(lines)
-    processed_file = tmp_path / "test_international_charset_tables.pdf"
+    processed_file = tmp_path / f"test_international_charset_tables{test_id}.pdf"
     escapy = ESCParser(code, output_file=processed_file)
 
     # Check that the base encoding is in use
     found_encoding = escapy.character_tables[escapy.character_table]
     assert found_encoding == encoding
 
-    pdf_comparison(processed_file)
+    pdf_comparison(processed_file, test_id)
 
 
 def test_custom_codec():
@@ -1693,6 +1695,7 @@ def test_character_pitch(tmp_path: Path, condensed_fallback, expected_filename):
 
     _ESCParser(
         code,
+        default_printer_profile,
         condensed_fallback=condensed_fallback,
         output_file=processed_file,
         available_fonts=available_fonts,
@@ -1784,6 +1787,7 @@ def test_multipoint_mode(tmp_path: Path):
 
     _ESCParser(
         code,
+        default_printer_profile,
         output_file=processed_file,
         available_fonts=available_fonts,
     )

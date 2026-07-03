@@ -18,18 +18,15 @@
 
 # Standard imports
 from pathlib import Path
-from functools import partial
 
 # Custom imports
 import pytest
 
 # Local imports
 from escapy.commons import log_level
-from escapy.parser import ESCParser as _ESCParser
-from .misc import DIR_DATA, esc_reset, typefaces
-
-# Inject test typefaces
-ESCParser = partial(_ESCParser, available_fonts=typefaces)
+from .misc import DIR_DATA, esc_reset
+from .misc import ESCParser
+from .test_remote_codes import REMOTE_MODE, EXIT_REMOTE_MODE, remote_cmd
 
 
 @pytest.fixture
@@ -75,10 +72,20 @@ def test_no_loglevel(tmp_path: Path, capsys, set_loglevel: None):
         # (not supported as a control code, but supported as a printable char)
         # Test in 9 pins mode because by default thos characters are printed in ESCP2 mode
         (b"\x11", "select_printer", 9),
+        # ESC (m : Set print mode
+        (b"\x1b(m\x01\x00\xff", "Tree('set_print_method'", None),
+        # Successive and unknown remote commands
+        (
+            REMOTE_MODE + remote_cmd("XX", b"\x00\x00") * 2 + EXIT_REMOTE_MODE,
+            "Tree(Token('RULE', 'remote_instruction')",
+            None,
+        ),
     ],
     ids=[
         "NS_set_unidirectional_mode",
         "NS_select_printer",
+        "NS_set_print_method",
+        "NS_remote_commands",
     ],
 )
 def test_not_implemented_command(
@@ -86,7 +93,7 @@ def test_not_implemented_command(
 ):
     """Test ESC command defined into the grammar but not implemented in the parser
 
-    A simple output in the LOGGER at the level ERROR should be observed.
+    A simple output in the LOGGER at the level WARNING should be observed.
 
     :param tmp_path: Path of temporary working dir returned by a pytest fixture.
     :param caplog: pytest caplog-fixture

@@ -31,11 +31,12 @@ from escapy.commons import (
     PAGESIZE_MAPPING,
     USER_DEFINED_DB_FILE,
 )
+from escapy.printer_profile import load_printer_profile
 
 LOGGER = logger()
 
 
-def load_config(config_file=EMBEDDED_CONFIG_FILE):
+def load_config(config_file: Path = EMBEDDED_CONFIG_FILE):
     """Load configuration file and set default settings
 
     :key config_file: Path of the configuration file to load.
@@ -46,6 +47,8 @@ def load_config(config_file=EMBEDDED_CONFIG_FILE):
     """
     config = configparser.ConfigParser(allow_no_value=True)
     config.read(config_file)
+    # Fill the configuration with the selected printer profile
+    load_printer_profile(config, config_file.parent)
     return parse_config(config)
 
 
@@ -71,7 +74,7 @@ def parse_config(config: configparser.ConfigParser):
     """
     # rb = parser.getint('section', 'rb') if parser.has_option('section', 'rb') else None
 
-    def to_tuple(config_str) -> str | None:
+    def to_tuple(config_str) -> list | str:
         """Get a tuple of values if the given param is not empty and not None"""
         return config_str.split(",") if config_str else ""
 
@@ -99,7 +102,7 @@ def parse_config(config: configparser.ConfigParser):
 
     pins = misc_section.get("pins")
     if pins not in ("9", "24", "48", "", None):
-        LOGGER.error("pins: The number of pins is not expected (%s).", pins)
+        LOGGER.critical("pins: The number of pins is not expected (%s).", pins)
         raise SystemExit(1)
 
 
@@ -108,7 +111,7 @@ def parse_config(config: configparser.ConfigParser):
     if printable_area_margins_mm:
 
         if len(cleaned_data) != 4 or not all(isfloat(i) for i in cleaned_data):
-            LOGGER.error(
+            LOGGER.critical(
                 "printable_area_margins_mm: 4 values are expected "
                 "(top, bottom, left, right) (%s).",
                 printable_area_margins_mm,
@@ -123,7 +126,7 @@ def parse_config(config: configparser.ConfigParser):
         try:
             automatic_linefeed = misc_section.getboolean("automatic_linefeed")
         except ValueError as exc:
-            LOGGER.error(
+            LOGGER.critical(
                 "automatic_linefeed: expect false or true (%s)", automatic_linefeed
             )
             raise SystemExit(1) from exc
@@ -134,14 +137,15 @@ def parse_config(config: configparser.ConfigParser):
     if page_size:
         if page_size not in PAGESIZE_MAPPING:
             if len(cleaned_data) == 1:
-                LOGGER.error(
+                # Unknown alias
+                LOGGER.critical(
                     "page_size: A known alias or 2 values are expected (width, height) (%s).",
                     page_size,
                 )
                 raise SystemExit(1)
 
             if len(cleaned_data) != 2 or not all(isfloat(i) for i in cleaned_data):
-                LOGGER.error(
+                LOGGER.critical(
                     "page_size: 2 values are expected (width, height) (%s).",
                     page_size,
                 )
@@ -157,7 +161,7 @@ def parse_config(config: configparser.ConfigParser):
         try:
             single_sheets = misc_section.getboolean("single_sheets")
         except ValueError as exc:
-            LOGGER.error("single_sheets: expect false or true (%s)", single_sheets)
+            LOGGER.critical("single_sheets: expect false or true (%s)", single_sheets)
             raise SystemExit(1) from exc
 
 
@@ -185,7 +189,7 @@ def parse_config(config: configparser.ConfigParser):
         try:
             Path(images_path).mkdir(exist_ok=True)
         except Exception as exc:
-            LOGGER.error(
+            LOGGER.critical(
                 "UserDefinedCharacters: error accessing images_path (%s)", images_path
             )
             raise SystemExit(1) from exc
@@ -245,7 +249,7 @@ def build_parser_params(config) -> dict:
     :type config: configparser.ConfigParser
     """
 
-    def to_tuple(config_str) -> tuple[float] | None:
+    def to_tuple(config_str) -> tuple[float, ...] | None:
         """Get a tuple of numeric values if the given param is not empty and not None"""
         return tuple(map(float, config_str.split(","))) if config_str else None
 

@@ -25,22 +25,25 @@ from escapy.commons import logger
 LOGGER = logger()
 
 
-def is_similar_pdfs(pdf_file_1, pdf_file_2):
+def is_similar_pdfs(ref_pdf_path: Path | str, tested_pdf_path: Path | str):
     """Visually compare 2 pdf files for test purposes
 
+    :param ref_pdf_path: Reference file path.
+    :param tested_pdf_path: Tested file path.
     :return: True if the files are similar; otherwise, a diff file is placed
         next to the problematic file in `/tmp`.
     :rtype: bool
     """
-    pdf_file_1_name = Path(pdf_file_1).stem
-    pdf_file_2_name = Path(pdf_file_2).stem
+    ref_file_name = Path(ref_pdf_path).stem
+    tested_file_name = Path(tested_pdf_path).stem
 
-    diff_output_file = Path(f"/tmp/diff_{pdf_file_1_name}_vs_{pdf_file_2_name}.pdf")
+    diff_output_file = Path(f"/tmp/diff_{ref_file_name}_vs_{tested_file_name}.pdf")
     diffpdf_cmd = [
         "/usr/bin/diff-pdf",
         f"--output-diff={diff_output_file}",
-        pdf_file_1,
-        pdf_file_2,
+        # f"--dpi=720",
+        ref_pdf_path,
+        tested_pdf_path,
     ]
 
     # We are in a child thread, we can have blocking calls like run()
@@ -50,7 +53,7 @@ def is_similar_pdfs(pdf_file_1, pdf_file_2):
     # diff-pdf returns 0 if the files are the same
     returncode = not bool(ps.returncode)
 
-    LOGGER.info("Similarity <%s> vs <%s>: %s", pdf_file_1, pdf_file_2, returncode)
+    LOGGER.info("Similarity <%s> vs <%s>: %s", ref_pdf_path, tested_pdf_path, returncode)
     if not returncode:
         LOGGER.error("Diff is saved at <%s> for further study.", diff_output_file)
     else:

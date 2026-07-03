@@ -1,3 +1,22 @@
+escapy (1.1.0-1) UNRELEASED; urgency=medium
+
+  * Set unit: ESC U, ESC ( U
+  * Raster resolution: ESC ( D
+  * Transfer raster image: ESC i
+  * Print method: ESC ( m
+  * Monochrome: ESC ( K
+  * Vertical position: ESC ( v, ESC ( V
+  * Horizontal position: ESC ( $, ESC ( /
+  * Page length: ESC ( C
+  * Format: ESC ( c
+  * Paper dimensions: ESC ( S
+  * Dot size: ESC ( e
+  * Remote codes: RS, FP, JH, JS
+  * Remove blank pages as best as possible
+  * Support of printer profiles
+
+ -- Ysard <ysard@users.noreply.github.com>  Tue, 30 Jun 2026 22:45:00 +0200
+
 escapy (1.0.4-1) UNRELEASED; urgency=medium
 
   * Add ESC . 3, ESC ACK, <CLR> as supported new commands related to Delta Row

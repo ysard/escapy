@@ -15,6 +15,7 @@
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Test page configuration and movements in the printing area"""
+
 # Standard imports
 from struct import pack
 from pathlib import Path
@@ -26,19 +27,27 @@ from lark.exceptions import UnexpectedToken
 from reportlab.lib.pagesizes import A4
 
 # Local imports
-from escapy.parser import ESCParser as _ESCParser
-from .misc import format_databytes, typefaces
+from .misc import format_databytes
+from .misc import ESCParser
 from .misc import esc_reset, cancel_bold
 
-# Inject test typefaces
-ESCParser = partial(_ESCParser, available_fonts=typefaces)
+AH_header = b"\x1b$"
+AH_ex_header = b"\x1b($\x04\x00"
+RH_header = b"\x1b\\"
+RV_header = b"\x1b(v\x02\x00"
+RV_ex_header = b"\x1b(v\x04\x00"
+AV_header = b"\x1b(V\x02\x00"
+AV_ex_header = b"\x1b(V\x04\x00"
+set_unit_header = b"\x1b(U\x01"
+
+A4_length = A4[1] / 72
 
 
 @pytest.mark.parametrize(
     "format_databytes",
     [
         # ESC ( U - 70/3600 is a not allowed value
-        b"\x1b(U\x01\x00\x46" + cancel_bold,
+        set_unit_header + b"\x00\x46" + cancel_bold,
         # Set page length in the current line spacing exceeding 0x7f - ESC C
         b"\x1bC\x80",
         # page length in the current line spacing, exceeding 22inch - ESC C NUL
@@ -61,9 +70,23 @@ def test_wrong_commands(format_databytes: bytes):
 @pytest.mark.parametrize(
     "format_databytes, expected_unit",
     [
-        (b"" + cancel_bold, None),
-        (b"\x1b(U\x01\x00\x05" + cancel_bold, 5 / 3600),
-        (b"\x1b(U\x01\x00\x14" + cancel_bold, 20 / 3600),
+        # Expect different default values for P,V,H units
+        (b"" + cancel_bold, (1 / 360, 1 / 360, None)),
+        (set_unit_header + b"\x00\x05" + cancel_bold, 5 / 3600),
+        (set_unit_header + b"\x00\x14" + cancel_bold, 20 / 3600),
+        # Extended version
+        # 720 / 3 = 240 dpi: refused, expect only few values: keep default values
+        (
+            b"\x1b(U\x05\x00" + b"\x01\x02\x03"
+            + int(720).to_bytes(2, byteorder="little"),
+            (1 / 360, 1 / 360, None),
+        ),
+        # 1/2880, 2/2880 (1/1440), 4/2880 (1/720)
+        (
+            b"\x1b(U\x05\x00" + b"\x01\x02\x04"
+            + int(2880).to_bytes(2, byteorder="little"),
+            (1 / 2880, 2 / 2880, 4 / 2880),
+        ),
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
@@ -71,15 +94,24 @@ def test_wrong_commands(format_databytes: bytes):
         "unit_default",
         "unit_5/3600",
         "unit_20/3600",
+        "unit_ex_ignored",
+        "unit_ex_2880dpi_base",
     ],
 )
 def test_set_unit(format_databytes: bytes, expected_unit: float):
-    """Test ESC ( U
+    """Test ESC ( U, legacy and extended versions
 
     The given value is divided by 3600.
     """
+    if isinstance(expected_unit, tuple):
+        p_expected_unit, v_expected_unit, h_expected_unit = expected_unit
+    else:
+        p_expected_unit = v_expected_unit = h_expected_unit = expected_unit
+
     escapy = ESCParser(format_databytes, pdf=False)
-    assert escapy.defined_unit == expected_unit
+    assert escapy.vertical_unit == v_expected_unit
+    assert escapy.horizontal_unit == h_expected_unit
+    assert escapy.page_management_unit == p_expected_unit
 
 
 @pytest.mark.parametrize(
@@ -181,37 +213,58 @@ def test_set_bottom_margin(format_databytes, single_sheet, expected_bottom_margi
 @pytest.mark.parametrize(
     "format_databytes, page_size, expected_margins",
     [
+        # From doc: paper 8.5"x11", top margin 1", bottom margin 10", unit 1/360
+        # Inversed in bottom up coordinates
+        (b"\x1b(c\x04\x00" + pack("<H", 360) + pack("<H", 3600), (8.5 * 72, 11 * 72), (10, 1)),
         # hex(11*360): 0xf78
         # Send bottom margin 11inch, so 11.69-11 = 0.69 in bottom-up system: Correct values
-        (b"\x1b(c\x04\x00\x08\x02\x78\x0f", A4, (10.24846894138233, 0.692913385826774)),
+        (b"\x1b(c\x04\x00\x08\x02\x78\x0f", A4, (A4_length - 520 / 360, A4_length - 11)),
         # Prepend ESC ( U to set defined unit to 2 / 360
         # hex(11*360/2): 0x7bc
-        (b"\x1b(U\x01\x00\x14" + b"\x1b(c\x04\x00\x08\x02\xbc\x07", A4, (8.804024496937885, 0.692913385826774)),
-        # top margin >= bottom margin: error, fixed with printable area values
-        (b"\x1b(c\x04\x00\x00\x02\x00\x01", A4, (11.442913385826774, 0.25)),
-        (b"\x1b(c\x04\x00\x08\x02\x08\x02", A4, (11.442913385826774, 0.25)),
+        (set_unit_header + b"\x00\x14" + b"\x1b(c\x04\x00\x08\x02\xbc\x07", A4, (A4_length - 1040 / 360, A4_length - 11)),
+        # top margin >= bottom margin: error => ignored
+        (b"\x1b(c\x04\x00\x00\x02\x00\x01", A4, (A4_length - 0.25, 0.25)),
+        (b"\x1b(c\x04\x00\x08\x02\x08\x02", A4, (A4_length - 0.25, 0.25)),
         # hex(14*360): 0x13b0
-        # Bottom 14inch: outside printable area => reset values to printable area
-        (b"\x1b(c\x04\x00\x08\x02\xb0\x13", A4, (11.442913385826774, 0.25)),
-        # (b"\x1b(c\x04\x00\x08\x01\x58\x20", A4, (11.442913385826774, 0.25)),
+        # Bottom 14inch: outside printable area => ignored
+        (b"\x1b(c\x04\x00\x08\x02\xb0\x13", A4, (A4_length - 0.25, 0.25)),
         # hex(23*360): 0x2058
         # Send a 23inch bottom margin on a 23inch height page
         # This value is outside the printable area,
         # The printable margins will set the default bottom_margin to 23 - 0.25 = 22.75
-        # But 22.75 is > to the 22inch absolute limit and will not pass this check!
-        # Bottom margin should be fixed to 22inch, thus 1 inch,
-        # and 22.75 inch for top margin in bottom-up system.
-        (b"\x1b(c\x04\x00\x08\x01\x58\x20", (A4[0], (72 * 23)), (22.75, 1)),
+        # => ignored
+        (b"\x1b(c\x04\x00\x08\x01" + pack("<H", 23 * 360), (A4[0], (72 * 23)), (22.75, 0.25)),
+        # 0.5" top, 22.75" bottom: page length > 22" => fixed to 22, set bottom to 0.5" (for now ??)
+        (b"\x1b(c\x04\x00" + pack("<H", 180) + pack("<H", 8190), (A4[0], (72 * 23)), (22.5, 0.5)),
+        # 23" page height, 10" page length, 0.5" top, 22" bottom:
+        # 21.5" page length > 10" current page length
+        # => accept but update the current page length to 22 (max)
+        (
+                b"\x1b(C\x02\x00" + pack("<H", 3600)
+                + b"\x1b(c\x04\x00" + pack("<H", 180) + pack("<H", 22*360),
+                (A4[0], (72 * 23)), (22.5, 1)
+        ),
+        # Extended command
+        # 0" top margin: outside printablea area (0.25) => ignored
+        (b"\x1b(c\x08\x00\x00\x00\x00\x00" + pack("<I", 3600), (A4[0], 11 * 72), (10.75, 0.25)),
+        # -1/360 top margin: detect erroneous value => ignored
+        (b"\x1b(c\x08\x00" + pack("<i", -1)+ pack("<I", 3600), (A4[0], 11 * 72), (10.75, 0.25)),
+
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
     ids=[
+        "accepted_values_custom_paper",
         "accepted_values",
         "accepted_values+defined_unit",
         "top>bottom",
         "top=bottom",
-        "bottom_margin_outside_printable_area",
+        "bottom_margin<printable_area",
         "23inch_bottom_23inch_height",
+        "23inch>max_page_length",
+        "page_length<current_page_length",
+        "extended_top_margin>printable_area",
+        "signed_negative_value",
     ],
 )
 def test_set_page_format(format_databytes, page_size, expected_margins):
@@ -242,21 +295,24 @@ def test_set_page_format(format_databytes, page_size, expected_margins):
 
 
 @pytest.mark.parametrize(
-    "format_databytes, expected",
+    "format_databytes, page_size, expected",
     [
         # hex(11*360): 0xf78
         # Send bottom margin 11inch, so 11.69-11 = 0.69: Correct values
-        (b"\x1b(C\x02\x00\x78\x0f", 11),
+        (b"\x1b(C\x02\x00\x78\x0f", A4, 11),
         # Prepend ESC ( U to set defined unit to 2 / 360
         # hex(11*360/2): 0x7bc
-        (b"\x1b(U\x01\x00\x14" + b"\x1b(C\x02\x00\xbc\x07", 11),
+        (set_unit_header + b"\x00\x14" + b"\x1b(C\x02\x00\xbc\x07", A4, 11),
         # hex(23*360): 0x2058
         # Send a 23inch page length: > 22 inch
-        # This value is outside the accepted area, the value will be set to 22.
-        (b"\x1b(C\x02\x00\x58\x20", 22),
+        # This value is outside the accepted area (and outside the page height),
+        # the command is ignored, the value expected is the default one
+        (b"\x1b(C\x02\x00" + pack("<H", 23 * 360), A4, A4_length - 0.5),
+        # Extended version: The limit in modern printers is set to 44inch: accepted
+        (b"\x1b(C\x04\x00" + pack("<I", 23 * 360), (A4[0], (72 * 24)), 23),
         # Test the reset of top/bottom margins, see test_set_page_format
         # for the explanations about the value.
-        (b"\x1b(c\x04\x00\x08\x02\x78\x0f" + b"\x1b(C\x02\x00\x78\x0f", 11),
+        (b"\x1b(c\x04\x00\x08\x02\x78\x0f" + b"\x1b(C\x02\x00\x78\x0f", A4, 11),
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
@@ -264,19 +320,23 @@ def test_set_page_format(format_databytes, page_size, expected_margins):
         "accepted_value",
         "accepted_value+defined_unit",
         "23inches",
+        "23inches_ex",
         "reset_top_bottom_margins",
     ],
 )
-def test_set_page_length_defined_unit(format_databytes, expected):
+def test_set_page_length_defined_unit(format_databytes, page_size, expected):
     """Set page length in defined unit - ESC ( C
 
     .. note:: default unit is 1 / 360.
     """
-    escapy = ESCParser(format_databytes, pdf=False)
+    escapy = ESCParser(format_databytes, page_size=page_size, pdf=False)
     assert escapy.page_length == expected
-    top_margin, bottom_margin = escapy.printable_area[0:2]
-    assert escapy.top_margin == top_margin
-    assert escapy.bottom_margin == bottom_margin
+    top, bottom = escapy.printable_area[0:2]
+    # Top margin is reset
+    assert escapy.top_margin == top
+    # Bottom margin is implicitely recalculated from the top margin,
+    # with the new page length
+    assert escapy.bottom_margin == top - expected
 
 
 @pytest.mark.parametrize(
@@ -287,14 +347,14 @@ def test_set_page_length_defined_unit(format_databytes, expected):
         (b"\x1bC\x42", 11),
         # Prepend ESC 1 to set the linespacing to 7 /72
         # hex(11*72/7): ~113 = 0x71
-        (b"\x1b1C\x71", 11.192913385826774),
+        (b"\x1b1C\x71", A4_length - 0.5),
         # hex(23): 0x17
         # PS: if we keep the current linespacing (1/60), the value for 23inch
         # is 138, buch is > to the max expected value: 127.
         # Set the linespacing before to 1inch (60/60) with ESC A.
         # Send a 23inch page length: > 22 inch
-        # This value is outside the accepted area, the value will be set to 22.
-        (b"\x1bA\x3c" + b"\x1bC\x17", 22),
+        # This value is outside the accepted area, the command will be ignored.
+        (b"\x1bA\x3c" + b"\x1bC\x17", A4_length - 0.5),
         # Test the reset of top/bottom margins, see test_set_page_format
         # for the explanations about the value.
         (b"\x1b(c\x04\x00\x08\x02\x78\x0f" + b"\x1bC\x42", 11),
@@ -315,9 +375,12 @@ def test_set_page_length_lines(format_databytes, expected):
     """
     escapy = ESCParser(format_databytes, pdf=False)
     assert escapy.page_length == expected
-    top_margin, bottom_margin = escapy.printable_area[0:2]
-    assert escapy.top_margin == top_margin
-    assert escapy.bottom_margin == bottom_margin
+    top, bottom = escapy.printable_area[0:2]
+    # Top margin is reset
+    assert escapy.top_margin == top
+    # Bottom margin is implicitely recalculated from the top margin,
+    # with the new page length
+    assert escapy.bottom_margin == top - expected
 
 
 @pytest.mark.parametrize(
@@ -325,80 +388,134 @@ def test_set_page_length_lines(format_databytes, expected):
     [
         # 1inch
         (b"\x1bC\x00\x01", 1),
-        # 22inch
-        (b"\x1bC\x00\x16", 22),
+        # 22inch: outside the page height: ignored
+        (b"\x1bC\x00\x16", A4_length - 0.5),
     ],
     # First param goes in the 'request' param of the fixture format_databytes
     indirect=["format_databytes"],
     ids=[
         "1inch",
-        "22inch",
+        "22inches",
     ],
 )
 def test_set_page_length_inches(format_databytes, expected):
     """Set page length in the current line spacing - ESC C NUL"""
     escapy = ESCParser(format_databytes, pdf=False)
     assert escapy.page_length == expected
-    top_margin, bottom_margin = escapy.printable_area[0:2]
-    assert escapy.top_margin == top_margin
-    assert escapy.bottom_margin == bottom_margin
+    top, bottom = escapy.printable_area[0:2]
+    # Top margin is reset
+    assert escapy.top_margin == top
+    # Bottom margin is implicitely recalculated from the top margin,
+    # with the new page length
+    assert escapy.bottom_margin == top - expected
+
+
+def test_cancel_top_bottom_margins():
+    """Test the reset of top/bottom margins - ESC O"""
+    # See test_set_page_format for the explanations about the value.
+    # top: 520/360, bottom: 11"
+    code = b"\x1b(c\x04\x00\x08\x02\x78\x0f" + b"\x1bO"
+
+    escapy = ESCParser(esc_reset + code, pdf=False)
+    top, bottom = escapy.printable_area[0:2]
+
+    # Margins are reset to printable area limits
+    assert escapy.top_margin == top
+    assert escapy.bottom_margin == bottom
 
 
 @pytest.mark.parametrize(
+    # Offset are set without the top and left margins respectively
     "format_databytes, pins, x_offset, y_offset",
     [
         # Absolute horizontal position - ESC $
-        # 1 inch (60/60) for default unit: 1/60
-        (b"\x1b$\x3c\x00", None, 1, 0),
-        (b"\x1b$\x3c\x00", 9, 1, 0),
+        # 1 inch (60/60) for default unit (all models): 1/60
+        (AH_header + b"\x3c\x00", None, 1, 0),
+        (AH_header + b"\x3c\x00", 9, 1, 0),
         # Prepend ESC ( U to set defined unit to 2/360
         # hex(1*360//2): 0xb4 = 180
-        (b"\x1b(U\x01\x00\x14" + b"\x1b$\xb4\x00", None, 1, 0),
+        (set_unit_header + b"\x00\x14" + AH_header + b"\xb4\x00", None, 1, 0),
         # Prepend ESC ( U to set defined unit to 2/360
         # Outside right margin hex(60*360//2) 60.25inch: ignored
-        (b"\x1b(U\x01\x00\x14" + b"\x1b$\x30\x2a", None, 0, 0),
+        (set_unit_header + b"\x00\x14" + AH_header + b"\x30\x2a", None, 0, 0),
         # defined unit is ignored on 9 pins printers:
-        # => same value as it is with a 1/6 unit
-        (b"\x1b(U\x01\x00\x14" + b"\x1b$\x3c\x00", 9, 1, 0),
+        # => same value as it is with a 1/60 unit
+        (set_unit_header + b"\x00\x14" + AH_header + b"\x3c\x00", 9, 1, 0),
+        #
+        # Absolute horizontal position - ESC ( $
+        # Set unit to 1/180 (accepted since we use an extended command); +1inch
+        (set_unit_header + b"\x00\x14" + AH_ex_header + pack("<I", 180), None, 1, 0),
+        # Set unit to 1/720, (7.75inches (7.75*720=5580), in 720p)
+        (set_unit_header + b"\x00\x05" + AH_ex_header + pack("<I", 5580), None, 7.75, 0),
         #
         # Relative horizontal position - ESC \
         # +2inch absolute, then -1inch relative (-180/180) = 1inch
         # default unit: 1/180
-        (b"\x1b$\x78\x00" + b"\x1b\\" + pack("<h", -180), None, 1, 0),
+        (AH_header + b"\x78\x00" + RH_header + pack("<h", -180), None, 1, 0),
         # 9 pins default unit: 1/120
         # +2inch absolute, then -120/120
-        (b"\x1b$\x78\x00" + b"\x1b\\" + pack("<h", -120), 9, 1, 0),
+        (AH_header + b"\x78\x00" + RH_header + pack("<h", -120), 9, 1, 0),
         # Prepend ESC ( U to set defined unit to 2/360
         # +2inch absolute, then -180/180
-        (b"\x1b$\x78\x00" + b"\x1b(U\x01\x00\x14" + b'\x1b\\' + pack("<h", -180), None, 1, 0),
-        # Outside right margin -400/180inch ~ 2.22: ignored
+        (AH_header + b"\x78\x00" + set_unit_header + b"\x00\x14" + b'\x1b\\' + pack("<h", -180), None, 1, 0),
+        # In left margin -400/180inch ~ 2.22: ignored
         # +2inch absolute, then -2.22inch
-        (b"\x1b$\x78\x00" + b"\x1b\\" + pack("<h", -400), None, 2, 0),
+        (AH_header + b"\x78\x00" + RH_header + pack("<h", -400), None, 2, 0),
+        # Outside right margin outside printable area (page limit = 8.26, default right margin: 8.01)
+        # +8inch relative ( 8*180/180), result: 8.25: ignored
+        (RH_header + pack("<h", 1440), None, 0, 0),
+        # In the right margin, before the printablea area
+        # Define the right margin at 3 cols, send 7inch relative (7*180/180): 7.25: accepted
+        (b"\x1bQ\x03" + RH_header + pack("<h", 1260), None, 7, 0),
+        #
+        # Relative horizontal position - ESC ( / (extended)
+        # Default unit: 1/60
+        # +2inch absolute, then -60/60
+        (AH_header + b"\x78\x00" + b"\x1b(/" + pack("<i", -60), None, 1, 0),
+        # Prepend ESC ( U to set defined unit to 2/360
+        # Changed unit: 1/180
+        (AH_header + b"\x78\x00" + set_unit_header + b"\x00\x14" + b'\x1b(/' + pack("<i", -180), None, 1, 0),
         #
         # Absolute vertical position - ESC ( V
         # 1 inch below top margin 360 (360/360) for default unit: 1/360
-        (b"\x1b(V\x02\x00" + pack("<H", 360), None, 0, -1),
+        (AV_header + pack("<H", 360), None, 0, -1),
         # Prepend ESC ( U to set defined unit to 2/360
         # 1 inch below top margin 180 (180/180)
-        (b"\x1b(U\x01\x00\x14" + b"\x1b(V\x02\x00" + pack("<H", 180), None, 0, -1),
+        (set_unit_header + b"\x00\x14" + AV_header + pack("<H", 180), None, 0, -1),
         # 12 inch below top margin: next page
-        (b"\x1b(V\x02\x00" + pack("<H", 12 * 360), None, 0, 0),
+        (AV_header + pack("<H", 12 * 360), None, 0, 0),
         # 1 inch below top margin, then 1/360 inch below top margin:
-        # movement amplitude too large (359/360 inch): ignored
-        (b"\x1b(V\x02\x00" + pack("<H", 360) + b"\x1b(V\x02\x00" + pack("<H", 1), None, 0, -1),
+        # negative movement amplitude too large (-359/360 inch): ignored
+        (AV_header + pack("<H", 360) + AV_header + pack("<H", 1), None, 0, -1),
+        #
+        # Absolute vertical position - ESC ( V (extended)
+        # negative movement amplitude (-1/360 inch): ignored
+        (AV_ex_header + pack("<I", 360) + AV_ex_header + pack("<I", 359), None, 0, -1),
+        # 10 inch
+        (AV_ex_header + pack("<I", 3600), None, 0, -10),
+        # 12 inch below top margin: next page
+        (AV_ex_header + pack("<I", 12 * 360), None, 0, 0),
         #
         # Relative vertical position - ESC ( v
         # 1 inch down (360/360) for default unit: 1/360
-        (b"\x1b(v\x02\x00" + pack("<h", 360), None, 0, -1),
+        (RV_header + pack("<h", 360), None, 0, -1),
         # 179/360 inch up: outside top margin: ignored
-        (b"\x1b(v\x02\x00" + pack("<h", -179), None, 0, 0),
+        (RV_header + pack("<h", -179), None, 0, 0),
         # 12 inch down: outside bottom margin: next page
-        (b"\x1b(v\x02\x00" + pack("<h", 12 * 360), None, 0, 0),
-        # 1 inch up (>179/360): movement amplitude too large: ignored
-        (b"\x1b(v\x02\x00" + pack("<h", -360), None, 0, 0),
+        (RV_header + pack("<h", 12 * 360), None, 0, 0),
+        # 1 inch down + 1 inch up (>179/360): movement amplitude too large:
+        (RV_header + pack("<h", 360) + RV_header + pack("<h", -360), None, 0, -1),
         # Prepend ESC ( U to set defined unit to 2/360
         # 1 inch down
-        (b"\x1b(U\x01\x00\x14" + b"\x1b(v\x02\x00" + pack("<h", 180), None, 0, -1),
+        (set_unit_header + b"\x00\x14" + RV_header + pack("<h", 180), None, 0, -1),
+        #
+        # Relative vertical position - ESC ( v (extended)
+        # 1 inch down (360/360) for default unit: 1/360
+        (RV_ex_header + pack("<I", 360), None, 0, -1),
+        # 1 inch down + 1/360 inch up: negative movement amplitude: ignored
+        # In compatibility mode AUTO, extended command switches the mode to STRICT_MODERN
+        (RV_ex_header + pack("<I", 360) + RV_ex_header + pack("<i", -1), None, 0, -1),
+        # TODO add support for negative offset in STRICT_MODERN (refuse) / LEGACY (accept)
         #
         # Advance the vertical print position n/180 inch - ESC J
         # down (255/180)
@@ -423,22 +540,37 @@ def test_set_page_length_inches(format_databytes, expected):
         "AH_1inch+defined_unit",
         "AH_60inch_ignored+defined_unit",
         "AH_not_ignored_9pins+defined_unit",
+        # Absolute horizontal position - ESC ( $ (extended)
+        "AH_ex_1inch",
+        "AH_ex_7.75inch",
         # Relative horizontal position - ESC \
         "RH_-1inch",
         "RH_-1inch_9pins",
         "RH_-1inch+defined_unit",
-        "RH_-60inch_ignored+defined_unit",
+        "RH_-in_left_margin_ignored",
+        "RH_outside_printeable_area",
+        "RH_in_right_margin",
+        # Relative horizontal position - ESC ( / (extended)
+        "RH_ex-1inch_default",
+        "RH_ex-1inch+defined_unit",
         # Absolute vertical position - ESC ( V
         "AV_1inch",
         "AV_1inch+defined_unit",
         "AV_12inch",
         "AV_amplitude_too_large",
+        # Absolute vertical position - ESC ( V (extended)
+        "AV_ex_amplitude_too_large",
+        "AV_ex_10inch",
+        "AV_ex_12inch",
         # Relative vertical position - ESC ( v
         "RV_1inch",
         "RV_-179/360_outside_top_margin",
         "RV_12inch_outside_bottom_margin",
         "RV_-1inch_amplitude_too_large",
         "RV_1inch+defined_unit",
+        # Relative vertical position - ESC ( v (extended)
+        "RV_ex_1inch",
+        "RV_ex_neg_amplitude_ignored",
         # Advance the vertical print position n/180 inch - ESC J
         "AdV_maxoffset",
         "AdV_maxoffset_9pins",
@@ -527,5 +659,41 @@ def test_control_paper_loading_ejecting(tmp_path: Path):
     processed_file = tmp_path / "test_2pages.pdf"
     escapy = ESCParser(code, output_file=processed_file)
 
-    # Yeah... 3... but there are 2 pages... (the save method increments the count)
-    assert escapy.current_pdf.getPageNumber() == 3
+    assert escapy.current_pdf.getPageNumber() == 2
+
+
+@pytest.mark.parametrize(
+    "format_databytes, expected",
+    [
+        # Paper length mismatch
+        (b"\x1b(S\x08\x00" b"\x00\x00\x00\x00\x00\x00\x00\x00", 0.25),
+        (
+            # Paper length ok, but below printablea area: ignored
+            # Set unit PVH: 1/1440, 1/720, 1/360
+            b"\x1b(U\x05\x00" + b"\x01\x02\x04" + int(1440).to_bytes(2, byteorder="little")
+            # 11906x16838 = 21.0x29.7cm = A4 page format
+            + b"\x1b(S\x08\x00" + pack("<I", 11906) + pack("<I", 16838),
+            0.25
+        ),
+        (
+            # Set page length: 10", bottom margin: 10.25
+            b"\x1b(C\x02\x00" + pack("<H", 3600)
+            # Set unit PVH: 1/1440, 1/720, 1/360
+            + b"\x1b(U\x05\x00" + b"\x01\x02\x04" + int(1440).to_bytes(2, byteorder="little")
+            # 11906x16838 = 21.0x29.7cm = A4 page format
+            + b"\x1b(S\x08\x00" + pack("<I", 11906) + pack("<I", 16838),
+            A4_length - 10.25 - 3 / 25.4
+        ),
+    ],
+    # First param goes in the 'request' param of the fixture format_databytes
+    indirect=["format_databytes"],
+    ids=[
+        "paper_length_mismatch",
+        "too_low",
+        "accepted_value",
+    ],
+)
+def test_set_paper_dimensions(format_databytes, expected):
+    """Bottom margin should be expanded by 3mm"""
+    escapy = ESCParser(format_databytes, pdf=False)
+    assert escapy.bottom_margin == expected

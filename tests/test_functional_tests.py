@@ -18,7 +18,6 @@
 # Standard imports
 import sys
 from pathlib import Path
-from functools import partial
 from unittest.mock import patch
 
 # Custom imports
@@ -27,12 +26,9 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.pagesizes import landscape
 
 # Local imports
-from escapy.parser import ESCParser as _ESCParser
 from escapy.__main__ import escapy_entry_point, choose_config_file
-from .misc import DIR_DATA, pdf_comparison, typefaces
-
-# Inject test typefaces
-ESCParser = partial(_ESCParser, available_fonts=typefaces)
+from .misc import DIR_DATA, pdf_comparison
+from .misc import ESCParser
 
 
 @pytest.mark.parametrize(
@@ -81,12 +77,25 @@ def test_full_file_conversion(
 
 
 @pytest.fixture()
-def minimal_config() -> str:
+def minimal_config(tmp_path) -> str:
     """Generate a minimal configuration
 
-    - misc section is mandatory
-    - fonfigure the default font
+    - `misc` section is mandatory
+    - Configure the default font
+    - Generate a minimal `generic.conf` printer profile in the current working
+      directory (this is not the subject of these tests, but it is required).
     """
+    printer_profile = """
+        [colors]
+        0: black
+        [color:black]
+        display = Black
+        offset = 0
+        rgb = #000000
+        cmyk = 0,0,0,100
+        """
+    (tmp_path / "generic.conf").write_text(printer_profile)
+
     return """[misc]
         loglevel = debug
         [Roman]
@@ -220,7 +229,7 @@ def test_choose_config_file(tmp_path: Path, minimal_config: str):
             # Delete the user AND the embedded files
             user_config_file.unlink()
             embedded_config_file.unlink()
-            # Expect the user file copied from the embedded file (EMBEDDED_CONFIG_FILE)
+            # Should raise a FileNotFoundError
             _ = choose_config_file(None)
 
         # Test not existing input file from cli

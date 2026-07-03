@@ -17,12 +17,14 @@
 """Main ESC parser routines used to build PDF files"""
 # Standard imports
 import importlib
+from struct import unpack
 from pathlib import Path
-from enum import Enum
+from enum import Enum, auto
 import itertools as it
 import codecs
 from functools import lru_cache, partial
 from hashlib import md5
+from math import isclose
 from logging import DEBUG
 
 # Custom imports
@@ -30,7 +32,6 @@ import numpy as np
 from PIL import Image
 from lark import Token
 from reportlab.lib import colors
-from reportlab.lib.colors import PCMYKColorSep
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase import pdfmetrics
@@ -53,7 +54,32 @@ from escapy.commons import (
 )
 from escapy.encodings.i18n_codecs import getregentry
 from escapy.fonts import open_font
+from escapy.printer_profile import PrinterProfile
 from escapy.commons import logger
+
+
+class EscpCompatibility(Enum):
+    """ESC/P2 compatibility policy
+
+    - STRICT_MODERN: Strict compatibility with modern printers and extended
+      versions of the commands in the ESC/P2 standard.
+    - LEGACY: Always apply the legacy behavior described in the ESC/P2 standard.
+    - AUTO: Can switch to STRICT_MODERN if conditions are detected, otherwise
+      LEGACY behavior is applied.
+    """
+
+    STRICT_MODERN = 0
+    LEGACY = 1
+    AUTO = 2
+
+
+class ModernEvidence(Enum):
+    """Evidence codes used to log the switch between ESC compatibility modes"""
+
+    EXTENDED_COMMAND = auto()
+    EXTENDED_PARAMETER = auto()
+    MODERN_RASTER_COMMAND = auto()
+    REMOTE_COMMAND = auto()
 
 
 class PrintMode(Enum):
@@ -117,7 +143,8 @@ class ESCParser:
 
     def __init__(
         self,
-        code,
+        code: bytes,
+        printer_profile: PrinterProfile,
         available_fonts=None,
         pins=None,
         printable_area_margins_mm=None,
@@ -136,11 +163,13 @@ class ESCParser:
 
         :param code: Binary code to be parsed.
             Expected format: ESC/P, ESC/P2, ESC/P 9 Pins.
+        :param printer_profile: Printer profile containing color descriptions
+            and nozzle offsets.
         :key available_fonts: A structure that stores preconfigured methods to
             find fonts on the system, according to dynamic styles in use.
             See :meth:`escapy.fonts.setup_fonts`.
         :key pins: Number of pins of the printer head (9, 24, 48, None).
-            Use None for default modern ESCP2 printers with nozzles. (default: None).
+            Use None for default modern ESC/P2 printers with nozzles. (default: None).
         :key printable_area_margins_mm: Define printable margins in mm.
             No printing is mechanically possible outside this area.
             The printing area is defined inside; it can be reduced via optional
@@ -171,6 +200,9 @@ class ESCParser:
         :type pdf: bool
         :type output_file: io.TextIOWrapper | str | Path
         """
+        self.compatibility_mode = (
+            EscpCompatibility.AUTO if not pins == 9 else EscpCompatibility.LEGACY
+        )
         # Misc #################################################################
         # Prepare for methods search in run_esc_instruction()
         self.dir = frozenset(dir(self))
@@ -181,7 +213,7 @@ class ESCParser:
         # Used to avoid set_font computations triggered by a chain of
         # attribute modifications; See ESC !
         self.set_font_lock = False
-        # Note: There are non-ESCP2 printers that have 24, 48 pins !
+        # Note: There are non-ESC/P2 printers that have 24, 48 pins !
         self.pins = pins
         # Render dots as circles or rectangles
         self.dots_as_circles = dots_as_circles
@@ -214,33 +246,11 @@ class ESCParser:
         self.double_height = False
         self._color = 0  # Black
 
-        self.color_names = [
-            "Black",
-            "Magenta",
-            "Cyan",
-            "Violet",
-            "Yellow",
-            "Red",
-            "Green",
-        ]
-        self.RGB_colors = [
-            "#000000",  # Black
-            "#ff00ff",  # Magenta
-            "#00ffff",  # Cyan
-            "#8F00FF",  # Violet
-            "#ffff00",  # Yellow
-            "#ff0000",  # Red
-            "#00ff00",  # Green
-        ]
-        self.CMYK_colors = [
-            PCMYKColorSep(0, 0, 0, 100),  # Black
-            PCMYKColorSep(0, 100, 0, 0),  # Magenta
-            PCMYKColorSep(100, 0, 0, 0),  # Cyan
-            PCMYKColorSep(44, 100, 0, 0, spotName="VIOLET"),
-            PCMYKColorSep(0, 0, 100, 0),  # Yellow
-            PCMYKColorSep(0, 100, 100, 0, spotName="RED"),
-            PCMYKColorSep(100, 0, 100, 0, spotName="GREEN"),
-        ]
+        self.color_names = printer_profile.color_names
+        self.RGB_colors = printer_profile.RGB_colors
+        self.CMYK_colors = printer_profile.CMYK_colors
+        self.nozzle_offsets = printer_profile.nozzle_offsets
+        self.nozzle_offsets_monochrome = printer_profile.nozzle_offsets_monochrome
 
         # Font rendering #######################################################
         # Scalable fonts status
@@ -257,8 +267,12 @@ class ESCParser:
         self.horizontal_tabulations = None
         self.reset_horizontal_tabulations()
         self.vertical_tabulations = None
-        # Must be None because functions where it is used have their own default values
-        self.defined_unit = None
+        # Units
+        self.vertical_unit =  1 / 360
+        # No default value:
+        # Some commands like ESC $, ESC \ require contextual default values
+        self.horizontal_unit = None
+        self.page_management_unit = 1 / 360
         self.current_line_spacing = 1 / 6
 
         if pdf:
@@ -327,15 +341,15 @@ class ESCParser:
 
         # Page length setting
         #   effective only when you are using continuous paper.
-        #   Todo 9 pins + cut-sheets feeder = Single-sheets ESCP2
+        #   Todo 9 pins + cut-sheets feeder = Single-sheets ESC/P2
         if self.single_sheet_paper:
-            # Single-sheets ESCP2
+            # Single-sheets ESC/P2
             self.page_length = self.top_margin - self.bottom_margin
             # 9 pins & single sheets: physical = logical
             if self.pins == 9:
                 self.page_length = self.page_height
         else:
-            # Continuous paper ESCP2/ESCP
+            # Continuous paper ESC/P2 & ESC/P
             self.page_length = self.page_height
 
         LOGGER.debug("constructed page length: %s", self.page_length)
@@ -364,7 +378,7 @@ class ESCParser:
         # Allow set operations on control codes
         # This attr store the current character points that MUST NOT be printed
         # About default config:
-        #   ESCP2, ESCP: Codes are treated as printable characters
+        #   ESC/P2, ESC/P: Codes are treated as printable characters
         #   9pins: Codes are treated as control codes; All codes are filtered.
         #       => init with the largest set of codes
         if self.pins == 9:
@@ -375,6 +389,8 @@ class ESCParser:
         # Graphics #############################################################
         self.graphics_mode = False
         self.microweave_mode = False
+        self.monochrome_mode = False
+        self.dot_size = 0x00  # Specific to each printer
         # Delta Row compression
         self.delta_row_graphics_mode = False
         self.seed_rows = None
@@ -411,8 +427,8 @@ class ESCParser:
         # (ESC K,L,Y,Z)
         self.klyz_densities = [0, 1, 2, 3]
 
-        self.bytes_per_line = 0
-        self.bytes_per_column = 0
+        self._bytes_per_line = 0  # For raster graphics tests only
+        self.bytes_per_column = 0  # For bit image only
         self.movx_unit = 1 / 360
 
         # Absolute position from the page left edge
@@ -428,6 +444,26 @@ class ESCParser:
         # Parse it !
         self.run_escp(code)
 
+    def set_modern_compatibility(self, evidence : ModernEvidence | None):
+        """Switch compatibility mode from AUTO to STRICT_MODERN
+
+        Called if modern/extended commands are detected.
+        """
+        if self.compatibility_mode != EscpCompatibility.AUTO:
+            return
+
+        self.compatibility_mode = EscpCompatibility.STRICT_MODERN
+        LOGGER.debug("Switching to STRICT_MODERN compatibility (%s)", evidence)
+
+    @property
+    def maximum_page_length(self) -> int:
+        """Get the effective maximum page length
+
+        In modern compatibility mode the page length is limited to 44 inches;
+        whereas in legacy modes the value is limited to 22 inches.
+        """
+        return 44 if self.compatibility_mode == EscpCompatibility.STRICT_MODERN else 22
+
     @property
     def underline(self) -> bool:
         """Get the underline status
@@ -437,7 +473,7 @@ class ESCParser:
             :meth:`master_select`
             :meth:`select_line_score`
         """
-        return self._underline
+        return self._underline  # pragma: no cover
 
     @underline.setter
     def underline(self, value: bool):
@@ -466,17 +502,48 @@ class ESCParser:
     def color(self, color: int):
         """Set the current color id
 
+        Example of available colors:
+
+            0   Black
+            1   Magenta
+            2   Cyan
+            3   Violet
+            4   Yellow
+            5   Red, Black2
+            6   Green, Black3
+            7   Red
+            8   Blue
+            9   Gloss optimizer
+            17/11H  Light magenta
+            18/12H  Light cyan
+            64/40H  Photo black
+
         .. note:: Also available during graphics mode selected with the ESC ( G command.
-            In this mode for ESCP2, only Black, Cyan, Magenta, Yellow are available.
-            Non-ESCP2 printers can use any color.
+            In this mode for ESC/P2, only Black, Cyan, Magenta, Yellow are available.
+            Non-ESC/P2 printers can use any color.
         """
-        if color >= len(self.CMYK_colors):  # pragma: no cover
+        if color == self._color:
+            # During a next page change / form feed, color is reset.
+            # If the color is already set to default, it's useless to add PDF
+            # directives. Those directives will force a blank page to be generated
+            # even if there is no data in the page.
+            return
+        if self.monochrome_mode:
+            return
+        if color not in self.CMYK_colors:
             # Color doesn't exist: ignore the command
             LOGGER.error("Color id %s is unknown! Ignore.", color)
             return
-        if self.graphics_mode and self.pins != 9 and color not in (0, 1, 2, 4):
-            LOGGER.warning("Color id %s not allowed in ESC ( G raster graphics mode")
-            return
+        if self.graphics_mode and self.compatibility_mode == EscpCompatibility.AUTO:
+            # Apparently, there are no restrictions in 9-pin mode;
+            # Modern printers have unpredictable set of colors, including
+            # black or light colors usable in graphics mode;
+            # It appears that only intermediate ESC/P2 printers are restricted
+            # to CMYK only.
+            if color not in (0, 1, 2, 4):
+                LOGGER.warning(
+                    "Color id %s not allowed in ESC ( G raster graphics mode", color)
+                return
 
         self._color = color
         LOGGER.debug("Update color: %d (%s)", color, self.color_names[color])
@@ -516,6 +583,10 @@ class ESCParser:
 
     @point_size.setter
     def point_size(self, point_size: float):
+        """Set the current font point size
+
+        .. seealso:: :meth:`point_size`.
+        """
         self._point_size = point_size
         if self.current_pdf:
             # Redefine the current font (can't just update the point size)
@@ -594,108 +665,197 @@ class ESCParser:
         """Move the X cursor to the left edge of the printing area (left-margin)"""
         self._carriage_return()
 
-    def set_page_format(self, *args):
-        """Set top and bottom margins - ESC ( c
+    def set_paper_dimensions(self, _, token):
+        """Set paper dimensions (extended) - ESC ( S
+
+        Used to expand the bottom-margin (3mm) on XP-410. Expected behavior may
+        be different on other models.
+
+        - Todo: available in graphics mode only via ESC ( G
+        - Work effectively only when the defined paper length is the same
+           as the physical paper length measured by the printer.
+        - Todo: If some portion of an image extends beyond the bottom edge of
+           the page, then that extended portion of the image is deleted.
+           => Do not print on the next page!
+        - Paper width is ignored.
+        - WONTFIX: If the defined paper length is shorter than the actual
+            paper length, the portion of an image beyond the defined
+            paper length will be deleted.
+            => Cannot happend since the command is ignored !!?
+        """
+        self.set_modern_compatibility(ModernEvidence.EXTENDED_COMMAND)
+        paper_width, paper_length = unpack("<II", token.value)
+
+        # The page unit is validated
+        paper_width *= self.page_management_unit
+        paper_length *= self.page_management_unit
+
+        LOGGER.debug("Set paper dimensions l x w: %s x %s", paper_length, paper_width)
+        LOGGER.debug("Cur paper dimensions l x w: %s x %s", self.page_height, self.page_width)
+
+        if not isclose(self.page_height, paper_length, rel_tol=1e-04):
+            LOGGER.warning(
+                "paper length mismatch: received: %s; current: %s: ignored",
+                paper_length,
+                self.page_height
+            )
+            return
+        # NOTE: Could use page height instead of printable area...
+        self.bottom_margin = max(self.bottom_margin - (3 / 25.4), self.printable_area[1])
+        LOGGER.debug("Expand bottom margin by 3mm: %s", self.bottom_margin)
+
+    def set_page_format(self, _, token):
+        """Set top and bottom margins (legacy/extended) - ESC ( c
 
         Doc: p18, p242-p244
+        Doc extended (xp410): p41-42
 
         .. note:: ESC/P 2 only
         .. note:: This command uses values configured "from the top edge of the page".
             Here we use a bottom-up configuration, thus the values must be
             changed in accordingly (origin is at the bottom).
 
+        .. warning:: The maximum position of the bottom margin doesn't seem
+            to be limited by the maximum page length in the extended version!?
+
+            Todo: Extended version is only available in graphics mode.
+
+        .. warning:: WONTFIX :
+            Set the page length before paper is loaded or when the print position
+            is at the top-of-form position. Otherwise, the current print position
+            becomes the top-margin position. Note: top-margin is used here, not
+            top-of-form like in the other functions.
+
+            The ESC/P2 standard update (extended) says that the Y coordinate
+            is shifted to the top-margin. This method is implemented here.
+
         default margins:
             continuous paper: no margins (see `printable_area_margins_mm`
                 in constructor)
             single-sheet: top-of-form, last printable line
         """
-        tL, tH, bL, bH = args[1].value
-        unit = self.defined_unit if self.defined_unit else 1 / 360
-        top_margin = ((tH << 8) + tL) * unit
-        bottom_margin = ((bH << 8) + bL) * unit
+        extended_version = len(token.value) == 8
+        if extended_version:
+            self.set_modern_compatibility(ModernEvidence.EXTENDED_PARAMETER)
+
+        # We expect limited unsigned values
+        fmt = "<II" if extended_version else "<HH"
+        top_margin, bottom_margin = unpack(fmt, token.value)
+
+        max_value = 0x1fffffff if extended_version else 0x1fff
+        if top_margin > max_value or bottom_margin > max_value:
+            LOGGER.error("margin out of range: %s, %s", top_margin, bottom_margin)
+            return
+
+        top_margin *= self.page_management_unit
+        bottom_margin *= self.page_management_unit
+
+        if bottom_margin > self.page_height:
+            # Fix bottom margin using the page length
+            LOGGER.critical(
+                "bottom %s, page geight: %s: fix it",
+                bottom_margin, self.page_height
+            )
+            bottom_margin = top_margin - self.page_length
 
         # Adapt absolute values to bottom-up system, relative to the page size
-        # Ex: on a 11 in height paper, 1 in top margin becomes 10 in top margin.
-        self.bottom_margin = self.page_height - bottom_margin
-        self.top_margin = self.page_height - top_margin
+        # Ex: 11" height paper, 1" top margin becomes 10" in top margin.
+        bottom_margin = self.page_height - bottom_margin
+        top_margin = self.page_height - top_margin
 
-        printable_top, printable_bottom, *_ = self.printable_area
+        LOGGER.debug("proposed set margins (top, bottom): %s, %s", top_margin, bottom_margin)
+
         # Bottom-up
-        if not self.top_margin > self.bottom_margin:
-            LOGGER.warning("top margin not > to bottom margin => fix it")
-            # Use printable area limits
-            self.bottom_margin = printable_bottom
-            self.top_margin = printable_top
+        if not top_margin > bottom_margin:
+            LOGGER.warning("top margin < bottom margin: ignored")
+            return
 
         # Check limits
-        if self.bottom_margin < printable_bottom or self.top_margin > printable_top:
-            LOGGER.warning("set margins, raw values: %s, %s", top_margin, bottom_margin)
+        printable_top, printable_bottom, *_ = self.printable_area
+        if bottom_margin < printable_bottom or top_margin > printable_top:
             LOGGER.warning(
-                "set margins (top, bottom) outside printable area: %s, %s, but printable area: %s, %s",
-                self.top_margin, self.bottom_margin, printable_top, printable_bottom
+                "set margins (top, bottom) outside printable area: %s, %s, "
+                "but printable area: %s, %s: ignored",
+                top_margin, bottom_margin,
+                printable_top, printable_bottom
             )
-            # Use printable area limits
-            self.bottom_margin = printable_bottom
-            self.top_margin = printable_top
+            return
 
-        LOGGER.debug("set margins (top, bottom): %s ,%s", self.top_margin, self.bottom_margin)
+        self.top_margin = top_margin
+        self.bottom_margin = bottom_margin
 
         calculated_page_length = self.top_margin - self.bottom_margin
-        LOGGER.debug("calculated page-length: %s", calculated_page_length)
-        if calculated_page_length > 22:
-            # Bottom margin must be less than 22 inches
-            LOGGER.error("bottom margin too low (page_length > 22 in), fix it")
-            self.bottom_margin = self.page_height - 22
-            calculated_page_length = 22
+        max_page_length = self.maximum_page_length
 
-        elif calculated_page_length > self.page_length:  # pragma: no cover
-            # This section should not be reached...
-            # Previous checks should cancel this case.
-            LOGGER.error("set page_length > current page_length (%s)", self.page_length)
-            # Todo: Fix the bottom_margin in this case. The doc is unclear
-            #   with the top edge page notion for which paper.
-            #   For now calculated_page_length is for ALL papers and taken from
-            #   the top_margin, but it could be better to check for continuous
-            #   paper only, and use top edge (page height) instead...
-            # The distance from the top edge of the page to the bottom-margin
-            # position must be less than the page length; otherwise, the end of
-            # the page length becomes the bottom-margin position.
-            self.bottom_margin = self.page_height - self.page_length
+        LOGGER.debug(
+            "calculated page-length: %s (max: %s)",
+            calculated_page_length, max_page_length
+        )
 
-        self.reset_cursor_y()
+        if calculated_page_length > max_page_length:
+            # Todo: ignore the command instead ?
+            # Bottom margin must be less than the max page length
+            LOGGER.error(
+                "bottom margin too low (page_length > %s in): fix it",
+                max_page_length
+            )
+            self.bottom_margin = self.top_margin - max_page_length
+            calculated_page_length = max_page_length
+
+        # Always synchronize the calculated page length
+        # (if greater or lesser than the previous one)
+        # if calculated_page_length > self.page_length:
+        #     LOGGER.error("set page_length > current page_length (%s)", self.page_length)
+        #     # Todo: Fix the bottom_margin in this case. The doc is unclear
+        #     #   with the top edge page notion for which paper.
+        #     #   For now calculated_page_length is for ALL papers and taken from
+        #     #   the top_margin, but it could be better to check for continuous
+        #     #   paper only, and use top edge (page height) instead...
         self.page_length = calculated_page_length
 
-    def set_page_length_defined_unit(self, *args):
-        """Set page length in defined unit - ESC ( C
+        # Real Epson printers behave differently if ESC ( c is issued
+        # away from top-of-form. This emulator intentionally applies
+        # the logical page-format state directly.
+        # New doc: The printing position in the Y direction is shifted to the
+        # origin of the position management coordinate system (top margin).
+        # It is the current implementation.
+        # Old doc: The current print position becomes the top-margin position.
+        self.reset_cursor_y()
 
-        .. seealso:: see defined_unit via ESC ( U
-        .. note:: The maximum page length is 22 inches.
+    def set_page_length_defined_unit(self, _, token):
+        """Set page length in defined unit (legacy/extended) - ESC ( C
+
+        .. seealso:: See defined units via ESC ( U
+        .. note:: The maximum page length is 22 inches on old printers,
+            44 inches on modern ones.
         .. note:: ESC/P 2 only
 
-        cancels the top and bottom-margin settings.
+        - Cancels the top and bottom-margin settings.
+        - Ignored if the page length produced is outside the maximum value.
 
         .. warning:: WONTFIX :
             Set the page length before paper is loaded or when the print position
             is at the top-of-form position. Otherwise, the current print position
             becomes the top-of-form position.
         """
-        mL, mH = args[1].value
-        value = (mH << 8) + mL
-        unit = self.defined_unit if self.defined_unit else 1 / 360
-        page_length = value * unit
+        if len(token.value) == 4:
+            self.set_modern_compatibility(ModernEvidence.EXTENDED_PARAMETER)
+
+        value = int.from_bytes(token.value, byteorder="little")
+        page_length = value * self.page_management_unit
         LOGGER.debug("page length: %s", page_length)
 
-        if not 0 < page_length <= 22:
+        if not 0 < page_length <= self.maximum_page_length:
             LOGGER.error(
-                "(%s × (current unit: %s)) must be less than or equal to 22 inches (%s)",
+                "(%s × (current unit: %s)) must be less than or equal to %s inches (%s)",
                 value,
-                self.defined_unit,
+                self.page_management_unit,
+                self.maximum_page_length,
                 page_length,
             )
-            page_length = 22
+            return
 
-        self.page_length = page_length
-        self.cancel_top_bottom_margins()
+        self._apply_page_length(page_length)
 
     def set_page_length_lines(self, *args):
         """Sets the page length to n lines in the current line spacing - ESC C
@@ -711,17 +871,17 @@ class ESCParser:
         page_length = page_length_lines * self.current_line_spacing
         LOGGER.debug("page length: %s", page_length)
 
-        if not 0 < page_length <= 22:
+        if not 0 < page_length <= self.maximum_page_length:
             LOGGER.error(
-                "(%s × (current line spacing: %s)) must be less than or equal to 22 inches (%s)",
+                "(%s × (current line spacing: %s)) must be less than or equal to %s inches (%s)",
                 page_length_lines,
                 self.current_line_spacing,
+                self.maximum_page_length,
                 page_length,
             )
-            page_length = 22
+            return
 
-        self.page_length = page_length
-        self.cancel_top_bottom_margins()
+        self._apply_page_length(page_length)
 
     def set_page_length_inches(self, *args):
         """Sets the page length to n inches - ESC C NUL
@@ -736,18 +896,21 @@ class ESCParser:
         page_length = args[1].value[0]
         LOGGER.debug("page length: %s", page_length)
 
-        if not 0 < page_length <= 22:  # pragma: no cover
+        # Not possible: limited in grammar
+        if not 0 < page_length <= self.maximum_page_length:  # pragma: no cover
             LOGGER.error(
-                "page_length must be less than 22 inches (%s)",
+                "page_length must be less than %s inches (%s)",
+                self.maximum_page_length,
                 page_length,
             )
-            page_length = 22
+            return
 
-        self.page_length = page_length
-        self.cancel_top_bottom_margins()
+        self._apply_page_length(page_length)
 
     def set_bottom_margin(self, *args):
-        """Set the bottom margin on continuous paper to n lines (in the current line spacing) - ESC N
+        """Set the bottom margin on continuous paper to n lines - ESC N
+
+        The vertical displacement unit is the current line spacing.
 
         Sets a bottom margin in inch (n lines * line spacing) above the next page’s
         top-of-form position.
@@ -774,6 +937,7 @@ class ESCParser:
         if self.single_sheet_paper:
             return
 
+        # Cancel top & bottom margins
         self.cancel_top_bottom_margins()
 
         # from the top-of-form position (1st printable line ) of the NEXT page
@@ -798,13 +962,32 @@ class ESCParser:
             self.bottom_margin = 0
 
     def cancel_top_bottom_margins(self, *_):
-        """Cancel the top and bottom margin settings
+        """Cancel the top and bottom margin settings - ESC O"""
+        self.top_margin, self.bottom_margin = self.printable_area[:2]
 
-        Set margins to default settings (printable area)
+    def _apply_page_length(self, page_length) -> bool:
+        """Apply page length, reset top margin & sync bottom margin
+
+        - Top margin is reset to default (from the printable area)
+        - Bottom margin is implicitely recalculated from the top margin,
+           with the current page length.
+        - If the calculated bottom margin is outsite the printable area,
+          no values are changed.
 
         Todo: do not change the cursors ?
+
+        :param page_length: Proposed page length.
+        :return: Return True if the value has been accepted and set.
         """
-        self.top_margin, self.bottom_margin, *_ = self.printable_area
+        self.top_margin = self.printable_area[0]
+        bottom_margin = self.top_margin - page_length
+        if bottom_margin < self.printable_area[1]:
+            LOGGER.error("page length pushed the bottom margin out of bounds: ignored")
+            return False
+
+        self.bottom_margin = bottom_margin
+        self.page_length = page_length
+        return True
 
     def set_right_margin(self, *args):
         """Set the right margin to n columns in the current character pitch,
@@ -889,162 +1072,232 @@ class ESCParser:
         # => this will not ignore data but just put the cursor at the correct pos
         self.reset_cursor_x()
 
-    def set_absolute_horizontal_print_position(self, _, nL, nH):
-        """Move the horizontal print position to the position specified - ESC $
+    def set_absolute_horizontal_print_position(self, _, token):
+        """Move the horizontal print position to the position specified - ESC $, ESC ( $ (extended)
 
-        default defined unit setting for this command is 1/60 inch
-        Todo: fixed On non-ESC/P 2 printers to 1/60 (currently only on 9 pins)
-        ignore this command if the specified position is to the right of the
-        right margin.
+        Use the defined unit set by ESC ( U command.
+
+        - default defined unit setting for this command is 1/60 inch
+        - fixed on non-ESC/P2 printers to 1/60 (not just on 9 pins)
+        - ignore this command if the specified position is to the right of the
+          right margin.
+
+        - Todo: extended version: The maximum Absolute Horizontal Position (AHP)
+          is 323.074mm or 45790/3600 (12.719 inches) regardless the resolution.
         """
-        nL, nH = nL.value[0], nH.value[0]
-        value = (nH << 8) + nL
+        if len(token.value) == 4:
+            self.set_modern_compatibility(ModernEvidence.EXTENDED_PARAMETER)
 
-        # Should be 1/60 on non ESCP2 (not just 9 pins)
-        unit = 1 / 60 if not self.defined_unit or self.pins == 9 else self.defined_unit
+        # Absolute positioning is always decoded as an unsigned offset
+        # from the left margin.
+        value = int.from_bytes(token.value, byteorder="little")
+
+        if self.compatibility_mode == EscpCompatibility.LEGACY or self.pins == 9:
+            unit = 1 / 60
+        else:
+            unit = 1 / 60 if not self.horizontal_unit else self.horizontal_unit
+
         cursor_x = value * unit + self.left_margin
-
         LOGGER.debug("set absolute cursor_x: %s", cursor_x)
 
         if cursor_x > self.right_margin:
-            LOGGER.error("set absolute cursor_x outside right margin! => ignored")
+            LOGGER.error(
+                "set absolute cursor_x outside right margin (%.4f)! => ignored",
+                self.right_margin
+            )
             return
         self.cursor_x = cursor_x
 
-    def set_relative_horizontal_print_position(self, _, nL, nH):
-        r"""Move the horizontal print position left or right from the current position - ESC \
+    def set_relative_horizontal_print_position(self, _, token):
+        r"""Move the horizontal print position left or right from the current position - ESC \, ESC ( / (extended)
 
         Use the defined unit set by ESC ( U command.
-        Default defined unit for this command is 1/120 inch in draft mode,
-        and 1/180 inch in LQ mode.
-        Fixed to 1/120 on 9 pins.
 
-        ignore this command if it would move the print position outside the printing area.
+        Compatibility handling:
+
+            - The default unit is fixed to 1/120 on 9 pins printers.
+            - On ESC/P2 & ESC/P legacy printers the default unit is set to
+              1/120 inch in draft mode, and 1/180 inch in LQ mode (default).
+            - In modern compatibility mode the default unit is set to 1 / 60.
+
+        Ignore this command if it would move the print position outside the
+        printing area (inside the right margin is allowed).
+
+        Todo: The extended version is only available in graphics mode.
         """
-        nL, nH = nL.value[0], nH.value[0]
-        value = (nH << 8) + nL
+        if len(token.value) == 4:
+            self.set_modern_compatibility(ModernEvidence.EXTENDED_PARAMETER)
 
-        # Test bit sign
-        if nH & 0x80:
-            # left movement
-            value -= 2**16
+        # Handle both 2 bytes of legacy cmd and 4 bytes of extended cmd
+        value = int.from_bytes(token.value, byteorder="little", signed=True)
 
-        if self.pins == 9:
+        if self.compatibility_mode == EscpCompatibility.LEGACY or self.pins == 9:
             unit = 1 / 120
+        elif self.compatibility_mode == EscpCompatibility.STRICT_MODERN:
+            unit = 1 / 60 if not self.horizontal_unit else self.horizontal_unit
         else:
             unit = (
-                self.defined_unit
-                if self.defined_unit
+                self.horizontal_unit
+                if self.horizontal_unit
                 else (1 / 180 if self.mode == PrintMode.LQ else 1 / 120)
             )
+
         cursor_x = value * unit + self.cursor_x
         LOGGER.debug("set relative cursor_x: %s", cursor_x)
 
-        if not self.left_margin <= cursor_x < self.right_margin:
+        right = self.printable_area[3]
+        if not self.left_margin <= cursor_x < right:
             LOGGER.error("set relative cursor_x outside defined margins! => ignored")
             return
 
         self.cursor_x = cursor_x
 
-    def set_absolute_vertical_print_position(self, _, mL, mH):
-        """Moves the vertical print position to the position specified - ESC ( V
+    def _is_invalid_upward_movement(self, delta_y: float | int) -> bool:
+        """Return True if an upward movement must be rejected"""
+        if delta_y >= 0:
+            return False
 
-        .. note:: ESCP2 only
+        if self.compatibility_mode == EscpCompatibility.STRICT_MODERN:
+            LOGGER.error(
+                "set absolute cursor_y movement upwards (%s)! => ignored",
+                delta_y,
+            )
+            return True
 
-        default defined unit for this command is 1/360 inch.
-        The new position is measured in defined units from the current top-margin position.
+        invalid_delta_y = -delta_y > 179 / 360
+        if invalid_delta_y:
+            LOGGER.error(
+                "set absolute cursor_y movement upwards too big (%s)! => ignored",
+                delta_y,
+            )
+        return invalid_delta_y
+
+    def _apply_vertical_position(self, cursor_y: float | int) -> bool:
+        """Validate and apply the given vertical position regarding the bottom margin"""
+        if cursor_y < self.bottom_margin:
+            self.next_page()
+            return False
+
+        self.cursor_y = cursor_y
+        return True
+
+    def set_absolute_vertical_print_position(self, _, token):
+        """Moves the vertical print position to the position specified (legacy/extended) - ESC ( V
+
+        - Default defined unit for this command is 1/360 inch.
+        - The new position is measured in defined units from the current
+          top-margin position.
+
+        The command exists in two forms:
+
+            - Legacy form (2-byte parameter)
+            - Extended form (4-byte parameter)
+
+        Compatibility handling:
+
+            - In legacy compatibility modes, negative movements are accepted
+              according to early ESC/P2 specifications, limited to an upward
+              movement 179/360-inch.
+
+            - Todo In legacy compatibility modes: negative movements are *NOT*
+              accepted after a graphics command is sent on the current line,
+              or above the point where graphics have previously been printed.
+
+            - In modern compatibility mode, upward movements are rejected,
+              matching later ESC/P2 documentation.
+
+            - When compatibility mode is AUTO, reception of an extended
+              command automatically switches the emulator to STRICT_MODERN.
 
         Moving the print position below the bottom-margin:
 
             - continuous paper: move vertical to top margin of next page
             - single-sheet paper: eject
 
-        Ignore this command under the following conditions:
-
-            - move the print position more than 179/360 inch in the negative direction
-            - Todo: move the print position in the negative direction after a
-              graphics command is sent on the current line, or above the point
-              where graphics have previously been printed
-
         .. note::
             Here we use a bottom-up configuration, thus the values must be
             changed in accordingly (origin is at the bottom => signs are inverted!).
         """
-        mL, mH = mL.value[0], mH.value[0]
-        value = (mH << 8) + mL
+        if len(token.value) == 4:
+            self.set_modern_compatibility(ModernEvidence.EXTENDED_PARAMETER)
 
-        unit = self.defined_unit if self.defined_unit else 1 / 360
+        # Absolute positioning is always decoded as an unsigned offset
+        # from the top margin.
+        # Handle both 2 bytes of legacy cmd and 4 bytes of extended cmd
+        value = int.from_bytes(token.value, byteorder="little")
+
         # sign inverted due to bottom-up
-        cursor_y = -value * unit + self.top_margin
+        cursor_y = -value * self.vertical_unit + self.top_margin
+        delta_y = self.cursor_y - cursor_y
 
-        if cursor_y < self.bottom_margin:
-            self.next_page()
+        if self._is_invalid_upward_movement(delta_y):
             return
 
-        movement_amplitude = self.cursor_y - cursor_y
-        if movement_amplitude < 0 and -movement_amplitude > 179 / 360:
-            LOGGER.error(
-                "set absolute cursor_y movement upwards too big (%s)! => ignored",
-                movement_amplitude,
-            )
-            return
+        self._apply_vertical_position(cursor_y)
 
-        self.cursor_y = cursor_y
-
-    def set_relative_vertical_print_position(self, _, mL, mH):
+    def set_relative_vertical_print_position(self, _, token):
         """Moves the vertical print position up or down from the current position - ESC ( v
 
-        .. note:: ESCP2 only
+        - Default defined unit for this command is 1/360 inch.
+        - The new position is measured in defined units from the current
+          top-margin position.
 
-        default defined unit for this command is 1/360 inch.
+        The command exists in two forms:
 
-        Ignore this command under the following conditions:
+            - Legacy form (2-byte parameter)
+            - Extended form (4-byte parameter)
 
-            - move the print position more than 179/360 inch in the negative direction
-            - Todo: move the print position in the negative direction after a
-            graphics command is sent on the current line, or above the point where graphics
-            have previously been printed
-            - would move the print position above the top-margin position
+        Compatibility handling:
+
+            - In legacy compatibility modes, negative movements are accepted
+              according to early ESC/P2 specifications, limited to an upward
+              movement 179/360-inch.
+
+            - Todo In legacy compatibility modes: negative movements are *NOT*
+              accepted after a graphics command is sent on the current line,
+              or above the point where graphics have previously been printed.
+
+            - In modern compatibility mode, upward movements are rejected,
+              matching later ESC/P2 documentation.
+
+            - When compatibility mode is AUTO, reception of an extended
+              command automatically switches the emulator to STRICT_MODERN.
+
+        Moving the print position below the bottom-margin:
+
+            - continuous paper: move vertical to top margin of next page
+            - single-sheet paper: eject
+
+        Moving the print position above the top-margin is not allowed.
 
         .. note::
             Here we use a bottom-up configuration, thus the values must be
             changed in accordingly (origin is at the bottom => signs are inverted!).
             From the original doc: positive = down movement, negative = up movement.
         """
-        mL, mH = mL.value[0], mH.value[0]
-        value = (mH << 8) + mL
-        # Test bit sign
-        if mH & 0x80:
-            # up movement sent
-            value -= 2**16
+        if len(token.value) == 4:
+            self.set_modern_compatibility(ModernEvidence.EXTENDED_PARAMETER)
 
-        unit = self.defined_unit if self.defined_unit else 1 / 360
-        movement_amplitude = value * unit
+        # Handle both 2 bytes of legacy cmd and 4 bytes of extended cmd
+        value = int.from_bytes(token.value, byteorder="little", signed=True)
+        delta_y = value * self.vertical_unit
 
-        if movement_amplitude < 0 and -movement_amplitude > 179 / 360:
-            LOGGER.error(
-                "set relative cursor_y movement upwards too big (%s)! => ignored",
-                movement_amplitude,
-            )
+        if self._is_invalid_upward_movement(delta_y):
             return
 
         # sign inverted due to bottom-up
-        cursor_y = -movement_amplitude + self.cursor_y
+        cursor_y = -delta_y + self.cursor_y
 
         if cursor_y > self.top_margin:
             LOGGER.error("set relative cursor_y above top-margin! => ignored")
             return
 
-        if cursor_y < self.bottom_margin:
-            self.next_page()
-            return
-
-        self.cursor_y = cursor_y
+        self._apply_vertical_position(cursor_y)
 
     def advance_print_position_vertically(self, *args):
         """Advance the vertical print position n/180 inch - ESC J
 
-        On non-ESC/P 2 printers:
+        On non-ESC/P2 printers:
 
             - 9pins: n / 216
             - Todo: Prints all data in the line buffer
@@ -1060,23 +1313,62 @@ class ESCParser:
 
         The default unit varies depending on the command and print quality:
 
-            ESC ( V            1/360 inch
-            ESC ( v            1/360 inch
-            ESC ( C            1/360 inch
-            ESC ( c            1/360 inch
-            ESC \ (LQ mode)    1/180 inch
-            ESC \ (draft mode) 1/120 inch
-            ESC $              1/60 inch
+            ESC ( V            1/360 inch Set absolute vertical print position
+            ESC ( v            1/360 inch Set relative vertical print position
+            ESC \ (LQ mode)    1/180 inch Set relative horizontal print position
+            ESC \ (draft mode) 1/120 inch .
+            ESC ( /            1/360 inch Set relative horizontal print position
+            ESC $              1/60 inch  Set absolute horizontal print position
+            ESC ( $            1/360 inch .
+            ESC ( C            1/360 inch Set page length defined unit
+            ESC ( c            1/360 inch Set page format
+            ESC ( S            1/360 inch Set paper dimensions
             <MOVX> (dot)       1/360 inch
             <MOVY>             1/360 inch
 
         Values: 5, 10, 20, 30, 40, 50, 60
 
         .. note:: ESC/P 2 only
+        .. seealso:: :meth:`set_unit_ex`.
         """
         value = args[1].value[0]
+        unit = value / 3600
+        # Legacy command: set all units with the same value
+        self.page_management_unit = unit
+        self.vertical_unit = unit
+        self.horizontal_unit = unit
 
-        self.defined_unit = value / 3600
+    def set_unit_ex(self, _, token_pvh, token_base_unit):
+        """Set unit (extended) - ESC ( U
+
+        .. seealso:: :meth:`set_unit`.
+
+        Expected resolutions (dpi): 90, 120, 180, 360, 720, 1440, 2880, 5760
+
+        :param token_pvh: Dividers for page management units, vertical position units,
+            horizontal position units respectively.
+        :param token_base_unit: Dpi value divided by the dividers.
+        """
+        self.set_modern_compatibility(ModernEvidence.EXTENDED_COMMAND)
+        base_unit = int.from_bytes(token_base_unit.value, byteorder="little")
+
+        # Check that calculations give the expected dpi resolutions
+        expected_dpi = frozenset([90, 120, 180, 360, 720, 1440, 2880, 5760])
+        found_dpi = [base_unit / divider for divider in token_pvh.value]
+        if set(found_dpi) - expected_dpi:
+            LOGGER.error(
+                "Unexpected PVH dpi dividers received: <%s> for base unit: %s",
+                token_pvh.value, base_unit
+            )
+            return
+
+        units = [divider / base_unit for divider in token_pvh.value]
+        self.page_management_unit, self.vertical_unit, self.horizontal_unit = units
+
+        LOGGER.debug(
+            "Units (dpi); page management: %d; vertical : %d; horizontal : %d",
+            *found_dpi
+        )
 
     def set_18_line_spacing(self, *_):
         """Set the line spacing to 1/8 inch - ESC 0
@@ -1484,7 +1776,7 @@ class ESCParser:
         if not text:
             return
 
-        # Handle ESCP2 + ESC X strange behavior: 15cpi + 10.5 or 21pt
+        # Handle ESC/P2 + ESC X strange behavior: 15cpi + 10.5 or 21pt
         # artificially reduce the point size as ROM characters are loaded...
         real_point_size = self._point_size
         effective_point_size = self.point_size
@@ -1571,7 +1863,7 @@ class ESCParser:
     def carriage_return(self, *_):
         """Move the print position to the left-margin position
 
-        Todo: non-ESC/P 2 printers: The printer prints all data in the line buffer
+        Todo: non-ESC/P2 printers: The printer prints all data in the line buffer
         - When automatic line-feed is selected (through DIP-switch or panel setting),
           the CR command is accompanied by a LF command.
           See the `automatic_linefeed` setting.
@@ -1620,7 +1912,7 @@ class ESCParser:
             test if cursor_y below bottom_margin or beyond the end of the
             printable area the printer ejects the paper.
 
-        Todo: non-ESC/P 2 printers: The printer prints all data in the line buffer
+        Todo: non-ESC/P2 printers: The printer prints all data in the line buffer
 
         doc p34, p294
 
@@ -1646,7 +1938,7 @@ class ESCParser:
 
         p34, p294
 
-        ESCP2 + ESC/P:
+        ESC/P2 + ESC/P:
 
             => continuous and pos < bottom margin => top margin (!!!) next page
             => single-sheet: ejects
@@ -1666,7 +1958,7 @@ class ESCParser:
             => single-sheet + loaded manually and below bottom printable
                 => ejects + report remaining distance on next sheet (Todo)
         """
-        # ESCP & 9 pins (Todo: distingo)
+        # ESC/P & 9 pins (Todo: distingo)
         printable_bottom_margin = self.printable_area[1]
         if self.pins == 9 and self.single_sheet_paper:
             if self.cursor_y < printable_bottom_margin:
@@ -1679,7 +1971,7 @@ class ESCParser:
 
         if self.cursor_y < self.bottom_margin:
             self.next_page()
-            # ESCP/9 pins
+            # ESC/P & 9 pins
             # Todo: if continuous: Go to the top-of-form, not the top_margin
             # See form_feed() similar implementation
 
@@ -1689,7 +1981,7 @@ class ESCParser:
 
         On continuous paper:
 
-            ESCP2: top-margin position
+            ESC/P2: top-margin position
             9pins: top-of-form
 
         .. note:: Complete each page with a FF command. Also send a FF command
@@ -1778,14 +2070,14 @@ class ESCParser:
         doc p52
 
         Double-width handling:
-            - ESCP2:
+            - ESC/P2:
             Do NOT cancel double-width when VT functions the same as a CR command
             (normal behavior).
-            - non-ESC/P 2 printers:
+            - non-ESC/P2 printers:
             Cancel double-width when VT functions the same as a CR command.
             (normal behavior).
 
-        Non-ESCP2 printers:
+        Non-ESC/P2 printers:
             - Vertical tabs are measured from the top-of-form position.
               => WONTFIX: on these printers the top-margin is not modifiable
               so the top-of-form IS the top-margin.
@@ -2148,8 +2440,8 @@ class ESCParser:
             before you can use it for user-defined characters.
 
         .. warning::
-            d1 should be in [0, 1, 2, 3] for ESCP2,
-            d1 should be in [0, 1] for ESCP (24/48 pins), 9 pins.
+            d1 should be in [0, 1, 2, 3] for ESC/P2,
+            d1 should be in [0, 1] for ESC/P (24/48 pins), 9 pins.
         """
         d1, d2, d3 = args[1].value
         selected_table = CHARACTER_TABLE_MAPPING[d2, d3]
@@ -2182,7 +2474,7 @@ class ESCParser:
 
         Default tables & actions are listed below:
 
-            ESCP2/ESCP:
+            ESC/P2 & ESC/P:
 
                 0      Italic
                 1      PC437
@@ -2217,13 +2509,13 @@ class ESCParser:
                 or self.pins is None
                 and self.character_tables[2] is None
             ):
-                # - ESC/P 2 printers:
+                # - ESC/P2 printers:
                 #   cannot shift user-defined characters if you have previously
                 #   assigned another character table to table 2 using
                 #   the ESC ( t command. Once you have assigned a registered
                 #   table to Table 2, you cannot use it for user-defined characters
                 #   (until you reset the printer with the ESC @ command).
-                # - 24/48-pin printers, non-ESC/P 2 printers:
+                # - 24/48-pin printers, non-ESC/P2 printers:
                 #   shift user-defined characters unconditionally
                 LOGGER.debug(
                     "Shift user-defined characters "
@@ -2232,7 +2524,7 @@ class ESCParser:
                 self.user_defined.shift_upper_charset()
                 return
             case (2 | 50):
-                # PS: Not available on 9 pins printers; ESCP2 only
+                # PS: Not available on 9 pins printers; ESC/P2 only
                 character_table = 2
             case 3 | 51:
                 character_table = 3
@@ -2290,7 +2582,7 @@ class ESCParser:
             case 0 | 48:
                 self.mode = PrintMode.DRAFT
             case 1 | 49:
-                # LQ: ESCP2/ESCP
+                # LQ: ESC/P2 & ESC/P
                 # NLQ: 9 pins
                 # Todo: 9 pins: Double-strike printing is not possible when NLQ printing is selected
                 self.mode = PrintMode.LQ
@@ -2316,7 +2608,7 @@ class ESCParser:
             Roman, Sans Serif, Roman T, and Sans Serif H not available
             to ESC/P printers.
 
-        ESCP2:
+        ESC/P2:
             0: Roman*
             1: Sans serif*
             2: Courier
@@ -2401,7 +2693,7 @@ class ESCParser:
         − The size of your characters (normal or super/subscript)
         − The print quality of your characters (draft, LQ, or NLQ mode)
 
-        Doc p263, ESCP2: p91, 9pins: p93.
+        Doc p263, ESC/P2: p91, 9pins: p93.
 
         :param header: Header of the command, stores the first & the last
             character codes. Allows to calculate the number of characters set.
@@ -2430,7 +2722,7 @@ class ESCParser:
         # Draft 9 pins characters:
         # k = a1
         if self.pins == 9:
-            colum_bytes_size = 3 if self.mode == PrintMode.LQ else 1
+            column_bytes_size = 3 if self.mode == PrintMode.LQ else 1
         else:
             column_bytes_size = 2 if self.scripting else 3
 
@@ -2509,7 +2801,7 @@ class ESCParser:
             For now we do not expect that the typeface change can be postponed
             until the ESC & use.
 
-        ESCP2:
+        ESC/P2:
             Characters copied from locations 0 to 127
         9pins:
             Characters copied from locations 0 to 255;
@@ -2600,7 +2892,7 @@ class ESCParser:
 
         self.cancel_multipoint_mode()
 
-    def select_font_by_pitch_and_point(self, *args):
+    def select_font_by_pitch_and_point(self, _, token):
         """Put the printer in multipoint (scalable font) mode, and select the
         pitch and point attributes of the font - ESC X
 
@@ -2642,7 +2934,7 @@ class ESCParser:
         ESC k is ignored if typeface is not available in scalable/multipoint mode.
         See the decorator :meth:`multipoint_mode_ignore`.
         """
-        m, nL, nH = args[1].value
+        m, point_size = unpack("<BH", token.value)
 
         # Allow the use of scalable fonts
         self.multipoint_mode = True
@@ -2657,8 +2949,7 @@ class ESCParser:
             self.proportional_spacing = False
 
         # Point size
-        point_size = ((nH << 8) + nL) / 2
-
+        point_size /= 2
         if point_size:
             self.point_size = point_size
 
@@ -2678,14 +2969,14 @@ class ESCParser:
         self.multipoint_mode = False
         # Cancel HMI set_horizontal_motion_index() ESC c command
         self.character_width = None
-        # Return to 10.5-point (in theory for ESCP2/ESCP printers only)
+        # Return to 10.5-point (in theory for ESC/P2 & ESC/P printers only)
         # PS: In fact on 9pins printers, point size can only
         # be 10.5 or 21 (in double-height mode only) (so always 10.5).
         # The implementation should not touch double-height, but my
         # implementation of double-height multiplies the point size by 2;
         # in this case it must be preserved, so overall it doesn't differ
         # from 9pins implementation where nothing is changed...
-        # self.point_size = 10.5  # From the manual's implementation for ESCP2 only
+        # self.point_size = 10.5  # From the manual's implementation for ESC/P2 only
         self.point_size = 21 if self.double_height else 10.5
 
     @staticmethod
@@ -2698,12 +2989,12 @@ class ESCParser:
         def modified_func(self, *args, **kwargs):
             """Returned modified function"""
             if self.multipoint_mode:
-                return
+                return None
             return func(self, *args, **kwargs)
 
         return modified_func
 
-    def set_horizontal_motion_index(self, *args):
+    def set_horizontal_motion_index(self, _, token):
         """Set the character width (HMI) - ESC c
 
         HMI: determine the fixed distance to move the horizontal position when
@@ -2730,8 +3021,7 @@ class ESCParser:
           See :meth:`point_size`, :meth:`binary_blob`,
           meth:`select_font_by_pitch_and_point` implementations.
         """
-        nL, nH = args[1].value
-        value = (nH << 8) + nL
+        value = unpack("<H", token.value)[0]
         hmi = value / 360
 
         if not 0 < hmi <= 3:
@@ -2769,7 +3059,7 @@ class ESCParser:
     def proportional_spacing(self, proportional_spacing: bool):
         """Enable proportional spacing or fixed spacing
 
-        On ESCP2/ESCP printers, when multipoint mode is DISABLED,
+        On ESC/P2 & ESC/P printers, when multipoint mode is DISABLED,
         if you select proportional spacing with the ESC p
         command during draft printing, the printer prints an LQ font instead.
         When you cancel proportional spacing with the ESC p command,
@@ -2784,7 +3074,7 @@ class ESCParser:
         if self.multipoint_mode or self.pins == 9:
             # ESC X (multipoint mode), or 9pins printers
             return
-        # Not multipoint mode and ESCP2
+        # Not multipoint mode and ESC/P2
         if self._proportional_spacing:
             # Force LQ mode if in Draft mode
             self.previous_mode = self.mode
@@ -2805,7 +3095,7 @@ class ESCParser:
         - cancel the HMI set with the ESC c command
         - cancel multipoint mode
 
-        .. note:: ESCP2/ESCP only: If you select proportional spacing with the ESC p
+        .. note:: ESC/P2 & ESC/P only: If you select proportional spacing with the ESC p
             command during draft printing, the printer prints an LQ font instead.
             When you cancel proportional spacing with the ESC p
             command, the printer returns to draft printing.
@@ -2884,7 +3174,9 @@ class ESCParser:
         self.set_font()
 
     def set_double_strike_printing(self, *_):
-        """Print each dot twice, with the second slightly below the first, creating bolder characters - ESC G
+        """Print each dot twice, creating bolder characters - ESC G
+
+        Print each dot twice, with the second slightly below the first.
 
         Todo: 9 pins:
             LQ/NLQ mode overrides double-strike printing;
@@ -2902,7 +3194,7 @@ class ESCParser:
     def select_line_score(self, *args):
         r"""Turn on/off scoring of all characters and spaces following this command - ESC ( -
 
-        - Only ESCP2/ESCP 24/48 pins
+        - Only ESC/P2 & ESC/P 24/48 pins
         - Todo: does not affect graphics characters
         - Each type of scoring is independent of other types; any combination of
           scoring methods may be set simultaneously.
@@ -2957,7 +3249,7 @@ class ESCParser:
         character space; subscript characters are printed in the lower two-thirds.
 
         .. note:: Script printing + proportional mode:
-            For ESCP2, at the time,
+            For ESC/P2, at the time,
             the width of super/subscript characters when using proportional spacing
             differs from that of normal characters; see the super/subscript
             character proportional width table in the Appendix.
@@ -3001,7 +3293,7 @@ class ESCParser:
     def select_character_style(self, *args):
         """Turn on/off outline and shadow printing - ESC q
 
-        - only ESCP2/ESCP 24/48 pins
+        - only ESC/P2 & ESC/P 24/48 pins
         - Todo: does not affect graphics characters
         """
         value = args[1].value[0]
@@ -3042,7 +3334,7 @@ class ESCParser:
         9 pins only:
             - Ignored ("not available" ?!) when proportional spacing is selected.
 
-        ESCP2 only:
+        ESC/P2 only:
             - Reduces character width by about 50% when proportional spacing is selected;
             - Ignored on multipoint (no multipoint mode on 9pins);
             - Ignored if character pitch is selected by ESC g.
@@ -3051,13 +3343,13 @@ class ESCParser:
         :meth:`master_select` (SI, ESC SI, DC2, ESC ! commands).
         """
         if self.character_pitch == 1 / 15 and self.pins != 9:
-            # Ignore due to ESC g action for ESCP2 only
+            # Ignore due to ESC g action for ESC/P2 only
             return
         if self.pins == 9 and self.proportional_spacing:
             return
 
         # Cancel HMI set_horizontal_motion_index() ESC c command
-        # Note: the position is OK: ESC c is only used on ESCP2 printers,
+        # Note: the position is OK: ESC c is only used on ESC/P2 printers,
         # thus, here the command can't be ignored.
         self.character_width = None
 
@@ -3097,7 +3389,7 @@ class ESCParser:
         """Enter condensed mode, in which character width is reduced - SI, ESC SI
 
         Ignored if 15-cpi printing has been selected with the ESC g command
-        (ignored for ESCP2 and not for 9pins).
+        (ignored for ESC/P2 and not for 9pins).
 
         Change character pitch values according to the current pitch:
 
@@ -3138,10 +3430,10 @@ class ESCParser:
             :meth:`switch_double_width_printing`, :meth:`v_tab`.
 
         Double-width handling:
-            - ESCP2:
+            - ESC/P2:
             Do NOT cancel double-width when VT functions the same as a CR command
             (normal behavior).
-            - non-ESC/P 2 printers:
+            - non-ESC/P2 printers:
             Cancel double-width when VT functions the same as a CR command,
             and with a CR command.
             (normal behavior).
@@ -3198,7 +3490,7 @@ class ESCParser:
 
         doc p278
 
-        On Non-ESC/P 2 AND in ESCP2 typefaces not available in multipoint mode,
+        On Non-ESC/P 2 AND in ESC/P2 typefaces not available in multipoint mode,
         ESC w is the only way to modify the point size:
 
             - ESC w 1: Selects double-height (21-point) characters
@@ -3251,7 +3543,7 @@ class ESCParser:
     def print_data_as_characters(self, *args):
         """Print data as characters - ESC ( ^
 
-        - only ESCP2
+        - only ESC/P2
 
         .. warning:: Should ignore data if no character is assigned to that
             character code in the currently selected character table.
@@ -3265,7 +3557,8 @@ class ESCParser:
             Ex: cp437 has no graphic character under in the interval 0x01-0x1f,
             0x7f.
             These characters should be injected after the decoding process.
-            See: `Stackoverflow question <https://stackoverflow.com/questions/46942721/is-cp437-decoding-broken-for-control-characters>`_
+            See: `Stackoverflow question
+            <https://stackoverflow.com/questions/46942721/is-cp437-decoding-broken-for-control-characters>`_
 
         doc p157
         """
@@ -3282,7 +3575,7 @@ class ESCParser:
         Remains in effect even if you change the character table
 
         .. note:: About default config:
-            ESCP2, ESCP: Codes 128 to 159 are treated as printable characters
+            ESC/P2, ESC/P: Codes 128 to 159 are treated as printable characters
             9pins: Codes 128 to 159 are treated as control codes
 
         .. seealso:: :meth:`unset_upper_control_codes_printing`
@@ -3357,7 +3650,7 @@ class ESCParser:
         F   Loads paper from the front tractor
         R   Ejects one sheet of single-sheet paper
 
-        Todo R (ESCP2):
+        Todo R (ESC/P2):
             ejects the currently loaded single-sheet paper without printing data
             from the line buffer; this is not the equivalent of the FF command
             (which does print line-buffer data).
@@ -3373,14 +3666,16 @@ class ESCParser:
     def set_graphics_mode(self, *_):
         r"""Select graphics mode (allowing to print raster graphics) - ESC ( G
 
-        .. note:: only ESCP2
+        .. note:: only ESC/P2
 
         - exit by ESC @
         - turn MicroWeave printing off
         - clear tab settings
         - clear all user-defined characters
+        - various settings **should be** the same as when the power is turned on
 
         Only available commands:
+
             LF          Line feed
             FF          Form feed
             CR          Carriage return
@@ -3389,18 +3684,25 @@ class ESCParser:
             ESC .       Print raster graphics
             ESC . 2     Enter TIFF compressed mode*
             ESC . 3     Enter TIFF Delta Row compressed mode*
+            ESC i       Transfer raster image*
             ESC ( i     Select MicroWeave print mode*
             ESC ( c     Set page format
             ESC ( C     Set page length in defined unit
             ESC ( V     Set absolute vertical print position
             ESC ( v     Set relative vertical print position
-            ESC \       Set relative vertical print position
+            ESC \       Set relative horizontal print position
+            ESC ( /     Set relative horizontal print position*
             ESC $       Set absolute horizontal print position
+            ESC ( $     Set absolute horizontal print position*
             ESC r       Select printing color
             ESC U       Turn unidirectional mode on/off
             ESC +       Set n/360-inch line spacing
             ESC ( U     Set unit
             ESC ( r     Select printing color*
+            ESC ( K     Set monochrome/color mode*
+            ESC ( e     Set dot size*
+            ESC ( S     Set paper dimensions*
+            ESC ( m     Set print method ID*
 
             *: available only with the Stylus COLOR and later inkjet printer models
 
@@ -3415,6 +3717,7 @@ class ESCParser:
         """
         self.graphics_mode = True
         self.microweave_mode = False
+        self.color = 0
 
         # Clear tab settings
         self.horizontal_tabulations = [0] * 32
@@ -3438,7 +3741,145 @@ class ESCParser:
         value = args[1].value[0]
         self.microweave_mode = value in (1, 49)
 
-    def print_raster_graphics(self, *args):
+    def set_dot_size(self, _, token):
+        """Set dot size (extended) - ESC ( e
+
+        Todo: Use it!
+
+        - Default dot sizes are specific to each printer model.
+        - Dot control is valid irrespective of printing mode or printing density.
+        - Default dot size is selected by the ESC @ or ESC (G commands.
+        """
+        self.set_modern_compatibility(ModernEvidence.EXTENDED_COMMAND)
+        # List from XP-410
+        dot_sizes = {
+            0x00: "VSD1_1",
+            0x10: "VSD_UKN",  # added experimentally
+            0x11: "VSD1_2",
+            0x12: "VSD2_2",
+            0x13: "VSD3_2",
+        }
+        value = token.value[0]
+        if value not in dot_sizes:
+            LOGGER.warning("Not expected dot size: <%s>", value)
+            # Set default
+            value = 0x00
+        self.dot_size = value
+
+    def set_raster_resolution(self, _, token_base_unit, token_vh):
+        """Set the raster image resolution (extended) - ESC ( D
+
+        - Influences the processing of data by the ESC i command.
+          ESC . commands set the resolutions themselves.
+        - Settings are returned to the initial states by the ESC @
+          and the ESC ( G commands.
+
+        Expected resolutions (dpi): 120, 360, 720
+
+        :param token_vh: Dividers for vertical position units and
+            horizontal position units respectively.
+        :param token_base_unit: Dpi value divided by the dividers.
+        """
+        self.set_modern_compatibility(ModernEvidence.MODERN_RASTER_COMMAND)
+        base_unit = int.from_bytes(token_base_unit.value, "little")
+
+        v_div, h_div = token_vh.value
+        v_dpi, h_dpi = (base_unit / divider for divider in (v_div, h_div))
+
+        if {v_dpi, h_dpi} - {90, 120, 180, 360, 720}:
+            LOGGER.error(
+                "Unexpected VH dpi dividers received: %s for base unit %s",
+                token_vh.value,
+                base_unit,
+            )
+            return
+
+        self.vertical_resolution = v_div / base_unit
+        self.horizontal_resolution = h_div / base_unit
+
+        LOGGER.debug("Set raster resolution (dpi): %d x %d", v_dpi, h_dpi)
+
+    def set_monochrome_color_mode(self, _, token):
+        """Set monochrome / color modes (extended) - ESC ( K
+
+        This setting is used to simulate the differential activation of nozzles
+        (in number and position) on certain printer models, depending on whether
+        they are in monochrome or color mode.
+
+        When monochrome mode is selected, the color selection commands
+        ESC r and ESC (r are ignored.
+
+        .. seealso:: :meth:`get_nozzle_offset`, :meth:`color`.
+        """
+        self.set_modern_compatibility(ModernEvidence.EXTENDED_COMMAND)
+        is_monochrome = token.value == b"\x01"
+
+        if is_monochrome:
+            self.color = 0  # Black
+        self.monochrome_mode = is_monochrome
+
+        LOGGER.debug("Monochrome: %s", is_monochrome)
+
+    def get_nozzle_offset(self) -> float | int:
+        """Get the vertical offset for the current color's nozzles
+
+        Most EPSON print heads align all color nozzles on the same horizontal line.
+        However, some models use one color as a reference, with the other color
+        nozzles physically offset from it.
+
+        We need to compensate for the data generated by the driver in order
+        to determine the correct position of the received color lines.
+
+        Depending on whether monochrome or color mode is selected, the range
+        of nozzles may vary.
+        """
+        offset = (
+            self.nozzle_offsets_monochrome
+            if self.monochrome_mode
+            else self.nozzle_offsets
+        ).get(self.color, 0)
+        if LOGGER.level == DEBUG:
+            LOGGER.debug(
+                "Color %s; nozzle offset: %d/180inch",
+                self.color_names[self._color], offset * 180
+            )
+        return offset
+
+    def transfer_raster_image(self, _, token_header, token_data):
+        """Transfer raster image (extended) - ESC i
+
+        Print dot graphics in raster format.
+
+        Reminder of the structure of the header:
+
+            r : Color of ink
+            c : Compression method
+            b : Bit length required for each pixel of image data
+
+        .. seealso:: :meth:`print_raster_graphics_dots` if bit length is 1,
+            :meth:`print_raster_graphics_dots_2bpp` if bit length is 2.
+        """
+        self.set_modern_compatibility(ModernEvidence.MODERN_RASTER_COMMAND)
+        color, compression_status, bit_length, h_byte_count, v_dot_count = (
+            unpack("<BBBHH", token_header.value)
+        )
+        LOGGER.debug(
+            "color: %s; compression: %s, bit_len: %s, h_byte_count: %s, v_dot_count: %s",
+            color, compression_status, bit_length, h_byte_count, v_dot_count
+        )
+        self.color = color
+
+        data = token_data.value
+        if compression_status:
+            data = self.decompress_rle_data(data)
+
+        bytes_per_line = h_byte_count
+        if bit_length == 1:
+            self.print_raster_graphics_dots(data, bytes_per_line)
+        else:
+            self.print_raster_graphics_dots_2bpp(data, bytes_per_line)
+
+    def print_raster_graphics(self, _, token_header, token_data):
         """Print raster graphics - ESC .
 
         Doc p179, p304, examples p335
@@ -3448,7 +3889,7 @@ class ESCParser:
             - 0: Full graphics mode
             - 1: RLE compressed raster graphics mode
 
-        - ESCP2 only !!
+        - ESC/P2 only !!
         - Todo: available in graphics mode only via ESC ( G
         - Todo: Print data that exceeds the right margin is ignored.
         - When MicroWeave is selected, the image height m must be set to 1.
@@ -3462,7 +3903,9 @@ class ESCParser:
         """
         # v_dot_count_m (number of rows of dots): 1, 8, or 24
         # (9 or 16 can be encountered on some configs, see #2)
-        graphics_mode, v_res, h_res, v_dot_count_m, nL, nH = args[1].value
+        graphics_mode, v_res, h_res, v_dot_count_m, h_dot_count = (
+            unpack("<BBBBH", token_header.value)
+        )
         if self.microweave_mode and v_dot_count_m != 1:
             # In these settings, one raster line printed at a time
             # However we assume that the data is formatted for the given
@@ -3473,17 +3916,16 @@ class ESCParser:
                 "must be set to 1 (one line) => value NOT corrected"
             )
 
-        # Convert dpi to inches: 1/180, 1/360 or 1/720 inches, (180, 360 or 720 dpi)
+        # Convert dpi to inches: 1/120, 1/180, 1/360 or 1/720 inches
         self.vertical_resolution = v_res / 3600
         self.horizontal_resolution = h_res / 3600
 
-        # Number of columns of dots
-        h_dot_count = (nH << 8) + nL
+        # Number of columns of dots: h_dot_count
         # Used by print_raster_graphics_dots() to chunk data stream
-        self.bytes_per_line = int((h_dot_count + 7) / 8)
+        bytes_per_line = int((h_dot_count + 7) / 8)
 
         if LOGGER.level == DEBUG:
-            expected_bytes = v_dot_count_m * self.bytes_per_line
+            expected_bytes = v_dot_count_m * bytes_per_line
 
             LOGGER.debug(
                 "expect %s bytes (%s dots = %s byte(s) per line)",
@@ -3501,15 +3943,20 @@ class ESCParser:
             LOGGER.debug("line spacing: %s", self.current_line_spacing)
             LOGGER.debug("start coord: %s, %s", self.cursor_x, self.cursor_y)
 
-        data = args[2].value
+        data = token_data.value
         if graphics_mode == 1:
             # Decompress RLE compressed data
             data = self.decompress_rle_data(data)
 
         # Print dots on the canvas
-        self.print_raster_graphics_dots(data, h_dot_count=h_dot_count)
+        self.print_raster_graphics_dots(data, bytes_per_line, h_dot_count=h_dot_count)
 
-    def print_raster_graphics_dots(self, data, h_dot_count=None):
+    def print_raster_graphics_dots(
+        self,
+        data: bytearray,
+        bytes_per_line: int,
+        h_dot_count: int | None=None
+    ):
         """Print the dots in the given bytes
 
         Unlike bitimage printing, raster mode prints the bytes received from
@@ -3527,12 +3974,12 @@ class ESCParser:
             See explanations on :meth:`print_bit_image_dots`.
 
         :param data: Decompressed data bytes (1 byte for 8 dots).
+        :param bytes_per_line: Used to iterate over the data line by line.
         :key h_dot_count: (default: None) Total number of dots for the given line(s)
             Used to move the cursor_x after the data has been printed.
             Can be None if the number is unknown (See ESC . 2 TIFF mode).
-        :type data: bytearray
-        :type h_dot_count: int
         """
+        self._bytes_per_line = bytes_per_line  # For tests
         code = self.current_pdf._code
         horizontal_resolution = self.horizontal_resolution
         vertical_resolution = self.vertical_resolution
@@ -3548,7 +3995,7 @@ class ESCParser:
 
         mask = 0x80
         overflow_mask = 0xff
-        y_pos = cursor_y
+        y_pos = cursor_y - self.get_nozzle_offset()
         column_offset = i = 0
 
         if dots:
@@ -3564,7 +4011,7 @@ class ESCParser:
 
         # Iterate on bytes inside lines
         # Iterate on lines first
-        for line_bytes in chunk_this(data, self.bytes_per_line):
+        for line_bytes in chunk_this(data, bytes_per_line):
             # Keep track of the x position in the current line
             column_offset = 0
             cy = "{:.2f}".format(y_pos * 72).rstrip("0")
@@ -3603,6 +4050,112 @@ class ESCParser:
         # adjusted to reflect the number of the set bits in the last byte.
         printed_dots = h_dot_count if h_dot_count else column_offset - 8 + i
         self.cursor_x = printed_dots * horizontal_resolution
+
+    def print_raster_graphics_dots_2bpp(self, data: bytearray, bytes_per_line: int):
+        """Print the dots in the given bytes (2 bits per pixel)
+
+        - With a bit length of 2, we need to send 8 bytes to get only 32 pixels
+          (2 bits are used for a pixel).
+        - For every 2 bits of data, 1 dot may be printed at the pixel location
+          for those 2 bits:
+
+            - 00: No dot
+            - 01: Small dot
+            - 10: Medium dot
+            - 11: Large dot
+
+        .. seealso:: XP410 doc p54.
+
+        :param data: Raw data (not compressed).
+        :param bytes_per_line: Used to iterate over the data line by line.
+        """
+        self._bytes_per_line = bytes_per_line  # For tests
+        code = self.current_pdf._code
+
+        horizontal_resolution = self.horizontal_resolution
+        vertical_resolution = self.vertical_resolution
+        dots = self.dots_as_circles
+
+        cursor_x = self.cursor_x
+        cursor_y = self.cursor_y
+
+        if dots:
+            linewidth = horizontal_resolution * 72 * 1.28
+            dot_sizes = {
+                1: round(linewidth * 0.50, 2),  # small
+                2: round(linewidth * 1.00, 2),  # medium
+                3: round(linewidth * 1.50, 2),  # large
+            }
+        else:
+            unit = self.horizontal_resolution * 72
+            dot_sizes = {
+                1: round(unit * 1, 2),  # small
+                2: round(unit * 1.5, 2),  # medium
+                3: round(unit * 2, 2),  # large
+            }
+
+        def chunk_this(iterable, length):
+            """Split iterable in chunks of equal sizes"""
+            iterator = iter(iterable)
+            for _ in range(0, len(iterable), length):
+                yield tuple(it.islice(iterator, length))
+
+        y_pos = cursor_y - self.get_nozzle_offset()
+        pixel_count = 0
+
+        for line_bytes in chunk_this(data, bytes_per_line):
+            # Group the dots by size. This limits the changes of linewidth
+            # setting, thus, the PDF size.
+            paths = {
+                1: [],
+                2: [],
+                3: [],
+            }
+
+            column_offset = 0
+            cy = "{:.2f}".format(y_pos * 72).rstrip("0")
+
+            for byte in line_bytes:
+                for pixel_idx in range(4):
+                    # Consume the bits 2 by 2, starting from the MSB
+                    shift = 6 - pixel_idx * 2
+                    dot_type = (byte >> shift) & 0x03
+
+                    if not dot_type:
+                        continue
+
+                    x_pos = cursor_x + (column_offset + pixel_idx) * horizontal_resolution
+
+                    cx = "{:.2f}".format(x_pos * 72).rstrip("0")
+
+                    paths[dot_type].append(
+                        f"{cx} {cy} m {cx} {cy} l" if dots else f"{cx} {cy}"
+                    )
+
+                column_offset += 4
+
+            pixel_count = column_offset
+            y_pos -= vertical_resolution
+
+            # Dump groups of dots
+            for dot_type, segments in paths.items():
+                if not segments:
+                    continue
+
+                if dots:
+                    code.append(f"1 J {dot_sizes[dot_type]} w")
+                    code.extend(segments)
+                else:
+                    # Note: No vertical adjustment here, just a square...
+                    size = "{:.2f}".format(dot_sizes[dot_type]).rstrip("0")
+                    rect_suffix = f" {size} {size} re"
+                    code.append(f"{rect_suffix} ".join(segments) + rect_suffix)
+
+                code.append("S" if dots else "f")
+
+        # NOTE: If padding bits have to be considered, prefer this:
+        # horizontal_pixels = h_byte_count * 4
+        self.cursor_x = pixel_count * horizontal_resolution
 
     @staticmethod
     def decompress_rle_data(compressed_data: bytearray) -> bytearray:
@@ -3671,7 +4224,7 @@ class ESCParser:
         # PS: Here v_dot_count_m is equal to 1 (filtered by the grammar)
         # Because data is sent 1 line at a time
         graphics_mode, v_res, h_res, v_dot_count_m, *_ = args[1].value
-        # Convert dpi to inches: 1/180, 1/360 or 1/720 inches, (180, 360 or 720 dpi)
+        # Convert dpi to inches: 1/120, 1/180, 1/360 or 1/720 inches
         self.vertical_resolution = v_res / 3600
         self.horizontal_resolution = h_res / 3600
 
@@ -3760,12 +4313,10 @@ class ESCParser:
                 # Do not retrigger useless color change
                 self.color = idx
 
-            # ! Refresh the bytes per line used by the printing function for
-            # the current seed row !
-            self.bytes_per_line = len(seed_row)
-            # LOGGER.debug("expect %s bytes in seed row", self.bytes_per_line)
-
-            self.print_raster_graphics_dots(seed_row)
+            # Send the bytes per line for the current seed row
+            bytes_per_line = len(seed_row)
+            # LOGGER.debug("expect %s bytes in seed row", bytes_per_line)
+            self.print_raster_graphics_dots(seed_row, bytes_per_line)
 
             # Carriage return
             self.row_pos = 0
@@ -3791,9 +4342,9 @@ class ESCParser:
 
         # Do not chunk the data: all bytes are printed in the same line of 1 dot
         # (v_dot_count_m should be equal to 1)
-        self.bytes_per_line = len(data)
-        # LOGGER.debug("expect %s bytes", self.bytes_per_line)
-        self.print_raster_graphics_dots(data)
+        bytes_per_line = len(data)
+        # LOGGER.debug("expect %s bytes", bytes_per_line)
+        self.print_raster_graphics_dots(data, bytes_per_line)
 
     def set_relative_horizontal_position(self, *args):
         """Set relative horizontal position - <MOVX>
@@ -3837,8 +4388,7 @@ class ESCParser:
 
         self._carriage_return()
 
-        unit = self.defined_unit if self.defined_unit else 1 / 360
-        self.cursor_y -= dot_offset * unit
+        self.cursor_y -= dot_offset * self.vertical_unit
 
     def clear_seed_row(self, *_):
         """Clear the seed row from the current color buffer - <CLR>
@@ -3888,10 +4438,10 @@ class ESCParser:
             THUS, we can use the ESC ( U setting here (and not in the MOVX command),
             since it can't be changed in the meantime (the command is not allowed).
         """
-        unit = self.defined_unit if self.defined_unit else 1 / 360
+        unit = self.horizontal_unit if self.horizontal_unit else 1 / 360
         self.movx_unit = dot_unit * unit
 
-    def set_printing_color_ex(self, *args):
+    def set_printing_color_tiff(self, *args):
         """Select printing color - <COLR>
 
         1000 0000B  0x80    Black
@@ -3899,6 +4449,7 @@ class ESCParser:
         1000 0010B  0x82    Cyan
         1000 0100B  0x84    Yellow
 
+        Taken from legacy program (not verified):
         1000 1001B  0x89    Light Magenta
         1000 1010B  0x8a    Light Cyan
 
@@ -3908,7 +4459,13 @@ class ESCParser:
         - Parameters other than those listed above are ignored.
         - Combinations of colors are not available and will be ignored.
         """
-        self.color = args[0].value[0] & 0x0f
+        # Map Light* color ids to usual ids
+        mapping = {
+            9: 0x11,  # Light Magenta
+            10: 0x12,  # Light Cyan
+        }
+        color_id = args[0].value[0] & 0x0f
+        self.color = mapping.get(color_id, color_id)
         self._carriage_return()
 
     def exit_tiff_raster_graphics(self, *_):
@@ -3944,8 +4501,8 @@ class ESCParser:
 
         doc p184, p298 (full table)
         """
-        dot_density_m, nL, nH = args[1].value
-        dot_columns_nb = (nH << 8) + nL
+        dot_density_m, dot_columns_nb = unpack("<BH", args[1].value)
+
 
         # Configure the bit image printing mode according to the given dot density
         self.configure_bit_image(dot_density_m)
@@ -4119,7 +4676,8 @@ class ESCParser:
         # Get horizontal resolution via a mapping
         self.horizontal_resolution = self.bit_image_horizontal_resolution_mapping[dot_density_m]
 
-        # Get vertical resolution & expected bytes per column (influences the number of dots per column)
+        # Get vertical resolution & expected bytes per column
+        # (influences the number of dots per column)
         if dot_density_m < 32:
             # For 9 pins, fixed resolution
             self.vertical_resolution = 1 / 72 if self.pins == 9 else 1 / 60
@@ -4155,7 +4713,7 @@ class ESCParser:
         :param _: ESC byte command
         :param cmd_letter: ESC letter in K,L,Y,Z.
         :param dot_density_m:
-            - ESCP2: 0, 1, 2, 3, 4, 6, 32, 33, 38, 39, 40, 71, 72, 73 ;
+            - ESC/P2: 0, 1, 2, 3, 4, 6, 32, 33, 38, 39, 40, 71, 72, 73 ;
             - 9 pins: 0, 1, 2, 3, 4, 5, 6, 7.
         """
         dot_density_m = dot_density_m.value[0]
@@ -4174,7 +4732,7 @@ class ESCParser:
                 # Similar to ESC * 3
                 self.klyz_densities[3] = dot_density_m
 
-    def select_xdpi_graphics(self, esc, cmd_code, header, data, *_):
+    def select_xdpi_graphics(self, esc, cmd_code, data, *_):
         """Print bit-image graphics in 8-dot columns at various densities - ESC K, L, Y, Z
 
         - ESC K: density of 60 horizontal, p190
@@ -4185,15 +4743,8 @@ class ESCParser:
         .. seealso:: :meth:`reassign_bit_image_mode`, :meth:`configure_bit_image`,
             :meth:`print_bit_image_dots`.
         """
-        nL, nH = header.value
-        expected_bytes = (nH << 8) + nL
         cmd_code = cmd_code.value
         data = data.value
-        if len(data) != expected_bytes:  # pragma: no cover
-            LOGGER.error(
-                "expected_bytes not available !!! expect: %s, found: %s",
-                expected_bytes, len(data)
-            )
 
         cmd_codes_idx_mapping = {
             b"K": 0,
@@ -4224,15 +4775,8 @@ class ESCParser:
 
         Todo: Graphics data that would print beyond the right-margin position is ignored.
         """
-        dot_density_m, nL, nH = args[1].value
-        expected_bytes = (nH << 8) + nL
-
+        dot_density_m, *_ = args[1].value
         data = args[2].value
-        if len(data) != expected_bytes:  # pragma: no cover
-            LOGGER.error(
-                "expected_bytes not available !!! expect: %s, found: %s",
-                expected_bytes, len(data)
-            )
 
         self.configure_bit_image(dot_density_m)
 
@@ -4240,32 +4784,31 @@ class ESCParser:
         self.bytes_per_column = 2
         self.print_bit_image_dots(data, extended_dots=True)
 
-    def set_printing_color(self, *args):
-        """Select the color of printing - ESC r
-
-        Available colors:
-
-            0   Black
-            1   Magenta
-            2   Cyan
-            3   Violet
-            4   Yellow
-            5   Red
-            6   Green
+    def set_printing_color(self, _, token):
+        """Select the color of printing - ESC r / ESC ( r (extended)
 
         .. note:: Also available during graphics mode selected with the ESC ( G command.
-            In this mode for ESCP2, only Black, Cyan, Magenta, Yellow are available.
-            Non-ESCP2 printers can use any color.
+            In this mode for ESC/P2, only Black, Cyan, Magenta, Yellow are available.
+            Non-ESC/P2 printers can use any color.
 
-        Todo:
+            Extended version is only available in graphics mode.
+
+        .. warning:: WONTFIX:
             If you change the selected colors after entering raster graphics mode,
             the data buffer will be flushed.
-
         """
-        self.color = args[1].value[0]
+        # Can handle both legacy and extended values (1 and 2 bytes).
+        # Here the color ids are received in big endian!
+        color = int.from_bytes(token.value, byteorder="big")
+
+        if len(token.value) == 2:
+            self.set_modern_compatibility(ModernEvidence.EXTENDED_PARAMETER)
+            # 0x0102 => 0x12
+            color = color >> 4 | color & 0x0f
+        self.color = color
 
     ## barcode
-    def barcode(self, esc, header, data, *_):
+    def barcode(self, _, header, data):
         """Print bar codes - ESC ( B
 
         doc p202, p315
@@ -4315,8 +4858,7 @@ class ESCParser:
         not_supported_types = (4,)
 
         (
-            nL,
-            nH,
+            *_,
             barcode_type_k,
             module_width_m,
             space_adjustment_s,
@@ -4324,14 +4866,8 @@ class ESCParser:
             v2,
             control_flag_c,
         ) = header.value
-        expected_bytes = (nH << 8) + nL - 6
 
         data = data.value
-        if len(data) != expected_bytes:  # pragma: no cover
-            LOGGER.error(
-                "expected_bytes not available !!! expect: %s, found: %s",
-                expected_bytes, len(data)
-            )
 
         if barcode_type_k in not_supported_types:
             LOGGER.error("Barcode type %s is NOT supported (yet)!", barcode_types[barcode_type_k])
@@ -4379,6 +4915,85 @@ class ESCParser:
         )
         barcode.drawOn(self.current_pdf, self.cursor_x * 72, self.cursor_y * 72)
 
+    def exit_packet_mode(self, *_):
+        """Cancel packet communication protocol (Epson packet mode)
+
+        Sent at the beginning of each job.
+        Used here only to detect a modern printer.
+        """
+        self.set_modern_compatibility(ModernEvidence.EXTENDED_COMMAND)
+
+    def set_remote_mode(self, _):
+        """Enter in remote mode
+
+        Used here only to detect a modern printer.
+        """
+        self.set_modern_compatibility(ModernEvidence.REMOTE_COMMAND)
+
+    def set_relative_left_margin(self, token):
+        """Specify the horizontal left margin in units of 1/360 inch - FP
+
+        The default value for pos is 0.
+        For borderless printing on printers that support it, a negative value
+        of should be used (ex: -80 : 0xffb0 (BE): 0xb0 0xff (LE))
+        """
+        value = int.from_bytes(token.value, byteorder="little", signed=True)
+
+        left_margin = value * 1 / 360 + self.left_margin
+        LOGGER.debug(
+            "relative left margin: %s (previous: %s)", left_margin, self.left_margin
+        )
+
+        if not 0 <= left_margin < self.page_width:
+            LOGGER.error("relative left margin set outside page bounds")
+            return
+
+        self.left_margin = left_margin
+        self.reset_cursor_x()
+
+    def _apply_pdf_annotations(self, job_type: int, text: str):
+        """Set PDF annotations
+
+        Expected annotations types & corresponding PDF annotations:
+
+            - 0: Hostname - The PDF creator;
+            - 1: Product ID - Not supported for now;
+            - 2: Document name - The PDF title;
+            - 3: Username - The PDF author;
+
+        :param job_type: Annotation type (according to JH command)
+        :param text: Text to insert in the PDF annotations.
+        """
+        if not self.current_pdf:  # pragma: no cover
+            return
+
+        job_funcs = {
+            0: self.current_pdf.setCreator,  # Hostname
+            2: self.current_pdf.setTitle,  # Document name
+            3: self.current_pdf.setAuthor,  # Username
+        }
+        job_funcs.get(job_type, lambda _: None)(text)
+
+    def set_job_name(self, token):
+        """Set PDF annotations - JH
+
+        .. seealso:: :meth:`_apply_pdf_annotations`
+        """
+        job_type = token.value[1]
+        text = token.value[6:].decode("utf8")
+        self._apply_pdf_annotations(job_type, text)
+
+    def start_job(self, token):
+        """Start job - JS
+
+        Currently only set the job name in the PDF annotations.
+
+        .. seealso:: :meth:`_apply_pdf_annotations`
+        """
+        # Remove leading & trailing null chars
+        job_name = token.value[1:-1].decode("utf8")
+        self._apply_pdf_annotations(2, job_name)
+
     def reset_printer(self, *_):
         """Reset printer configuration
 
@@ -4390,6 +5005,8 @@ class ESCParser:
         """
         self.graphics_mode = False
         self.microweave_mode = False
+        self.monochrome_mode = False
+        self.color = 0
 
         # Cancel HMI set_horizontal_motion_index() ESC c command,
         # Cancel multipoint mode,
@@ -4404,7 +5021,7 @@ class ESCParser:
         :param tree: Lark tree of tokens, we use aliases as method names.
         :type tree: <lark.lexer.Tree>
         """
-        if tree.data in ("start", "instruction", "tiff_compressed_rule"):
+        if tree.data in ("start", "instruction", "tiff_compressed_rule", "remote_mode"):
             # Recursive call
             _ = [
                 self.run_esc_instruction(child)
@@ -4415,7 +5032,7 @@ class ESCParser:
             # Call the method and send the tokens as arguments
             getattr(self, tree.data)(*tree.children)
         else:
-            LOGGER.error("Command not implemented: %s; value: %s", tree, tree.data)
+            LOGGER.warning("Command not implemented: %s; value: %s", tree, tree.data)
 
     def run_escp(self, program):
         """Parse the printer data bytestream & build a pdf file

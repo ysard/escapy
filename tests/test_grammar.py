@@ -15,19 +15,12 @@
 #  You should have received a copy of the GNU Affero General Public License
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Grammar tests"""
-# Standard imports
-from functools import partial
-
 # Custom imports
 import pytest
 from lark import UnexpectedToken
 
 # Local imports
-from escapy.parser import ESCParser as _ESCParser
-from .misc import typefaces
-
-# Inject test typefaces
-ESCParser = partial(_ESCParser, available_fonts=typefaces)
+from .misc import ESCParser
 
 
 @pytest.fixture()

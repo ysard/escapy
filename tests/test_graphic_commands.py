@@ -27,7 +27,6 @@ Tested modes:
 import struct
 from pathlib import Path
 from unittest.mock import patch
-from functools import partial
 
 # Custom imports
 import pytest
@@ -36,10 +35,8 @@ from lark.exceptions import UnexpectedToken
 # Local imports
 from escapy.parser import ESCParser as _ESCParser
 from .misc import format_databytes, pdf_comparison
-from .misc import esc_reset, cancel_bold, graphics_mode, typefaces
-
-# Inject test typefaces
-ESCParser = partial(_ESCParser, available_fonts=typefaces)
+from .misc import esc_reset, cancel_bold, graphics_mode
+from .misc import ESCParser
 
 
 DECOMPRESSED_DATA = [
@@ -469,22 +466,68 @@ def get_raster_data_1dot():
         "24dots_v_band_microweave",
     ],
 )
-def test_print_raster_graphics(format_databytes: bytes, tmp_path: Path):
+def test_print_raster_graphics(
+    format_databytes: bytes,
+    tmp_path: Path,
+    request: "_pytest.fixtures.FixtureRequest"
+):
     """Test raster graphics 0 and 1 modes (no compress, RLE compress modes)
 
     Cover ESC . 0, ESC . 1 commands
 
     Data examples from the doc p313.
     """
-    processed_file = tmp_path / "test_raster_graphics_compress_no_and_rle.pdf"
+    test_id = f"[{request.node.callspec.id}]"
+
+    processed_file = tmp_path / f"test_raster_graphics_compress_no_and_rle{test_id}.pdf"
     escapy = ESCParser(format_databytes, output_file=processed_file)
 
     assert escapy.horizontal_resolution == 1 / 180
     assert escapy.vertical_resolution == 1 / 180
-    assert escapy.bytes_per_line == int((72 + 7) / 8)
+    assert escapy._bytes_per_line == int((72 + 7) / 8)
     assert escapy.double_speed is False
 
-    pdf_comparison(processed_file)
+    pdf_comparison(processed_file, test_id)
+
+
+@pytest.mark.parametrize(
+    "v_res_h_res, expected_resolutions",
+    [
+        (b"\x05\x0a", (1 / 720, 1 / 360)),
+        (b"\x14\x1e", (1 / 180, 1 / 120)),
+    ],
+    ids=[
+        "720_360dpi",
+        "180_120dpi",
+    ],
+)
+# We want to measure influence on resolutions
+# Cancel the (nonexistent) data printing
+@patch(
+    "escapy.parser.ESCParser.print_raster_graphics_dots",
+    lambda *args, **kwargs: None,
+)
+def test_raster_graphics_resolutions(v_res_h_res: bytes, expected_resolutions):
+    """Test ESC . 0 vertical & horizontal resolutions
+
+    .. seealso:: For ESC i (transfer raster image) related resolutions, see
+        :meth:`.test_graphic_transfer_raster_image.test_set_raster_resolution`.
+    """
+    expected_v_res, expected_h_res = expected_resolutions
+
+    # The resolutions are IN the graphic command
+    raster_graphics = b"\x1b.\x00"
+    v_dot_count_m = b"\x01"  # height of the band: 1 dot (1 line)
+    # nL, hH: Horizontal resolution: 9 bytes of 8 dots = 72 dots
+    # PS: length of decompressed data: vertical * horizontal = 9 bytes * 8 lines
+    #   72 bytes
+    h_dot_count = b"\x48\x00"
+
+    code = raster_graphics + v_res_h_res + v_dot_count_m + h_dot_count
+
+    escapy = ESCParser(esc_reset + code, pdf=False)
+    assert escapy.vertical_resolution == expected_v_res
+    assert escapy.horizontal_resolution == expected_h_res
 
 
 def test_set_printing_color():
@@ -494,20 +537,25 @@ def test_set_printing_color():
     - ESC r: set color
     - ESC ( r: set color in graphics mode
     """
-    # TODO: Should not allow color editing if enabled
     set_monochrome_mode = b"\x1b(K\x02\x00\x00\x01"
     set_color_magenta = b"\x1br\x01"
     # NOTE: Should not be available if not in graphics mode
     set_color_magenta_ex = b"\x1b(r\x02\x00\x00\x01"
+    set_ukn_color_ex = b"\x1b(r\x02\x00\x02\x02"
+    # Extra color codes: \x01\x01: 0x11 (Light Magenta)
+    set_light_magenta_ex = b"\x1b(r\x02\x00\x01\x01"
 
     dataset = [
         (set_monochrome_mode, "Black"),
-        (set_monochrome_mode + set_color_magenta, "Magenta"),  # TODO: refused
+        # Color change is refused in monochrome mode
+        (set_monochrome_mode + set_color_magenta, "Black"),
         (set_color_magenta, "Magenta"),
         (set_color_magenta_ex, "Magenta"),
+        # Unknown color: ignored
+        (set_color_magenta + set_ukn_color_ex, "Magenta"),
+        (set_light_magenta_ex, "Light Magenta"),
     ]
     for code, expected in dataset:
-
         escapy = ESCParser(esc_reset + code, pdf=False)
         found = escapy.color_names[escapy.color]
         print(code, "=>", expected)
@@ -598,7 +646,7 @@ def test_print_tiff_raster_graphics(
 
     assert escapy.horizontal_resolution == 1 / 180
     assert escapy.vertical_resolution == 1 / 180
-    assert escapy.bytes_per_line == expected_bytes_count
+    assert escapy._bytes_per_line == expected_bytes_count
 
     pdf_comparison(processed_file)
 
@@ -665,7 +713,7 @@ def test_advanced_rle_decompress(tmp_path):
 
     processed_file = tmp_path / "test_advanced_rle_decompress.pdf"
     escapy = ESCParser(b"".join(code), dots_as_circles=True, output_file=processed_file)
-    assert escapy.bytes_per_line == expected_bytes_count
+    assert escapy._bytes_per_line == expected_bytes_count
     pdf_comparison(processed_file)
 
 

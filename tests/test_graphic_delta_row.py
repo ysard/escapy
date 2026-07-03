@@ -23,15 +23,11 @@ Tested mode:
 
 # Standard imports
 from pathlib import Path
-from functools import partial
 
 # Local imports
-from escapy.parser import ESCParser as _ESCParser
 from .misc import pdf_comparison
-from .misc import graphics_mode, typefaces
-
-# Inject test typefaces
-ESCParser = partial(_ESCParser, available_fonts=typefaces)
+from .misc import graphics_mode
+from .misc import ESCParser
 
 
 def get_raster_delta_row_command():

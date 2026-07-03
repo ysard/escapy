@@ -22,9 +22,12 @@ from functools import partial
 
 # Custom imports
 import pytest
+from reportlab.lib.colors import PCMYKColorSep
 
 # Local imports
+from escapy.parser import ESCParser as _ESCParser
 from escapy.fonts import find_font
+from escapy.printer_profile import PrinterProfile
 from .helpers.diff_pdf import is_similar_pdfs
 
 # Test data path depends on the current package name
@@ -120,6 +123,44 @@ liberation_font_def = {
     ),
 }
 
+default_printer_profile = PrinterProfile(
+    name='generic',
+    color_names={
+        0: 'Black',
+        1: 'Magenta',
+        2: 'Cyan',
+        4: 'Yellow',
+        5: 'Red',
+        6: 'Green',
+        17: 'Light Magenta',
+        18: 'Light Cyan',
+    },
+    RGB_colors={
+        0: '#000000',
+        1: '#ff00ff',
+        2: '#00ffff',
+        4: '#ffff00',
+        5: '#ff0000',
+        6: '#00ff00',
+        17: '#ff80ff',
+        18: '#80ffff',
+    },
+    CMYK_colors={
+        0: PCMYKColorSep(0,0,0,100,spotName='BLACK'),
+        1: PCMYKColorSep(0,100,0,0,spotName='MAGENTA'),
+        2: PCMYKColorSep(100,0,0,0,spotName='CYAN'),
+        4: PCMYKColorSep(0,0,100,0,spotName='YELLOW'),
+        5: PCMYKColorSep(0,100,100,0,spotName='RED'),
+        6: PCMYKColorSep(100,0,100,0,spotName='GREEN'),
+        17: PCMYKColorSep(0,50,0,0,spotName='LIGHT MAGENTA'),
+        18: PCMYKColorSep(50,0,0,0,spotName='LIGHT CYAN')},
+    nozzle_offsets={0: 0.0, 1: 0.0, 2: 0.0, 4: 0.0, 5: 0.0, 6: 0.0, 17: 0.0, 18: 0.0},
+    nozzle_offsets_monochrome={0: 0.0, 1: 0.0, 2: 0.0, 4: 0.0, 5: 0.0, 6: 0.0, 17: 0.0, 18: 0.0},
+)
+
+# Inject test typefaces & printer profile
+ESCParser = partial(_ESCParser, printer_profile=default_printer_profile, available_fonts=typefaces)
+
 
 @pytest.fixture
 def format_databytes(request):
@@ -131,7 +172,7 @@ def format_databytes(request):
     return databytes
 
 
-def pdf_comparison(processed_file: Path):
+def pdf_comparison(processed_file: Path, test_id: str = ""):
     """Wrapper to compare two PDFs files
 
     In case of error, the wrong pdf and the diff file will be copied in /tmp/.
@@ -139,12 +180,20 @@ def pdf_comparison(processed_file: Path):
     :param processed_file: Test file Path object. Its name is used to make
         the comparison with an expected file with the same name, expected in
         the test_data directory.
+    :key test_id: Current test id used to get the reference file from the
+        processed file name.
+        This prevents unwanted override accross tests (at least in the same
+        parametrized test).
     """
     # Keep track of the generated file in /tmp in case of error
-    backup_file = Path("/tmp/" + processed_file.name)
-    backup_file.write_bytes(processed_file.read_bytes())
+    if test_id:
+        reference_file = Path(DIR_DATA) / processed_file.name.replace(test_id, "")
+    else:
+        reference_file = Path(DIR_DATA) / processed_file.name
 
-    ret = is_similar_pdfs(processed_file, Path(DIR_DATA + processed_file.name))
+    ret = is_similar_pdfs(reference_file, processed_file)
+    if not ret:
+        backup_file = Path("/tmp") / processed_file.name
+        backup_file.write_bytes(processed_file.read_bytes())
+
     assert ret, f"Problematic file is saved at <{backup_file}> for further study."
-    # All is ok => delete the generated file
-    backup_file.unlink()
