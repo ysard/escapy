@@ -12,6 +12,10 @@ coverage:
 	pytest --cov=$(PACKAGE_NAME) --cov-report term-missing -vv
 	@-coverage-badge -f -o images/coverage.svg
 
+p_cov:
+	# Parallelisation of tests
+	pytest --cov=$(PACKAGE_NAME) --cov-report term-missing -vv -n 8
+
 branch_coverage:
 	pytest --cov=$(PACKAGE_NAME) --cov-report term-missing --cov-branch -vv
 
