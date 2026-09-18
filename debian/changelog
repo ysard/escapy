@@ -6,7 +6,7 @@ escapy (1.1.1-1) UNRELEASED; urgency=medium
 
  -- Ysard <ysard@users.noreply.github.com>  Tue, 18 Sep 2026 19:26:00 +0200
 
- escapy (1.1.0-1) UNRELEASED; urgency=medium
+escapy (1.1.0-1) UNRELEASED; urgency=medium
 
   * Set unit: ESC U, ESC ( U
   * Raster resolution: ESC ( D
