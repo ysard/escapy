@@ -382,7 +382,8 @@ def decompress_rle_data(
 
     :param iter_data: Iterator over the data stream.
     :param expected_decompressed_bytes: The number of bytes that should be
-        decompressed. Iterating on iter_data stops when this number is reached.
+        obtained after decompression.
+        Iterating on iter_data stops when this number is reached.
     :type iter_data: Iterator[bytearray]
     :type expected_decompressed_bytes: int
     :return: Tuple of decompressed data, and number of bytes read.
