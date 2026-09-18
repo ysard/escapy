@@ -440,6 +440,7 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
                 "Lexer error at file offset: %d",
                 interactive.lexer_thread.state.line_ctr.char_pos
             )
+            LOGGER.exception(exc)
             raise exc
         else:
             # LOGGER.debug((token.type, token.value))
