@@ -473,9 +473,21 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
                 # Ex: b"\x01\x14\x14\x18\xa0\x01"
                 graphics_mode, v_res, h_res, v_dot_count_m, nL, nH = token.value
                 h_dot_count = (nH << 8) + nL
-                expected_bytes = v_dot_count_m * int((h_dot_count + 7) / 8)
+                expected_decompressed_bytes = v_dot_count_m * int((h_dot_count + 7) / 8)
 
-                # LOGGER.debug("Expect %d bytes", expected_bytes)
+                if graphics_mode == 1:
+                    # RLE/TIFF compression
+                    token_start_pos = interactive.lexer_thread.state.line_ctr.char_pos
+                    iter_data = iter(interactive.lexer_thread.state.text[token_start_pos:])
+                    _, expected_bytes = decompress_rle_data(
+                        iter_data,
+                        expected_decompressed_bytes
+                    )
+                    # LOGGER.debug("Expect %d bytes", expected_bytes)
+                else:
+                    # No compression
+                    expected_bytes = expected_decompressed_bytes
+
                 data_token_flag = True
 
             elif token.type == "TRANSFER_RASTER_IMAGE_HEADER":
@@ -488,7 +500,7 @@ def parse_from_stream(parser, code, *args, start=None, **kwargs):
                     # RLE/TIFF compression
                     token_start_pos = interactive.lexer_thread.state.line_ctr.char_pos
                     iter_data = iter(interactive.lexer_thread.state.text[token_start_pos:])
-                    data, expected_bytes = decompress_rle_data(
+                    _, expected_bytes = decompress_rle_data(
                         iter_data,
                         expected_decompressed_bytes
                     )
