@@ -354,6 +354,9 @@ def get_raster_data_code(rle_compressed=False):
         raster_graphics_rle if rle_compressed else raster_graphics,
         v_res_h_res + v_dot_count_m + h_dot_count,
         COMPRESSED_DATA if rle_compressed else DECOMPRESSED_DATA,
+        # This will raise an error if interpreted as graphic data
+        # (if the decompression code wrongly evaluates the number of bytes to read)
+        esc_reset,
     ]
     return b"".join(code)
 
